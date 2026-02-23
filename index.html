@@ -64,11 +64,11 @@
 <div class="container">
     <div class="categories-nav">
         <button class="cat-btn active" onclick="filterCat('all', this)">الكل</button>
+        <button class="cat-btn" onclick="filterCat('العراق', this)">العراق 🇮🇶</button>
         <button class="cat-btn" onclick="filterCat('الاردن', this)">الأردن 🇯🇴</button>
         <button class="cat-btn" onclick="filterCat('لبنان', this)">لبنان 🇱🇧</button>
         <button class="cat-btn" onclick="filterCat('مصر', this)">مصر 🇪🇬</button>
         <button class="cat-btn" onclick="filterCat('السعودية', this)">السعودية 🇸🇦</button>
-        <button class="cat-btn" onclick="filterCat('امريكا', this)">أمريكا 🇺🇸</button>
         <button class="cat-btn" onclick="filterCat('Paypal', this)">PayPal 💳</button>
         <button class="cat-btn" onclick="filterCat('USDT', this)">USDT 🪙</button>
         <button class="cat-btn" onclick="filterCat('ويسترن', this)">Western Union 🏦</button>
@@ -78,6 +78,20 @@
 
     <div class="grid" id="grid">
         
+        <div class="card" data-cat="العراق">
+            <div class="card-header">ماستر كارد العراق | QI Card 🇮🇶</div>
+            <div class="card-body">
+                <div class="info-row"><span class="info-label">الاسم:</span><span class="info-value">HADI FALAH HASAN</span></div>
+                <div class="info-row"><span class="info-label">رقم الحساب:</span><span class="info-value">1832664922</span></div>
+                <div class="instructions warning-box">
+                    <span class="warning-text">💫 ممنوع كتابة أي ملاحظات في التحويل</span>
+                    🚨 مدة الحساب فقط 24 ساعة<br>
+                    🔄 تحديث دوري (لا نتحمل مسؤولية التحويل بعد وقف الحساب)
+                </div>
+            </div>
+            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ بيانات العراق</button>
+        </div>
+
         <div class="card" data-cat="الاردن">
             <div class="card-header">محافظ الأردن 🇯🇴 (Uwallet)</div>
             <div class="card-body">
@@ -89,21 +103,7 @@
                     ⏳ التشييك خلال 24 ساعة
                 </div>
             </div>
-            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ البيانات</button>
-        </div>
-
-        <div class="card" data-cat="الاردن">
-            <div class="card-header">محافظ الأردن 🇯🇴 (Zain Cash)</div>
-            <div class="card-body">
-                <div class="info-row"><span class="info-label">الاسم:</span><span class="info-value">Aya alsaheb</span></div>
-                <div class="info-row"><span class="info-label">الرقم:</span><span class="info-value">0795313395</span></div>
-                <div class="instructions warning-box">
-                    <span class="warning-text">🔥 ممنوع التواصل مع صاحب الرقم</span>
-                    📸 اسم المرسل مع السكرين<br>
-                    ⏳ التشييك خلال 24 ساعة
-                </div>
-            </div>
-            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ البيانات</button>
+            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ بيانات الأردن</button>
         </div>
 
         <div class="card" data-cat="لبنان">
@@ -142,14 +142,12 @@
             <button class="copy-btn" onclick="copyAction(this)">📋 نسخ بيانات البنك</button>
         </div>
 
-        <div class="card" data-cat="Paypal">
-            <div class="card-header">باي بال | PayPal 💳</div>
+        <div class="card" data-cat="ويسترن">
+            <div class="card-header">ويسترن يونيون | Western Union 🏦</div>
             <div class="card-body">
-                <div class="info-row"><span class="info-label">الايميل:</span><span class="info-value">ahmad_alqerem@hotmail.com</span></div>
-                <div class="info-row"><span class="info-label">الرابط:</span><span class="info-value">paypal.me/ahmadalqerem</span></div>
-                <div class="instructions">🚫 بدون ملاحظات نهائياً / إرسال اسم المرسل</div>
+                <div class="info-row"><span class="info-label">الاسم:</span><span class="info-value">Atlas</span></div>
             </div>
-            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ بيانات PayPal</button>
+            <button class="copy-btn" style="background: #ffcc00; color: black;" onclick="window.open('https://ftr235tg1fqwwgw2w5t12tgfw-225325gtc.com/', '_blank')">🔗 فتح رابط ويسترن يونيون</button>
         </div>
 
         <div class="card" data-cat="USDT">
@@ -159,23 +157,6 @@
                 <div class="instructions">⚠️ تأكد من اختيار شبكة TRC20 فقط</div>
             </div>
             <button class="copy-btn" onclick="copyAction(this)">📋 نسخ العنوان</button>
-        </div>
-
-        <div class="card" data-cat="امريكا">
-            <div class="card-header">Zelle 🇺🇸</div>
-            <div class="card-body">
-                <div class="info-row"><span class="info-label">الحسابات:</span><span class="info-value">adham.mousa@outlook.com<br>mousa.adham2@gmail.com</span></div>
-                <div class="instructions">📍 إرفاق اشعار كامل (اسم المرسل + ID المعاملة)</div>
-            </div>
-            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ Zelle</button>
-        </div>
-
-        <div class="card" data-cat="ويسترن">
-            <div class="card-header">ويسترن يونيون | Western Union 🏦</div>
-            <div class="card-body">
-                <div class="info-row"><span class="info-label">الاسم:</span><span class="info-value">Atlas</span></div>
-            </div>
-            <button class="copy-btn" style="background: #ffcc00; color: black;" onclick="window.open('https://ftr235tg1fqwwgw2w5t12tgfw-225325gtc.com/', '_blank')">🔗 فتح رابط ويسترن يونيون</button>
         </div>
 
     </div>
