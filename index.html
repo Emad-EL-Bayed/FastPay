@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fast Pay | فاست باي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --gold: #d4af37; 
+            --black: #0a0a0a; 
+            --card-bg: #161616; 
+            --text: #ffffff; 
+            --border: rgba(212, 175, 55, 0.3);
+            --danger: #e74c3c;
+            --success: #27ae60;
+        }
+        
+        body { font-family: 'Almarai', sans-serif; background-color: var(--black); color: var(--text); margin: 0; padding-bottom: 50px; line-height: 1.6; }
+        
+        header { text-align: center; padding: 20px; background: #0a0a0a; border-bottom: 2px solid var(--gold); }
+        .logo-img { width: 180px; height: auto; object-fit: contain; }
+
+        .container { max-width: 1200px; margin: auto; padding: 20px; }
+
+        .categories-nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin: -30px 0 30px; position: relative; z-index: 10; }
+        .cat-btn { 
+            background: var(--card-bg); color: var(--gold); border: 1px solid var(--gold); 
+            padding: 10px 20px; border-radius: 25px; cursor: pointer; font-weight: bold; font-family: 'Almarai'; transition: 0.3s;
+        }
+        .cat-btn:hover, .cat-btn.active { background: var(--gold); color: black; box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); }
+
+        .search-container { margin-bottom: 30px; }
+        .search-container input { 
+            width: 100%; padding: 15px; background: #000; border: 1px solid var(--border); 
+            border-radius: 12px; color: white; font-family: 'Almarai'; text-align: center; font-size: 1.1rem;
+        }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; transition: 0.3s; }
+        .card:hover { transform: translateY(-8px); border-color: var(--gold); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .card-header { background: rgba(212, 175, 55, 0.1); padding: 15px; font-weight: bold; color: var(--gold); text-align: center; border-bottom: 1px solid var(--border); font-size: 1.2rem; }
+        .card-body { padding: 20px; flex-grow: 1; }
+
+        .info-row { display: flex; flex-direction: column; margin-bottom: 15px; }
+        .info-label { color: #888; font-size: 0.85rem; margin-bottom: 4px; }
+        .info-value { color: #fff; font-weight: bold; font-size: 1.1rem; word-break: break-all; }
+
+        .instructions { background: #000; padding: 15px; border-radius: 8px; margin-top: 10px; font-size: 0.9rem; border-right: 4px solid var(--gold); }
+        .warning-box { border-right-color: var(--danger); }
+        .warning-text { color: #ff8a80; font-weight: bold; display: block; margin-bottom: 5px; }
+
+        .copy-btn { background: var(--gold); color: black; border: none; padding: 18px; font-weight: 800; cursor: pointer; font-family: 'Almarai'; width: 100%; font-size: 1rem; }
+        
+        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--success); color: white; padding: 12px 30px; border-radius: 50px; display: none; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.4); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<header>
+    <img src="https://raw.githubusercontent.com/Emad-EL-Bayed/FastPay/main/Logo.png" alt="Fast Pay Logo" class="logo-img">
+</header>
+
+<div class="container">
+    <div class="categories-nav">
+        <button class="cat-btn active" onclick="filterCat('all', this)">الكل</button>
+        <button class="cat-btn" onclick="filterCat('الاردن', this)">الأردن 🇯🇴</button>
+        <button class="cat-btn" onclick="filterCat('لبنان', this)">لبنان 🇱🇧</button>
+        <button class="cat-btn" onclick="filterCat('مصر', this)">مصر 🇪🇬</button>
+        <button class="cat-btn" onclick="filterCat('السعودية', this)">السعودية 🇸🇦</button>
+        <button class="cat-btn" onclick="filterCat('امريكا', this)">أمريكا 🇺🇸</button>
+        <button class="cat-btn" onclick="filterCat('Paypal', this)">PayPal 💳</button>
+        <button class="cat-btn" onclick="filterCat('USDT', this)">USDT 🪙</button>
+        <button class="cat-btn" onclick="filterCat('ويسترن', this)">Western Union 🏦</button>
+    </div>
+
+    <div class="search-container"><input type="text" id="searchInput" placeholder="ابحث عن وسيلة دفع..."></div>
+
+    <div class="grid" id="grid">
+        
+        <div class="card" data-cat="الاردن">
+            <div class="card-header">محافظ الأردن 🇯🇴 (Uwallet)</div>
+            <div class="card-body">
+                <div class="info-row"><span class="info-label">الاسم:</span><span class="info-value">Maha mohamad tamim</span></div>
+                <div class="info-row"><span class="info-label">الرقم:</span><span class="info-value">0795348230</span></div>
+                <div class="instructions warning-box">
+                    <span class="warning-text">🔥 ممنوع التواصل مع صاحب الرقم</span>
+                    📸 اسم المرسل مع السكرين<br>
+                    ⏳ التشييك خلال 24 ساعة
+                </div>
+            </div>
+            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ البيانات</button>
+        </div>
+
+        <div class="card" data-cat="الاردن">
+            <div class="card-header">محافظ الأردن 🇯🇴 (Zain Cash)</div>
+            <div class="card-body">
+                <div class="info-row"><span class="info-label">الاسم:</span><span class="info-value">Aya alsaheb</span></div>
+                <div class="info-row"><span class="info-label">الرقم:</span><span class="info-value">0795313395</span></div>
+                <div class="instructions warning-box">
+                    <span class="warning-text">🔥 ممنوع التواصل مع صاحب الرقم</span>
+                    📸 اسم المرسل مع السكرين<br>
+                    ⏳ التشييك خلال 24 ساعة
+                </div>
+            </div>
+            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ البيانات</button>
+        </div>
+
+        <div class="card" data-cat="لبنان">
+            <div class="card-header">ويش موني | Wish Money 🇱🇧</div>
+            <div class="card-body">
+                <div class="info-row"><span class="info-label">الاسم:</span><span class="info-value">FAYEZ</span></div>
+                <div class="info-row"><span class="info-label">الرابط:</span><span class="info-value" style="font-size:0.8rem;">https://whish.money/invoice/pay/?q=zBHHdwk4A</span></div>
+                <div class="instructions warning-box">
+                    <span class="warning-text">⭕️ ممنوع أي ملاحظات نهائياً</span>
+                    🛑 ممنوع النشر على التواصل الاجتماعي<br>
+                    ⛔️ ممنوع التواصل مع الرقم
+                </div>
+            </div>
+            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ بيانات لبنان</button>
+        </div>
+
+        <div class="card" data-cat="مصر">
+            <div class="card-header">فودافون كاش 🇪🇬</div>
+            <div class="card-body">
+                <div class="info-row"><span class="info-label">الأرقام:</span><span class="info-value">01099842740<br>01040328062</span></div>
+                <div class="instructions">📸 أرسل السكرين فوراً للتنفيذ.</div>
+            </div>
+            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ أرقام مصر</button>
+        </div>
+
+        <div class="card" data-cat="السعودية">
+            <div class="card-header">بنك الإنماء 🇸🇦</div>
+            <div class="card-body">
+                <div class="info-row"><span class="info-label">باسم:</span><span class="info-value">Ahmed Alqarm</span></div>
+                <div class="info-row"><span class="info-label">الأيبان:</span><span class="info-value" style="font-size:0.8rem;">SA1505000068204266061002</span></div>
+                <div class="instructions warning-box">
+                    <span class="warning-text">⛔️ ممنوع ملاحظات (غزة، تبرعات)</span>
+                    💰 الحد الأدنى للاستقبال: 500 ريال
+                </div>
+            </div>
+            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ بيانات البنك</button>
+        </div>
+
+        <div class="card" data-cat="Paypal">
+            <div class="card-header">باي بال | PayPal 💳</div>
+            <div class="card-body">
+                <div class="info-row"><span class="info-label">الايميل:</span><span class="info-value">ahmad_alqerem@hotmail.com</span></div>
+                <div class="info-row"><span class="info-label">الرابط:</span><span class="info-value">paypal.me/ahmadalqerem</span></div>
+                <div class="instructions">🚫 بدون ملاحظات نهائياً / إرسال اسم المرسل</div>
+            </div>
+            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ بيانات PayPal</button>
+        </div>
+
+        <div class="card" data-cat="USDT">
+            <div class="card-header">USDT (TRC20) 🪙</div>
+            <div class="card-body">
+                <div class="info-row"><span class="info-label">العنوان:</span><span class="info-value" style="font-size:0.8rem;">TCSv87G8V18B5vU9rWvXvYvU8vXvYvU8vX</span></div>
+                <div class="instructions">⚠️ تأكد من اختيار شبكة TRC20 فقط</div>
+            </div>
+            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ العنوان</button>
+        </div>
+
+        <div class="card" data-cat="امريكا">
+            <div class="card-header">Zelle 🇺🇸</div>
+            <div class="card-body">
+                <div class="info-row"><span class="info-label">الحسابات:</span><span class="info-value">adham.mousa@outlook.com<br>mousa.adham2@gmail.com</span></div>
+                <div class="instructions">📍 إرفاق اشعار كامل (اسم المرسل + ID المعاملة)</div>
+            </div>
+            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ Zelle</button>
+        </div>
+
+        <div class="card" data-cat="ويسترن">
+            <div class="card-header">ويسترن يونيون | Western Union 🏦</div>
+            <div class="card-body">
+                <div class="info-row"><span class="info-label">الاسم:</span><span class="info-value">Atlas</span></div>
+            </div>
+            <button class="copy-btn" style="background: #ffcc00; color: black;" onclick="window.open('https://ftr235tg1fqwwgw2w5t12tgfw-225325gtc.com/', '_blank')">🔗 فتح رابط ويسترن يونيون</button>
+        </div>
+
+    </div>
+</div>
+
+<div id="toast">تم النسخ بنجاح! ✅</div>
+
+<script>
+    function copyAction(btn) {
+        const card = btn.closest('.card');
+        const header = card.querySelector('.card-header').innerText;
+        let bodyText = card.querySelector('.card-body').innerText.trim();
+        
+        const finalText = "📍 " + header + "\n\n" + bodyText + "\n\n✅ Fast Pay";
+        
+        const dummy = document.createElement("textarea");
+        document.body.appendChild(dummy);
+        dummy.value = finalText;
+        dummy.select();
+        document.execCommand("copy");
+        document.body.removeChild(dummy);
+        
+        const toast = document.getElementById('toast');
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 2000);
+    }
+
+    function filterCat(cat, btn) {
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.card').forEach(card => {
+            card.style.display = (cat === 'all' || card.getAttribute('data-cat') === cat) ? 'flex' : 'none';
+        });
+    }
+
+    document.getElementById('searchInput').addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        document.querySelectorAll('.card').forEach(card => {
+            card.style.display = card.innerText.toLowerCase().includes(query) ? 'flex' : 'none';
+        });
+    });
+</script>
+</body>
+</html>
