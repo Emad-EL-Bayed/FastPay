@@ -99,11 +99,10 @@
                 <div class="info-row"><span class="info-label">الرقم:</span><span class="info-value">0795348230</span></div>
                 <div class="instructions warning-box">
                     <span class="warning-text">🔥 ممنوع التواصل مع صاحب الرقم</span>
-                    📸 اسم المرسل مع السكرين<br>
-                    ⏳ التشييك خلال 24 ساعة
+                    📸 اسم المرسل مع السكرين
                 </div>
             </div>
-            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ بيانات الأردن</button>
+            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ البيانات</button>
         </div>
 
         <div class="card" data-cat="لبنان">
@@ -118,28 +117,6 @@
                 </div>
             </div>
             <button class="copy-btn" onclick="copyAction(this)">📋 نسخ بيانات لبنان</button>
-        </div>
-
-        <div class="card" data-cat="مصر">
-            <div class="card-header">فودافون كاش 🇪🇬</div>
-            <div class="card-body">
-                <div class="info-row"><span class="info-label">الأرقام:</span><span class="info-value">01099842740<br>01040328062</span></div>
-                <div class="instructions">📸 أرسل السكرين فوراً للتنفيذ.</div>
-            </div>
-            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ أرقام مصر</button>
-        </div>
-
-        <div class="card" data-cat="السعودية">
-            <div class="card-header">بنك الإنماء 🇸🇦</div>
-            <div class="card-body">
-                <div class="info-row"><span class="info-label">باسم:</span><span class="info-value">Ahmed Alqarm</span></div>
-                <div class="info-row"><span class="info-label">الأيبان:</span><span class="info-value" style="font-size:0.8rem;">SA1505000068204266061002</span></div>
-                <div class="instructions warning-box">
-                    <span class="warning-text">⛔️ ممنوع ملاحظات (غزة، تبرعات)</span>
-                    💰 الحد الأدنى للاستقبال: 500 ريال
-                </div>
-            </div>
-            <button class="copy-btn" onclick="copyAction(this)">📋 نسخ بيانات البنك</button>
         </div>
 
         <div class="card" data-cat="ويسترن">
@@ -169,7 +146,6 @@
         const card = btn.closest('.card');
         const header = card.querySelector('.card-header').innerText;
         let bodyText = card.querySelector('.card-body').innerText.trim();
-        
         const finalText = "📍 " + header + "\n\n" + bodyText + "\n\n✅ Fast Pay";
         
         const dummy = document.createElement("textarea");
