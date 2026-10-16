@@ -184,6 +184,10 @@ async function runReset() {
         // العمليات المعلقة توصل أول، حتى ما ترجع بعد المسح
         await flushOutbox();
         const r = await postToSheets({ action: 'reset_data', what });
+        if (r.error === 'network') {
+            showToast('ما وصل رد من الشيت', 'ممكن يكون المسح صار. اكبس "تحديث من الشيت" بعد دقيقة وشوف.', 'warning');
+            return;
+        }
         if (r.status !== 'ok' || !r.data?.ok) {
             showToast('ما انمسح شي', RESET_ERRORS[r.error] || 'تأكد من الاتصال وإنك نشرت السكربت الجديد، وجرّب مرة ثانية', 'error');
             return;
@@ -323,7 +327,8 @@ async function runRestore() {
             return;
         }
         const r = await postToSheets({ action: 'restore_backup', fileId, what });
-        if (r.status === 'unconfirmed') {
+        // ما وصل رد: ممكن يكون الاسترجاع صار بالشيت
+        if (r.error === 'network') {
             showToast('ما وصل رد من الشيت', 'اكبس "تحديث من الشيت" بعد دقيقة وشوف إذا رجعت البيانات.', 'warning');
             return;
         }

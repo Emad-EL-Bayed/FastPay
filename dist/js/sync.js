@@ -5,7 +5,7 @@
 
 // ================= Google Sheets: القراءة والمزامنة =================
 // يُرسل الطلب كنص عادي (بدون preflight) حتى نستطيع قراءة رد السكربت والتأكد من الوصول.
-// الحالات: ok | unconfirmed (أُرسل ولا يمكن قراءة الرد) | failed | disabled
+// الحالات: ok | failed (ومعها error؛ 'network' = ما وصل رد) | disabled
 async function postToSheets(payload, { noSession = false } = {}) {
     const url = (globalConfig.driveWebhook || '').trim();
     if (!url) return { status: 'disabled' };
@@ -26,8 +26,10 @@ async function postToSheets(payload, { noSession = false } = {}) {
         }
         return { status: 'ok', data };
     } catch (e) {
-        // غالباً وصل الطلب لكن السكربت لا يسمح بقراءة الرد (CORS)، فلا نعيد الإرسال لتجنب التكرار
-        return { status: 'unconfirmed' };
+        // ما وصل رد: النت قطع أو ضعيف (شبكة بدون إنترنت، التطبيق راح للخلفية بالنص...). بنعتبرها ما وصلت،
+        // فالعمليات بتضل بالانتظار وبتنبعت مرة ثانية. كانت تنحسب "وصلت غالباً" وتنشال فتضيع (2026-10-17).
+        // إعادة الإرسال آمنة: كل عملية بالانتظار حفظ أو حذف برقم ثابت، فما بتتكرر
+        return { status: 'failed', error: 'network' };
     }
 }
 
@@ -361,12 +363,7 @@ function flushOutbox() {
                     continue;
                 }
                 if (r.error === 'unknown_action') { batchSupported = false; continue; }
-                if (r.status === 'unconfirmed') {
-                    status = 'unconfirmed';
-                    outbox.splice(0, ops.length);
-                    saveAll();
-                    continue;
-                }
+                // ما وصل رد: بتضل بالانتظار للمحاولة الجاية (ما بننشال إلا بعد ما السكربت يأكد)
                 status = 'failed';
                 break;
             }
@@ -378,9 +375,8 @@ function flushOutbox() {
                 saveAll();
                 continue;
             }
-            if (r.status === 'failed') { status = 'failed'; break; }
-            if (r.status === 'unconfirmed') status = 'unconfirmed';
-            if (r.status === 'ok') applyWriteResult(outbox[0], r.data || {});
+            if (r.status !== 'ok') { status = 'failed'; break; }
+            applyWriteResult(outbox[0], r.data || {});
             outbox.shift();
             saveAll();
         }
@@ -392,7 +388,7 @@ function flushOutbox() {
             setTimeout(() => loadFromSheets({ silent: true }), 0);
         }
         lastFlushFailed = status === 'failed' || status === 'disabled';
-        if (status === 'ok' || status === 'unconfirmed') lastUpdateAt = nowTimeLabel();
+        if (status === 'ok') lastUpdateAt = nowTimeLabel();
         return status;
     })().finally(() => {
         flushing = null;
@@ -420,14 +416,13 @@ function txSyncState(id) {
 
 function syncResultMessage(status) {
     if (status === 'ok' || status === 'idle') return 'تمت المزامنة مع Google Sheets';
-    if (status === 'unconfirmed') return 'أُرسلت لـ Google Sheets دون تأكيد الاستلام';
     if (status === 'disabled') return 'لم تُرسل: لا يوجد رابط Google Sheets في الإعدادات';
     return 'لم تصل لـ Google Sheets بعد، ستُعاد المحاولة تلقائياً';
 }
 
 function syncToastType(status) {
     if (status === 'failed' || status === 'disabled') return 'error';
-    return status === 'unconfirmed' ? 'info' : 'success';
+    return 'success';
 }
 
 function updateSyncPendingBar() {
