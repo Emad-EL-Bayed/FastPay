@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+    /* خانة إدخال عادية: الإطار والحشوة والخلفية ولون التركيز. العرض يبقى كلاساً منفصلاً (w-full أو md:w-72...) */
+    .field {
+        @apply border border-slate-200 rounded-lg p-2.5 bg-white outline-none focus:border-blue-500;
+    }
+}
