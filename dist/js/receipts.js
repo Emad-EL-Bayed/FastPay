@@ -148,10 +148,18 @@ function receiptHtml({ title, no, dateLabel, date, amountLabel, amount, rows, st
 
 const showRate = () => globalConfig.receiptShowRate !== false;
 
+// نسبة رسوم الخدمة الفعلية من قيمة الـ USDT: إذا قريبة من النسبة المكتوبة بنكتبها هي (1%)، وإلا بفاصلة وحدة (4.8%)
+function servicePctText(service, value, pct) {
+    const eff = value > 0 ? service / value * 100 : 0;
+    const shown = Math.abs(eff - pct) < 0.05 ? pct : Math.round(eff * 10) / 10;
+    return `${shown}%`;
+}
+
 function renderReceipt(t) {
     const amount = t.currency === 'USD' ? `$ ${fmt(t.clientUsd)}` : `${fmt(t.clientIls)} ₪`;
     const rows = [['طريقة الاستلام', escapeHtml(payoutLabel(t))]];
-    if (t.payout !== 'كاش' && t.account) rows.push([t.payout === 'بنكي' ? 'رقم الحساب' : 'رقم المحفظة', ltr(escapeHtml(t.account))]);
+    if (t.payout !== 'كاش' && t.account) rows.push([accountLabel(t), ltr(escapeHtml(t.account))]);
+    if (t.payout === 'بنكي' && t.iban) rows.push(['IBAN', `<bdi class="ltr-num" style="font-size:0.68rem;white-space:normal">${escapeHtml(formatIban(t.iban))}</bdi>`]);
     rows.push(['مصدر الحوالة', escapeHtml(t.country)]);
     rows.push(['المبلغ المرسل', ltr(fmt(t.orig))]);
     if (t.currency !== 'USD' && showRate()) rows.push(['سعر الدولار', `${ltr(fmt(t.screenRate, 3))} ₪`]);
@@ -173,10 +181,21 @@ function renderUsdtReceipt(m) {
     const st = usdtPayState(m);
     const deposit = m.kind === 'deposit';
     const rows = [[deposit ? 'المبلغ المطلوب USDT' : 'المبلغ المستلم USDT', `${ltr(fmt(m.amount))} USDT`]];
-    if (deposit && m.network) rows.push(['الشبكة', `${escapeHtml(m.network)} · رسوم ${ltr(fmt(m.networkFee))} $`]);
-    if (m.pct) rows.push(['العمولة', `${ltr(m.pct + '%')} (${ltr(fmt(m.amount * m.pct / 100))} $)`]);
+    // التفصيل بعملة الدفع (بطلب عماد): قيمة الـ USDT، رسوم الشبكة، ورسوم الخدمة، وجمعهم = المبلغ النهائي بالزبط.
+    // رسوم الخدمة = الباقي للمبلغ النهائي: النسبة + التقريب لأقرب نص + التعديل اليدوي (48 ← 50) + المبلغ المتفق عليه،
+    // ونسبتها جنبها هي النسبة الفعلية (والفرق كله ربح أصلاً)
+    const k = cur === 'ILS' ? m.rate : 1;
+    const money = (v) => moneyCur(round2(v), cur);
+    const value = m.amount * k;
+    const fee = deposit ? m.networkFee * k : 0;
+    rows.push([`قيمة ${ltr(fmt(m.amount))} USDT`, money(value)]);
+    if (fee > 0) rows.push([`رسوم الشبكة${m.network ? ` (${escapeHtml(m.network)})` : ''}`, `${deposit ? '+' : '−'} ${money(fee)}`]);
+    const service = round2(deposit ? m.total - value - fee : value - m.total);
+    if (service > 0) rows.push([`رسوم الخدمة (${ltr(servicePctText(service, value, m.pct))})`, `${deposit ? '+' : '−'} ${money(service)}`]);
+    // نزّلت كثير (أقل من القيمة والشبكة): خصم للزبون بالإيداع، وزيادة إله بالسحب
+    else if (service < 0) rows.push([deposit ? 'خصم' : 'إضافة', `${deposit ? '−' : '+'} ${money(-service)}`]);
+    if (m.settle > 0) rows.push(['خصم عند الدفع', `− ${money(m.settle)}`]);
     if (cur === 'ILS' && showRate()) rows.push(['سعر الدولار', `${ltr(fmt(m.rate, 3))} ₪`]);
-    if (m.discount) rows.push(['خصم', `− ${moneyCur(m.discount, cur)}`]);
     if (m.address) rows.push(['عنوان المحفظة', `<bdi class="ltr-num" style="font-size:0.65rem;word-break:break-all;white-space:normal">${escapeHtml(m.address)}</bdi>`]);
     rows.push(['عملة الدفع', cur === 'USD' ? 'دولار' : 'شيكل']);
     if (st.state === 'partial') {
@@ -293,20 +312,23 @@ async function exportReceipt(format) {
 // - الجوال: نافذة المشاركة (تختار واتساب والصورة جاهزة).
 // - الكمبيوتر: ننسخ الصورة لحظة الضغط (سفاري يرفض النسخ بعد أي انتظار)، ثم نافذة بخطوات واضحة: فتح واتساب ← لصق.
 // الصورة تُجهَّز مسبقاً عند فتح الفاتورة حتى تكون جاهزة لحظة الضغط.
-let shareCache = null; // { key, promise }
+let shareCache = null; // { key, promise, blob } — blob بيتعبّى لما تجهز الصورة
 
 function prepareShareImage(key, el) {
-    shareCache = {
-        key,
-        promise: captureElement(el, 3)
-            .then(c => new Promise(resolve => c.toBlob(resolve, 'image/png')))
-            .catch(err => { console.error('Share image failed:', err); return null; })
-    };
+    const entry = { key, blob: null };
+    entry.promise = captureElement(el, 3)
+        .then(c => new Promise(resolve => c.toBlob(resolve, 'image/png')))
+        .catch(err => { console.error('Share image failed:', err); return null; })
+        .then(b => { entry.blob = b; return b; });
+    shareCache = entry;
 }
 
 const waUrl = (phone, text) => `https://wa.me/${phone ? whatsappDigits(phone) : ''}${text ? '?text=' + encodeURIComponent(text) : ''}`;
-const isTouchDevice = () => /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-const isMac = () => /Mac/i.test(navigator.platform || navigator.userAgent);
+// الآيباد الجديد بيقول عن حاله Mac، بس فيه لمس
+const isIPadOS = () => navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent) || isIPadOS();
+const isTouchDevice = () => /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || isIPadOS();
+const isMac = () => /Mac/i.test(navigator.platform || navigator.userAgent) && !isIPadOS();
 
 // ليست async عمداً: النسخ للحافظة يجب أن يبدأ داخل نفس الضغطة
 function shareToWhatsapp({ key, el, filename, phone, text }) {
@@ -335,20 +357,28 @@ function copyImageNow(blobPromise) {
     }
 }
 
-async function shareOnPhone(target) {
-    const blob = await target.blobPromise;
-    if (!blob) return showToast('تعذر تجهيز الصورة', 'تأكد من الاتصال بالإنترنت ثم حاول مجدداً', 'error');
+// الجوال: نافذة المشاركة لازم تنفتح بنفس الكبسة بدون أي انتظار (الآيفون بيرفضها بعد الانتظار).
+// إذا الصورة لسا بتتجهز أو المشاركة ما زبطت: نافذة فيها زر "مشاركة على واتساب" (كبسة جديدة)
+function shareOnPhone(target) {
+    const blob = shareCache?.blob;
+    const fallback = () => openWaShareModal({ ...target, copy: Promise.resolve(false) });
+    if (!blob) return fallback();
     const file = new File([blob], target.filename + '.png', { type: 'image/png' });
-    if (navigator.canShare?.({ files: [file] })) {
-        try {
-            await navigator.share({ files: [file], text: target.text });
-            return;
-        } catch (e) {
-            if (e.name === 'AbortError') return; // المستخدم أغلق نافذة المشاركة
-        }
-    }
-    // المشاركة غير متاحة على هذا الجوال: نفس خطوات الكمبيوتر
-    openWaShareModal({ ...target, blobPromise: Promise.resolve(blob), copy: Promise.resolve(false) });
+    if (!navigator.canShare?.({ files: [file] })) return fallback();
+    navigator.share(phoneShareData(file, target.text)).catch(e => {
+        if (e.name !== 'AbortError') fallback(); // AbortError = المستخدم سكّر نافذة المشاركة
+    });
+}
+
+// واتساب على الآيفون بياخد الجملة وبيترك الصورة إذا انبعتوا مع بعض: بنبعت الصورة لحالها،
+// والجملة بتنسخ بنفس الكبسة (قبل المشاركة) فبتلصقها تحت الصورة. الأندرويد: الجملة بتطلع تحت الصورة
+function phoneShareData(file, text) {
+    if (!text) return { files: [file] };
+    if (!isIOS()) return { files: [file], text };
+    copyText(text).then(ok => {
+        if (ok) showToast('الرسالة منسوخة', 'بعد ما تبعت الصورة، الصقها بالمحادثة', 'info');
+    });
+    return { files: [file] };
 }
 
 // ---------- نافذة "إرسال على واتساب" (الكمبيوتر) ----------
@@ -365,6 +395,12 @@ async function openWaShareModal({ blobPromise, copy, filename, phone, text }) {
     $('wa-paste-key').textContent = isMac() ? '⌘ + V' : 'Ctrl + V';
     $('wa-open').textContent = phone ? 'فتح محادثة الزبون على واتساب' : 'فتح واتساب';
     $('wa-share-native').classList.add('hidden');
+    // الجوال: زر "مشاركة على واتساب" هو الأساسي، وخطوات النسخ واللصق للكمبيوتر
+    $('waShareModal').classList.toggle('wa-phone', isTouchDevice());
+    $('waShareModal').classList.remove('wa-can-share');
+    $('wa-msg-box').classList.toggle('hidden', !text);
+    $('wa-msg-text').textContent = text || '';
+    setCopyMsgBtn(false);
     openModal('waShareModal');
     const blob = await blobPromise;
     if (!blob) {
@@ -378,7 +414,10 @@ async function openWaShareModal({ blobPromise, copy, filename, phone, text }) {
     // لا ننتظر النسخ للأبد (بعض المتصفحات تعلّقه إذا تغيّرت النافذة)
     setWaCopyStatus(await Promise.race([copy, new Promise(r => setTimeout(() => r(false), 6000))]));
     const file = new File([blob], filename + '.png', { type: 'image/png' });
-    $('wa-share-native').classList.toggle('hidden', !navigator.canShare?.({ files: [file] }));
+    const canShare = !!navigator.canShare?.({ files: [file] });
+    $('wa-share-native').classList.toggle('hidden', !canShare);
+    $('wa-share-native').textContent = isTouchDevice() ? 'مشاركة على واتساب' : 'مشاركة من الجهاز';
+    $('waShareModal').classList.toggle('wa-can-share', canShare);
 }
 
 function setWaCopyStatus(ok) {
@@ -418,10 +457,91 @@ function waDownload() {
 
 async function waShareNative() {
     if (!waShare?.blob) return;
+    const file = new File([waShare.blob], waShare.filename + '.png', { type: 'image/png' });
     try {
-        await navigator.share({ files: [new File([waShare.blob], waShare.filename + '.png', { type: 'image/png' })] });
+        await navigator.share(isTouchDevice() ? phoneShareData(file, waShare.text) : { files: [file] });
         closeModal('waShareModal');
     } catch (e) { /* أُغلقت نافذة المشاركة */ }
+}
+
+// "نسخ الرسالة": الصورة والجملة ما بيتنسخوا مع بعض، فالجملة بزر لحالها
+async function waCopyMessage() {
+    if (!waShare?.text) return;
+    const ok = await copyText(waShare.text);
+    setCopyMsgBtn(ok);
+    if (!ok) showToast('المتصفح منع النسخ', 'حدّد الرسالة وانسخها بإيدك', 'warning');
+}
+
+function setCopyMsgBtn(done) {
+    const btn = $('wa-copy-msg');
+    clearTimeout(setCopyMsgBtn.timer);
+    btn.textContent = done ? '✓ انسخت' : 'نسخ الرسالة';
+    btn.classList.toggle('wa-copied', !!done);
+    if (done) setCopyMsgBtn.timer = setTimeout(() => setCopyMsgBtn(false), 2000);
+}
+
+// ================= رسالة الفاتورة على واتساب حسب حالتها =================
+// [المفتاح، اسمها بالإعدادات، الجملة الافتراضية]. المدير بيعدّلها من الإعدادات ← بيانات الشركة والفاتورة،
+// وبينحفظ بس اللي تغيّر (globalConfig.waMessages، إعداد مشترك). الكلمات بين { } بتتعبّى لحالها
+const WA_MESSAGE_DEFAULTS = [
+    ['txDone', 'حوالة مكتملة', '✅ مرحبا {الاسم}، تم تسليم حوالتك {المبلغ}. إيصال رقم {الرقم}، شكراً لتعاملك مع {الشركة}'],
+    ['txPartial', 'حوالة جزئي', '🟡 مرحبا {الاسم}، تم تسليم {المدفوع} من حوالتك، والباقي {الباقي}. إيصال رقم {الرقم}'],
+    ['txPending', 'حوالة قيد الإنتظار', '⏳ مرحبا {الاسم}، حوالتك {المبلغ} قيد التنفيذ. إيصال رقم {الرقم}'],
+    ['txCheck', 'حوالة فحص', '🔍 مرحبا {الاسم}، حوالتك قيد المراجعة، وبنبلغك أول ما تجهز. إيصال رقم {الرقم}'],
+    ['txCancelled', 'حوالة ملغية', '❌ مرحبا {الاسم}، تم إلغاء الحوالة {الرقم}'],
+    ['payPaid', 'USDT والجنيه: مدفوعة', '✅ مرحبا {الاسم}، تمت العملية: {العملية} بمبلغ {المبلغ}. إيصال رقم {الرقم}، شكراً لتعاملك مع {الشركة}'],
+    ['payPartial', 'USDT والجنيه: جزئي', '🟡 مرحبا {الاسم}، {العملية}: اندفع {المدفوع} من {المبلغ}، والباقي {الباقي}. إيصال رقم {الرقم}'],
+    ['payUnpaid', 'USDT والجنيه: لسا ما اندفعت', 'مرحبا {الاسم}، إيصال {العملية} بمبلغ {المبلغ}. رقم الإيصال {الرقم}']
+];
+const WA_MESSAGE_WORDS = ['الاسم', 'المبلغ', 'المدفوع', 'الباقي', 'الرقم', 'العملية', 'الشركة'];
+const TX_STATUS_MESSAGE = { 'مكتمل': 'txDone', 'جزئي': 'txPartial', 'قيد الإنتظار': 'txPending', 'فحص': 'txCheck', 'ملغي': 'txCancelled' };
+const PAY_STATE_MESSAGE = { paid: 'payPaid', partial: 'payPartial', unpaid: 'payUnpaid' };
+
+const waMessageDefault = (key) => (WA_MESSAGE_DEFAULTS.find(m => m[0] === key) || [])[2] || '';
+const waMessageTemplate = (key) => String(globalConfig.waMessages?.[key] || '').trim() || waMessageDefault(key);
+// المبلغ بالرسالة: بدون .00 إذا رقم صحيح
+const msgMoney = (v, cur) => `${fmt(v, Math.abs(round2(v) % 1) > 0.004 ? 2 : 0)} ${CUR_SYM[cur] || '₪'}`;
+
+function fillWaMessage(key, values) {
+    const all = { ...values, 'الشركة': globalConfig.companyName || 'فاست باي' };
+    return waMessageTemplate(key).replace(/\{([^{}]+)\}/g, (m, word) => (all[word.trim()] ?? m));
+}
+
+function txMessage(t) {
+    const due = txDue(t);
+    const paid = txPaid(t);
+    return fillWaMessage(TX_STATUS_MESSAGE[t.status] || 'txPending', {
+        'الاسم': t.recipient, 'الرقم': receiptNo(t), 'المبلغ': msgMoney(due, t.currency),
+        'المدفوع': msgMoney(paid, t.currency), 'الباقي': msgMoney(Math.max(0, due - paid), t.currency)
+    });
+}
+
+// USDT والجنيه: حسب الدفع. {العملية} مثل "إيداع 500 USDT" أو "إرسال 10,000 جنيه"
+function payMessage(m, st, operation) {
+    return fillWaMessage(PAY_STATE_MESSAGE[st?.state] || 'payUnpaid', {
+        'الاسم': m.customerName, 'الرقم': receiptNo(m), 'العملية': operation,
+        'المبلغ': msgMoney(m.total - m.settle, m.currency),
+        'المدفوع': msgMoney(st?.paid || 0, m.currency), 'الباقي': msgMoney(st?.remaining || 0, m.currency)
+    });
+}
+
+// قسم الرسائل بالإعدادات: خانة لكل حالة، وفاضية = الجملة الافتراضية
+function renderWaMessageSettings() {
+    const saved = globalConfig.waMessages || {};
+    $('wa-messages-list').innerHTML = WA_MESSAGE_DEFAULTS.map(([key, label, def]) => `
+        <div>
+            <label for="wa_msg_${key}" class="block text-xs font-bold text-slate-700 mb-1">${label}</label>
+            <textarea id="wa_msg_${key}" data-key="${key}" rows="2" class="w-full field text-xs leading-5" placeholder="${escapeHtml(def)}">${escapeHtml(saved[key] || '')}</textarea>
+        </div>`).join('');
+}
+
+function readWaMessageSettings() {
+    const out = {};
+    document.querySelectorAll('#wa-messages-list textarea').forEach(ta => {
+        const v = ta.value.trim();
+        if (v && v !== waMessageDefault(ta.dataset.key)) out[ta.dataset.key] = v;
+    });
+    return out;
 }
 
 function receiptShareTarget() {
@@ -429,18 +549,20 @@ function receiptShareTarget() {
         const m = egpMoves.find(x => x.id === receiptCtx.id);
         if (!m) return null;
         const c = customers.find(x => (m.customerId && x.id === m.customerId) || normName(x.name) === normName(m.customerName));
-        return { key: 'egp:' + m.id, filename: `فاتورة_جنيه_${m.customerName}_${m.serial || m.id}`, phone: hasWhatsapp(c) ? c.phone : '', text: `${m.kind === 'send' ? 'إيصال إرسال' : 'إيصال استلام'} جنيه ${receiptNo(m)}` };
+        const operation = `${m.kind === 'send' ? 'إرسال' : 'استقبال'} ${fmtEgp(Math.abs(m.egp))} جنيه`;
+        return { key: 'egp:' + m.id, filename: `فاتورة_جنيه_${m.customerName}_${m.serial || m.id}`, phone: hasWhatsapp(c) ? c.phone : '', text: payMessage(m, egpPayState(m), operation) };
     }
     if (receiptCtx?.kind === 'usdt') {
         const m = usdtMoves.find(x => x.id === receiptCtx.id);
         if (!m) return null;
         const c = customers.find(x => (m.customerId && x.id === m.customerId) || normName(x.name) === normName(m.customerName));
-        return { key: 'usdt:' + m.id, filename: `فاتورة_USDT_${m.customerName}_${m.serial || m.id}`, phone: hasWhatsapp(c) ? c.phone : '', text: `${m.kind === 'deposit' ? 'فاتورة إيداع' : 'إيصال سحب'} USDT ${receiptNo(m)}` };
+        const operation = `${USDT_KINDS[m.kind]} ${fmt(m.amount, Math.abs(round2(m.amount) % 1) > 0.004 ? 2 : 0)} USDT`;
+        return { key: 'usdt:' + m.id, filename: `فاتورة_USDT_${m.customerName}_${m.serial || m.id}`, phone: hasWhatsapp(c) ? c.phone : '', text: payMessage(m, usdtPayState(m), operation) };
     }
     const t = ledger.find(x => x.id === receiptCtx?.id);
     if (!t) return null;
     const c = customerOfTx(t);
-    return { key: 'tx:' + t.id, filename: `فاتورة_${t.recipient}_${t.serial || t.id}`, phone: hasWhatsapp(c) ? c.phone : '', text: `إيصال تسليم حوالة ${receiptNo(t)}` };
+    return { key: 'tx:' + t.id, filename: `فاتورة_${t.recipient}_${t.serial || t.id}`, phone: hasWhatsapp(c) ? c.phone : '', text: txMessage(t) };
 }
 
 function shareReceipt() {

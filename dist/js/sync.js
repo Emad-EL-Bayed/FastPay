@@ -216,6 +216,8 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
         sheetSupportsEgp = Array.isArray(data.egpMoves);
         sheetFeatures = Array.isArray(data.features) ? data.features : [];
         sheetSupportsFinalAdjust = sheetHas('finalAdjust');
+        // خانة IBAN بالحاسبة بتنفتح لما يكون السكربت بيدعمها
+        syncIbanField($('calc_iban'), $('calc_iban_hint'));
         dataEpoch = data.dataEpoch || '';
         egpWallets = (data.egpWallets || []).map(normalizeEgpWallet).filter(w => w.id);
         egpMoves = (data.egpMoves || []).map(normalizeEgp).filter(m => m.id);
@@ -225,6 +227,11 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
     // السكربت القديم لا يرسل serverTime، فيبقى التحميل كاملاً في كل مرة
     syncCursor = data.serverTime || null;
     updateAuthFromServer(data);
+    // الإشعارات (notify.js): مع كل قراءة، الكاملة بتبدّل القائمة والسريعة بتضيف
+    if (Array.isArray(data.team)) notifyTeam = data.team;
+    if (data.serverTime) notifyCursor = data.serverTime;
+    if ('notifications' in data) applyNotifications(data.notifications, { full: !data.incremental });
+    else renderNotifyBadge();
     if ('lastBackup' in data) { lastBackupAt = data.lastBackup || ''; renderBackupStatus(); }
     // المسح لمرة وحدة: بعده زر المسح بيختفي
     if ('resetDone' in data && JSON.stringify(data.resetDone || null) !== JSON.stringify(resetUsed)) {

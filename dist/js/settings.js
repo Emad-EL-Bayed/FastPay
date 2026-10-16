@@ -21,6 +21,7 @@ function loadSettingsPage() {
     $('set_company_name').value = globalConfig.companyName || '';
     $('set_company_subtitle').value = globalConfig.companySubtitle || '';
     $('set_receipt_footer').value = globalConfig.receiptFooter || '';
+    renderWaMessageSettings();
     updateSellBuyPreview();
 }
 
@@ -55,7 +56,8 @@ function saveAllSettings() {
         buyOffset: toNum($('set_buy_offset').value, globalConfig.buyOffset),
         companyName: $('set_company_name').value.trim() || 'فاست باي',
         companySubtitle: $('set_company_subtitle').value.trim(),
-        receiptFooter: $('set_receipt_footer').value.trim()
+        receiptFooter: $('set_receipt_footer').value.trim(),
+        waMessages: readWaMessageSettings()
     });
     applyBranding();
 
@@ -87,6 +89,7 @@ const SHARED_SETTINGS = {
     companyName: { label: 'اسم الشركة', type: 'str' },
     companySubtitle: { label: 'السطر تحت اسم الشركة', type: 'str' },
     receiptFooter: { label: 'الجملة أسفل الفاتورة', type: 'str' },
+    waMessages: { label: 'رسالة الفاتورة على واتساب حسب الحالة (بس اللي تعدّل)', type: 'json' },
     usdtDepositPct: { label: 'USDT: نسبة الإيداع الافتراضية %', type: 'num' },
     usdtNetworks: { label: 'USDT: الشبكات ورسومها', type: 'json' },
     usdtTiers: { label: 'USDT: شرائح نسبة السحب', type: 'json' },

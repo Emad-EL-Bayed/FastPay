@@ -5,7 +5,8 @@
 
 // ================= معادلة الحساب (مصدر واحد لكل الشاشات) =================
 // currency: ILS يُسلَّم بالشيكل (مع الخصم الإضافي) | USD يُسلَّم بالدولار مباشرة (بدون خصم الشيكل)
-function computeTransfer({ orig, type, factor, costPct, profitPct, screenRate, minusIls, currency = 'ILS', costMode = 'pct', costFixed = 0 }) {
+// finalAdjust: تعديل ± يدوي على المسلّم بعد الحساب، بعملة التسليم (من نافذة تعديل الحوالة)، والربح بيتبعه
+function computeTransfer({ orig, type, factor, costPct, profitPct, screenRate, minusIls, currency = 'ILS', costMode = 'pct', costFixed = 0, finalAdjust = 0 }) {
     let baseUsd;
     if (type === 'div') baseUsd = factor > 0 ? orig / factor : 0;
     else if (type === 'mul') baseUsd = orig * factor;
@@ -20,12 +21,19 @@ function computeTransfer({ orig, type, factor, costPct, profitPct, screenRate, m
     // الخصم الإضافي لا يتجاوز المبلغ نفسه، ويذهب للربح (للتسليم بالشيكل فقط)
     const appliedMinus = currency === 'USD' ? 0 : (grossIls > 0 ? Math.min(Math.max(0, minusIls), grossIls) : 0);
 
+    const usd = currency === 'USD';
+    const clientIls = usd ? 0 : grossIls - appliedMinus;
+    // التعديل ما بينزّل المسلّم تحت الصفر. بنعطيه أكثر = ربح أقل (بالدولار: × سعر الشاشة)
+    const adj = Math.max(toNum(finalAdjust, 0), -(usd ? clientUsd : clientIls));
+
     return {
-        baseUsd, costUsd, profitUsd, clientUsd, grossIls, appliedMinus,
-        clientIls: currency === 'USD' ? 0 : grossIls - appliedMinus,
+        baseUsd, costUsd, profitUsd, grossIls, appliedMinus,
+        clientUsd: usd ? clientUsd + adj : clientUsd,
+        clientIls: usd ? 0 : clientIls + adj,
         // الربح والتكلفة دائماً بالشيكل حتى تبقى التقارير بعملة واحدة
-        profitIls: profitUsd * screenRate + appliedMinus,
-        costIls: costUsd * screenRate
+        profitIls: profitUsd * screenRate + appliedMinus - adj * (usd ? screenRate : 1),
+        costIls: costUsd * screenRate,
+        finalAdjust: adj
     };
 }
 
@@ -160,8 +168,50 @@ function setPayout(payout, provider) {
     `).join('');
     $('payout-details').classList.toggle('hidden', payout === 'كاش');
     $('payout-cash-note').classList.toggle('hidden', payout !== 'كاش');
-    $('calc_account_label').textContent = payout === 'بنكي' ? 'رقم الحساب البنكي' : 'رقم المحفظة';
-    $('calc_account').placeholder = payout === 'بنكي' ? 'رقم الحساب في ' + (provider || 'البنك') : 'رقم محفظة ' + (provider || 'الزبون');
+    // البنك: رقم الجوال المربوط بالحساب (للتحويل) و IBAN اختياري
+    const bank = payout === 'بنكي';
+    $('calc_account_label').textContent = bank ? 'رقم الجوال (للتحويل)' : 'رقم المحفظة';
+    $('calc_account').placeholder = bank ? 'الجوال المربوط بحساب ' + (provider || 'البنك') : 'رقم محفظة ' + (provider || 'الزبون');
+    $('iban-row').classList.toggle('hidden', !bank);
+    syncIbanField($('calc_iban'), $('calc_iban_hint'));
+}
+
+// ---------- IBAN (للبنك، اختياري) ----------
+// بالحاسبة ونافذة تعديل الحوالة ونافذة الزبون. الخانة بتتسكّر إذا السكربت المنشور قديم (ما في عمود IBAN فبيضيع)،
+// وتحتها ✓ أو ✕. بينحفظ بدون مسافات، وبينعرض كل 4 حروف لحال
+function syncIbanField(input, hint) {
+    const supported = sheetHas('iban');
+    input.disabled = !supported;
+    input.placeholder = supported ? 'PS92 PALS 0000 0000 0400 1234 5670 2' : 'حدّث السكربت حتى ينحفظ الـ IBAN';
+    const v = cleanIban(input.value);
+    const ok = ibanValid(v);
+    hint.textContent = !v ? '' : ok ? '✓ IBAN صحيح' : '✕ IBAN مش صحيح، راجع الحروف والأرقام';
+    hint.className = 'iban-hint' + (!v ? '' : ok ? ' ok' : ' bad');
+}
+
+function setIbanField(input, hint, value) {
+    input.value = formatIban(value);
+    syncIbanField(input, hint);
+}
+
+// للحفظ: '' أو IBAN صحيح، و null = غلط (مع تنبيه والمؤشر على الخانة)
+function readIbanField(input) {
+    const v = cleanIban(input.value);
+    if (!v || input.disabled) return '';
+    if (ibanValid(v)) return v;
+    input.focus();
+    showToast('IBAN مش صحيح', 'راجع الحروف والأرقام، أو امسحه إذا مش لازم', 'warning');
+    return null;
+}
+
+const IBAN_FIELDS = [['calc_iban', 'calc_iban_hint'], ['edit_tx_iban', 'edit_tx_iban_hint'], ['m_cust_iban', 'm_cust_iban_hint']];
+
+function bindIbanEvents() {
+    IBAN_FIELDS.forEach(([id, hintId]) => {
+        $(id).addEventListener('input', () => syncIbanField($(id), $(hintId)));
+        // لما تطلع من الخانة بتترتب كل 4 حروف
+        $(id).addEventListener('blur', () => setIbanField($(id), $(hintId), $(id).value));
+    });
 }
 
 function setProvider(provider) {
@@ -281,7 +331,7 @@ function renderRecentTx() {
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
                     <div class="text-left">
-                        <span class="block font-black text-slate-900 num">${deliveredHtml(t)}</span>
+                        <button data-action="open-receipt" data-id="${t.id}" class="amount-link block font-black text-slate-900 num" title="الفاتورة">${deliveredHtml(t)}</button>
                         <span class="profit-only block text-[10px] text-emerald-600 font-bold num">+${fmt(t.profitIls)} ₪</span>
                     </div>
                     <button data-action="open-receipt" data-id="${t.id}" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] font-bold text-slate-700 transition">فاتورة</button>
@@ -295,6 +345,7 @@ function resetCalcForm() {
     $('calc_recipient').value = '';
     $('calc_customer_id').value = '';
     $('calc_account').value = '';
+    setIbanField($('calc_iban'), $('calc_iban_hint'), '');
     $('calc_orig_amount').value = '';
     $('calc_status').value = STATUSES[0];
     $('calc_date').value = localDateStr();
@@ -484,6 +535,7 @@ function fillCustomerIntoCalc(c) {
     $('calc_customer_id').value = c.id || '';
     setPayout(c.payout || 'محفظة', c.provider);
     $('calc_account').value = c.account || '';
+    setIbanField($('calc_iban'), $('calc_iban_hint'), c.iban);
     $('calc_phone').value = '';
     updateCustomerPhoneField('calc', customers.find(x => c.id && x.id === c.id) || null, c.name);
     setCustomerStatus(true, '✓ زبون مسجل');

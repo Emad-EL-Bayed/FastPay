@@ -28,33 +28,34 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=51">
+    <link rel="stylesheet" href="styles.css?v=59">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=51">
+    <link rel="stylesheet" href="tailwind.css?v=59">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/core.js?v=51" defer></script>
-    <script src="js/theme.js?v=51" defer></script>
-    <script src="js/logo-data.js?v=51" defer></script>
-    <script src="js/shell.js?v=51" defer></script>
-    <script src="js/calculator.js?v=51" defer></script>
-    <script src="js/reports.js?v=51" defer></script>
-    <script src="js/sync.js?v=51" defer></script>
-    <script src="js/transactions.js?v=51" defer></script>
-    <script src="js/receipts.js?v=51" defer></script>
-    <script src="js/customers.js?v=51" defer></script>
-    <script src="js/countries.js?v=51" defer></script>
-    <script src="js/traders.js?v=51" defer></script>
-    <script src="js/expenses.js?v=51" defer></script>
-    <script src="js/settings.js?v=51" defer></script>
-    <script src="js/accounts.js?v=51" defer></script>
-    <script src="js/usdt.js?v=51" defer></script>
-    <script src="js/egp.js?v=51" defer></script>
-    <script src="js/closing.js?v=51" defer></script>
-    <script src="js/admin.js?v=51" defer></script>
-    <script src="js/position.js?v=51" defer></script>
-    <script src="js/search.js?v=51" defer></script>
-    <script src="js/auth.js?v=51" defer></script>
-    <script src="js/main.js?v=51" defer></script>
+    <script src="js/core.js?v=59" defer></script>
+    <script src="js/theme.js?v=59" defer></script>
+    <script src="js/logo-data.js?v=59" defer></script>
+    <script src="js/shell.js?v=59" defer></script>
+    <script src="js/calculator.js?v=59" defer></script>
+    <script src="js/reports.js?v=59" defer></script>
+    <script src="js/sync.js?v=59" defer></script>
+    <script src="js/transactions.js?v=59" defer></script>
+    <script src="js/receipts.js?v=59" defer></script>
+    <script src="js/customers.js?v=59" defer></script>
+    <script src="js/countries.js?v=59" defer></script>
+    <script src="js/traders.js?v=59" defer></script>
+    <script src="js/expenses.js?v=59" defer></script>
+    <script src="js/settings.js?v=59" defer></script>
+    <script src="js/accounts.js?v=59" defer></script>
+    <script src="js/usdt.js?v=59" defer></script>
+    <script src="js/egp.js?v=59" defer></script>
+    <script src="js/closing.js?v=59" defer></script>
+    <script src="js/admin.js?v=59" defer></script>
+    <script src="js/position.js?v=59" defer></script>
+    <script src="js/search.js?v=59" defer></script>
+    <script src="js/notify.js?v=59" defer></script>
+    <script src="js/auth.js?v=59" defer></script>
+    <script src="js/main.js?v=59" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -170,6 +171,11 @@
             </div>
 
             <div class="flex items-center gap-2 shrink-0">
+                <!-- الإشعارات (notify.js): بيبين مع الدخول بالمستخدمين والسكربت الجديد -->
+                <button id="notify-btn" data-action="open-notify" class="hidden search-btn notify-btn" title="الإشعارات" aria-label="الإشعارات">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    <span id="notify-count" class="notify-badge hidden">0</span>
+                </button>
                 <!-- البحث الشامل (⌘K أو /) -->
                 <button id="search-btn" data-action="open-search" class="search-btn" title="بحث بكل البرنامج (⌘K)" aria-label="بحث">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"></path></svg>
@@ -261,6 +267,12 @@
                                     <div id="account-row">
                                         <label for="calc_account" id="calc_account_label" class="calc-label">رقم المحفظة</label>
                                         <input type="text" id="calc_account" class="calc-input font-mono">
+                                    </div>
+                                    <!-- البنك بس: IBAN اختياري (calculator.js syncIbanField) -->
+                                    <div id="iban-row" class="hidden sm:col-span-2">
+                                        <label for="calc_iban" class="calc-label">IBAN <span class="font-medium text-slate-400">(اختياري)</span></label>
+                                        <input type="text" id="calc_iban" dir="ltr" autocomplete="off" autocapitalize="characters" spellcheck="false" class="calc-input font-mono text-left">
+                                        <span id="calc_iban_hint" class="iban-hint"></span>
                                     </div>
                                 </div>
                                 <p id="payout-cash-note" class="hidden text-[11px] text-slate-500">يستلم الزبون المبلغ نقداً من المكتب.</p>
@@ -598,13 +610,8 @@
                                     <th class="p-3.5">#</th>
                                     <th class="p-3.5">التاريخ</th>
                                     <th class="p-3.5">المستلم</th>
-                                    <th class="p-3.5">رقم المحفظة / الحساب</th>
-                                    <th class="p-3.5">نوع التسليم</th>
-                                    <th class="p-3.5">الدولة</th>
-                                    <th class="p-3.5">المبلغ الأصلي</th>
+                                    <th class="p-3.5">المصدر</th>
                                     <th class="p-3.5">المسلّم</th>
-                                    <th class="p-3.5 profit-only">ربحي (₪)</th>
-                                    <th class="p-3.5 text-center min-w-[100px]">سعر الشاشة</th>
                                     <th class="p-3.5 text-center min-w-[130px]">حالة الطلب</th>
                                     <th class="p-3.5 text-center">إجراءات</th>
                                 </tr>
@@ -1225,6 +1232,14 @@
                             <label for="set_receipt_footer" class="block text-xs font-bold text-slate-700 mb-1">ملاحظة أسفل الفاتورة</label>
                             <input type="text" id="set_receipt_footer" class="w-full field">
                         </div>
+                        <!-- رسالة الفاتورة على واتساب حسب الحالة (receipts.js WA_MESSAGE_DEFAULTS) -->
+                        <div class="pt-4 border-t border-slate-100 space-y-3">
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-900">رسالة الفاتورة على واتساب</h4>
+                                <p class="text-[11px] text-slate-400 leading-5">بتنبعت مع صورة الفاتورة حسب حالتها. الكلمات بين { } بتتعبّى لحالها: {الاسم} {المبلغ} {المدفوع} {الباقي} {الرقم} {العملية} {الشركة}. الخانة الفاضية = الجملة الافتراضية المكتوبة فيها. بتنحفظ مع زر حفظ الإعدادات.</p>
+                            </div>
+                            <div id="wa-messages-list" class="space-y-3"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -1368,8 +1383,13 @@
                     </div>
                 </div>
                 <div>
-                    <label for="m_cust_account" class="font-bold block mb-1 text-slate-700">رقم الحساب أو المحفظة</label>
+                    <label for="m_cust_account" id="m_cust_account_label" class="font-bold block mb-1 text-slate-700">رقم المحفظة</label>
                     <input type="text" id="m_cust_account" class="w-full field font-mono">
+                </div>
+                <div id="m_cust_iban_wrap" class="hidden">
+                    <label for="m_cust_iban" class="font-bold block mb-1 text-slate-700">IBAN <span class="font-medium text-slate-400">(اختياري)</span></label>
+                    <input type="text" id="m_cust_iban" dir="ltr" autocomplete="off" autocapitalize="characters" spellcheck="false" class="w-full field font-mono text-left">
+                    <span id="m_cust_iban_hint" class="iban-hint"></span>
                 </div>
                 <div class="pt-2 flex gap-2">
                     <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg shadow-sm transition">حفظ البيانات</button>
@@ -1378,6 +1398,68 @@
             </form>
         </div>
     </div>
+
+    <!-- Modal: تفاصيل الحوالة (transactions.js renderTxDetails). تحت باقي النوافذ (z-58) لأنها بتفتح منها -->
+    <div id="txDetailsModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[58] hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div id="tx-details-body" class="section-card txd-card max-w-md w-full my-auto"></div>
+    </div>
+
+    <!-- الإشعارات (notify.js): القائمة، إشعار جديد، ونافذة "مهم" -->
+    <div id="notifyModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[62] hidden flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+        <div class="section-card max-w-lg w-full p-0 my-auto overflow-hidden">
+            <div class="flex justify-between items-center gap-2 px-5 py-4 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-900">🔔 الإشعارات</h3>
+                <div class="flex items-center gap-2">
+                    <button id="notify-new-btn" data-action="notify-compose" class="hidden text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg">+ إشعار جديد</button>
+                    <button data-action="close-modal" data-modal="notifyModal" class="text-slate-400 hover:text-slate-700" aria-label="إغلاق">✕</button>
+                </div>
+            </div>
+            <div id="notify-list" class="notify-list"></div>
+            <div class="notify-foot">
+                <button id="notify-sound-btn" data-action="notify-sound"></button>
+                <button id="notify-perm-btn" data-action="notify-permission"></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notifyComposeModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[64] hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="section-card max-w-md w-full p-6 my-auto">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-900">إشعار جديد</h3>
+                <button data-action="close-modal" data-modal="notifyComposeModal" class="text-slate-400 hover:text-slate-700" aria-label="إغلاق">✕</button>
+            </div>
+            <div class="mt-4 space-y-4 text-xs">
+                <div>
+                    <label for="nc_text" class="font-bold block mb-1 text-slate-700">الرسالة</label>
+                    <textarea id="nc_text" rows="4" maxlength="1000" class="w-full field leading-6" placeholder="مثلاً: الدوام بكرا من الساعة 10"></textarea>
+                </div>
+                <div>
+                    <span class="font-bold block mb-1.5 text-slate-700">لمين توصل</span>
+                    <div id="nc-recipients" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+                    <p id="nc-team-empty" class="hidden text-[11px] text-amber-700 mt-1.5">ما في موظفين غيرك بورقة المستخدمين.</p>
+                </div>
+                <label class="perm-check"><input type="checkbox" id="nc_important"><span>مهم<small>بيطلع عندهم بنافذة ما بتسكّر إلا لما يكبسوا "قرأت"</small></span></label>
+                <div class="flex gap-2">
+                    <button id="nc-send" data-action="notify-send" class="flex-1 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-bold py-2.5 rounded-lg">إرسال</button>
+                    <button data-action="close-modal" data-modal="notifyComposeModal" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notifyAlertModal" class="modal fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[85] hidden flex items-center justify-center p-4">
+        <div class="section-card notify-alert max-w-sm w-full p-6 space-y-3">
+            <div class="flex items-center gap-2 text-amber-700 font-black text-sm">⚠️ <span id="notify-alert-from"></span></div>
+            <p id="notify-alert-text" class="text-sm text-slate-800 leading-7 notify-text"></p>
+            <div class="flex gap-2 pt-1">
+                <button data-action="notify-ack" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg">قرأت</button>
+                <button data-action="notify-alert-reply" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg">↩ رد</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- قائمة النسخ الصغيرة جنب زر النسخ (transactions.js openCopyMenu) -->
+    <div id="copy-menu" class="copy-menu hidden" role="menu" aria-label="نسخ"></div>
 
     <!-- Modal: تعديل الحوالة -->
     <div id="editTxModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
@@ -1426,9 +1508,14 @@
                         </div>
                     </div>
                     <div>
-                        <label for="edit_tx_account" class="font-bold block mb-1 text-slate-700">رقم الحساب / المحفظة</label>
+                        <label for="edit_tx_account" id="edit_tx_account_label" class="font-bold block mb-1 text-slate-700">رقم المحفظة</label>
                         <input type="text" id="edit_tx_account" class="w-full border border-slate-200 rounded-lg p-2 bg-white font-mono">
                     </div>
+                </div>
+                <div id="edit_tx_iban_wrap" class="hidden">
+                    <label for="edit_tx_iban" class="font-bold block mb-1 text-slate-700">IBAN <span class="font-medium text-slate-400">(اختياري)</span></label>
+                    <input type="text" id="edit_tx_iban" dir="ltr" autocomplete="off" autocapitalize="characters" spellcheck="false" class="w-full border border-slate-200 rounded-lg p-2 bg-white font-mono text-left">
+                    <span id="edit_tx_iban_hint" class="iban-hint"></span>
                 </div>
                 <div class="grid grid-cols-3 gap-3">
                     <div class="col-span-2">
@@ -1476,6 +1563,18 @@
                         <label for="edit_tx_screen" class="font-bold block mb-1 text-slate-500">سعر الشاشة</label>
                         <input type="number" step="any" min="0" id="edit_tx_screen" class="w-full border border-slate-200 rounded p-1.5 bg-white font-bold text-slate-900">
                     </div>
+                </div>
+                <!-- تعديل ± على المسلّم بعد الحساب، زي USDT (transactions.js bumpTxFinalAdjust) -->
+                <div id="edit_tx_final_adjust_wrap">
+                    <label for="edit_tx_final_adjust" class="font-bold block mb-1 text-slate-700">تعديل على المسلّم ±</label>
+                    <div class="flex gap-1.5 items-stretch">
+                        <input type="number" step="any" id="edit_tx_final_adjust" dir="ltr" placeholder="0" class="flex-1 min-w-0 border border-slate-200 rounded-lg p-2 bg-white font-bold font-mono text-right">
+                        <button type="button" dir="ltr" data-action="tx-final-adjust" data-step="-1" class="w-10 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:cursor-not-allowed text-slate-700 font-black text-sm font-mono">−1</button>
+                        <button type="button" dir="ltr" data-action="tx-final-adjust" data-step="-0.5" class="w-10 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:cursor-not-allowed text-slate-700 font-black text-sm font-mono">−½</button>
+                        <button type="button" dir="ltr" data-action="tx-final-adjust" data-step="0.5" class="w-10 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:cursor-not-allowed text-slate-700 font-black text-sm font-mono">+½</button>
+                        <button type="button" dir="ltr" data-action="tx-final-adjust" data-step="1" class="w-10 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:cursor-not-allowed text-slate-700 font-black text-sm font-mono">+1</button>
+                    </div>
+                    <span id="edit_tx_final_adjust_hint" class="text-[10px] text-slate-400 block mt-1 leading-5"></span>
                 </div>
                 <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex flex-wrap gap-2 justify-between font-bold">
                     <span>المسلّم للزبون: <b id="edit_preview_client_ils" class="text-slate-900 font-mono">0.00 ₪</b></span>
@@ -2284,10 +2383,15 @@
                 <li><span class="wa-num">3</span><span>بمربع الكتابة اكبس <kbd id="wa-paste-key">Ctrl + V</kbd> ثم إرسال</span></li>
             </ol>
             <button data-action="wa-open" id="wa-open" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl text-sm transition">فتح واتساب</button>
-            <div class="flex flex-wrap gap-2 justify-center">
+            <div class="wa-extra flex flex-wrap gap-2 justify-center">
                 <button data-action="wa-copy" id="wa-copy-btn" class="font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg">نسخ الصورة</button>
                 <button data-action="wa-download" class="font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg">تنزيل الصورة</button>
                 <button data-action="wa-share-native" id="wa-share-native" class="hidden font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg">مشاركة من الجهاز</button>
+            </div>
+            <!-- رسالة الفاتورة حسب حالتها (receipts.js txMessage / payMessage) -->
+            <div id="wa-msg-box" class="wa-msg hidden">
+                <p id="wa-msg-text" class="wa-msg-text"></p>
+                <button data-action="wa-copy-msg" id="wa-copy-msg" class="font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg shrink-0">نسخ الرسالة</button>
             </div>
         </div>
     </div>

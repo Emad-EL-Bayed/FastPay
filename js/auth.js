@@ -20,10 +20,11 @@ const PERM_LABELS = {
     users: 'المستخدمين',
     delete: 'الحذف',
     profit: 'رؤية الأرباح',
-    unlock: 'تعديل الأيام المقفلة'
+    unlock: 'تعديل الأيام المقفلة',
+    notify: 'إرسال إشعارات'
 };
 const PAGE_PERMS = ['calculator', 'transactions', 'usdt', 'egp', 'accounts', 'expenses', 'traders', 'customers', 'countries', 'reports', 'settings', 'users'];
-const EXTRA_PERMS = ['delete', 'profit', 'unlock'];
+const EXTRA_PERMS = ['delete', 'profit', 'unlock', 'notify'];
 const ALL_PERM_KEYS = [...PAGE_PERMS, ...EXTRA_PERMS];
 
 
@@ -118,6 +119,7 @@ function applyPermsUI() {
     document.body.classList.toggle('no-delete', !hasPerm('delete'));
     document.body.classList.toggle('no-profit', !hasPerm('profit'));
     renderUserChip();
+    renderNotifyBadge();
     // مع الدخول بالمستخدمين لا حاجة لمفتاح الحماية اليدوي
     $('sync-token-wrap')?.classList.toggle('hidden', authEnabled);
     updateMobileNav();
@@ -372,7 +374,7 @@ function removeUserPhoto() {
 }
 
 function permCheckbox(k, perms) {
-    const hint = k === 'delete' ? 'يظهر زر الحذف' : k === 'profit' ? 'أعمدة وأرقام الربح' : k === 'unlock' ? 'تعديل وحذف حركات أيام انعمل إلها جرد' : '';
+    const hint = k === 'delete' ? 'يظهر زر الحذف' : k === 'profit' ? 'أعمدة وأرقام الربح' : k === 'unlock' ? 'تعديل وحذف حركات أيام انعمل إلها جرد' : k === 'notify' ? 'رسائل للموظفين من الجرس 🔔 (الرد مسموح للكل)' : '';
     return `<label class="perm-check"><input type="checkbox" value="${k}" ${perms.includes(k) ? 'checked' : ''}><span>${PERM_LABELS[k]}${hint ? `<small>${hint}</small>` : ''}</span></label>`;
 }
 

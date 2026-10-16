@@ -34,13 +34,13 @@ function searchAll(raw) {
     };
 
     if (customers.length) {
-        add('الزبائن', customers.filter(c => has(c.name) || num(c.phone, c.account)), c => ({
+        add('الزبائن', customers.filter(c => has(c.name) || num(c.phone, c.account, c.iban)), c => ({
             icon: '👤', title: c.name, sub: [c.phone && `<bdi class="ltr-num">${escapeHtml(c.phone)}</bdi>`, c.account && escapeHtml(c.account)].filter(Boolean).join(' · ') || escapeHtml(c.payout),
             run: () => openCustomerProfile(c.id, c.name)
         }));
     }
     if (hasPerm('transactions')) {
-        add('الحوالات', latestFirst(ledger.filter(t => has(t.recipient) || num(t.account, t.id) || exact(t))), t => ({
+        add('الحوالات', latestFirst(ledger.filter(t => has(t.recipient) || num(t.account, t.id, t.iban) || exact(t))), t => ({
             icon: '💸', title: t.recipient, sub: `${receiptNo(t)} · ${escapeHtml(t.date)} · ${t.currency === 'USD' ? moneyCur(t.clientUsd, 'USD') : moneyCur(t.clientIls, 'ILS')} · ${escapeHtml(t.status)}`,
             run: () => gotoRef('tx', t.id)
         }));

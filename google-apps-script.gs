@@ -31,6 +31,7 @@ const TX_FIELDS = [
   ['customerId', 'رقم الزبون'],
   ['recipient', 'اسم المستلم'],
   ['account', 'رقم الحساب / المحفظة'],
+  ['iban', 'IBAN'],
   ['payout', 'طريقة الاستلام'],
   ['provider', 'الجهة'],
   ['country', 'الدولة'],
@@ -46,13 +47,16 @@ const TX_FIELDS = [
   ['currency', 'عملة التسليم'],
   ['clientIls', 'المسلّم للزبون ₪'],
   ['clientUsd', 'المسلّم للزبون $'],
+  // ± على المسلّم بعد الحساب (بعملة التسليم)، والربح بيتبعه
+  ['finalAdjust', 'تعديل على النهائي'],
   ['costIls', 'التكلفة ₪'],
   ['profitIls', 'صافي الربح ₪'],
   ['status', 'الحالة'],
   ['updatedAt', 'آخر تحديث']
 ];
 
-// الزبون يُعرف برقم داخلي (id)، ورقم الواتساب يُضاف لاحقاً من صفحة الزبائن
+// الزبون يُعرف برقم داخلي (id)، ورقم الواتساب يُضاف لاحقاً من صفحة الزبائن.
+// البنك: "رقم الحساب / المحفظة" = رقم الجوال المربوط بالحساب (للتحويل)، و IBAN اختياري
 const CUST_FIELDS = [
   ['id', 'رقم الزبون'],
   ['name', 'اسم الزبون'],
@@ -60,6 +64,7 @@ const CUST_FIELDS = [
   ['payout', 'طريقة الاستلام'],
   ['provider', 'الجهة'],
   ['account', 'رقم الحساب / المحفظة'],
+  ['iban', 'IBAN'],
   ['createdAt', 'تاريخ الإضافة'],
   ['updatedAt', 'آخر تحديث']
 ];
@@ -261,7 +266,7 @@ const OBSOLETE_LABELS = {
 };
 
 // غيّر هذا الرقم عند أي تغيير في الأعمدة ليُعاد ترتيب الشيت مرة واحدة تلقائياً
-const LAYOUT_VERSION = '7';
+const LAYOUT_VERSION = '9';
 
 // أسماء أعمدة قديمة تُعاد تسميتها تلقائياً
 const LEGACY_LABELS = {
@@ -304,7 +309,8 @@ const PERMS = {
   delete: 'الحذف',
   profit: 'رؤية الأرباح',
   users: 'إدارة المستخدمين',
-  unlock: 'تعديل الأيام المقفلة'
+  unlock: 'تعديل الأيام المقفلة',
+  notify: 'إرسال إشعارات'
 };
 const ALL_PERMS = Object.keys(PERMS);
 
@@ -335,6 +341,7 @@ const ACTION_PERMS = {
   deleted_list: { any: ['settings'], del: true },
   edits_list: { any: ['settings'] },
   reset_data: { any: ['settings'], del: true },
+  notify_send: { any: ['notify'] },
   backups_list: { any: ['settings'], del: true },
   backup_info: { any: ['settings'], del: true },
   restore_backup: { any: ['settings'], del: true },
@@ -437,6 +444,16 @@ function doPost(e) {
         return json({ ok: true, items: listEdits(data.id, 300) });
       case 'reset_data':
         return json(resetData(auth, data.what));
+      case 'notify_send':
+        return json(sendNotify(auth, data));
+      case 'notify_reply':
+        return json(replyNotify(auth, data));
+      case 'notify_read':
+        return json(readNotify(auth, data.ids));
+      case 'notify_delete':
+        return json(deleteNotify(auth, data.id));
+      case 'notify_poll':
+        return json({ ok: true, serverTime: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), TIME_FORMAT), notifications: auth.authEnabled ? listNotifications(auth.username, typeof data.since === 'string' && data.since.length >= 16 ? data.since : '') : [] });
       case 'backups_list':
         return json(hasPerm(auth, 'users') ? { ok: true, items: listBackups() } : { ok: false, error: 'forbidden' });
       case 'backup_info':
@@ -819,10 +836,18 @@ function updateProfile(auth, data) {
 }
 
 // ================= ترتيب الشيت ليطابق البرنامج =================
-// يعمل تلقائياً مرة واحدة بعد كل تحديث للأعمدة، ويمكن تشغيله يدوياً من المحرر: اختر "رتّب_الشيت" ثم Run
+// يعمل تلقائياً مرة واحدة بعد كل تحديث للأعمدة، ويمكن تشغيله يدوياً من المحرر: اختر "رتّب_الشيت" ثم Run.
+// قبل الترتيب: نسخة كاملة بمجلد النسخ بـ Drive ("قبل ترتيب الأعمدة")، فما بتنعمل أوراق "- نسخة" جوّا الملف.
+// إذا النسخ على Drive ما زبط: نسخة من كل ورقة جوّا الملف زي قبل
 function رتّب_الشيت() {
+  let copyInFile = false;
+  try {
+    dailyBackup('قبل ترتيب الأعمدة');
+  } catch (err) {
+    copyInFile = true;
+  }
   [[TX_SHEET, TX_FIELDS], [CUST_SHEET, CUST_FIELDS], [EXP_SHEET, EXP_FIELDS], [TRADER_SHEET, TRADER_FIELDS], [TMOVE_SHEET, TMOVE_FIELDS], [COUNTRY_SHEET, COUNTRY_FIELDS], [ACCOUNT_SHEET, ACCOUNT_FIELDS], [AMOVE_SHEET, AMOVE_FIELDS], [USDT_SHEET, USDT_FIELDS], [EGP_WALLET_SHEET, EGP_WALLET_FIELDS], [EGP_SHEET, EGP_FIELDS], [SETTINGS_SHEET, SETTINGS_FIELDS], [CLOSING_SHEET, CLOSING_FIELDS]].forEach(([name, fields]) => {
-    reorderSheet(getSheet(name, fields), name, fields);
+    reorderSheet(getSheet(name, fields), name, fields, copyInFile);
   });
   ensureIds(getSheet(CUST_SHEET, CUST_FIELDS), CUST_FIELDS, 'name');
   fillMissingSerials();
@@ -834,8 +859,9 @@ function migrateLayoutIfNeeded() {
   if (props.getProperty('LAYOUT_VERSION') !== LAYOUT_VERSION) رتّب_الشيت();
 }
 
-// يرتّب الأعمدة بنفس ترتيب البرنامج، يحذف الأعمدة الملغاة، ويُبقي أي عمود أضفته بنفسك في الآخر
-function reorderSheet(sheet, name, fields) {
+// يرتّب الأعمدة بنفس ترتيب البرنامج، يحذف الأعمدة الملغاة، ويُبقي أي عمود أضفته بنفسك في الآخر.
+// copyInFile: نسخة من الورقة جوّا الملف قبل الترتيب (بس إذا النسخة على Drive ما زبطت)
+function reorderSheet(sheet, name, fields, copyInFile) {
   const lastCol = sheet.getLastColumn();
   const lastRow = sheet.getLastRow();
   if (!lastCol) return;
@@ -866,7 +892,7 @@ function reorderSheet(sheet, name, fields) {
     }));
 
   // نسخة احتياطية من الورقة قبل الترتيب (يمكن حذفها لاحقاً)
-  if (rows.length) {
+  if (rows.length && copyInFile) {
     const backup = sheet.copyTo(SpreadsheetApp.getActiveSpreadsheet());
     backup.setName(name + ' - نسخة ' + Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd HH-mm'));
   }
@@ -1264,7 +1290,7 @@ const RESET_GROUPS = {
   customers: [CUST_SHEET],
   traders: [TRADER_SHEET, TMOVE_SHEET],
   closings: [CLOSING_SHEET],
-  logs: [DELETED_SHEET, EDITS_SHEET]
+  logs: [DELETED_SHEET, EDITS_SHEET, '_الإشعارات']
 };
 
 function resetData(auth, what) {
@@ -1504,7 +1530,12 @@ function listData(since, auth) {
   }
   out.authEnabled = !!auth.authEnabled;
   // ميزات هالنسخة من السكربت: البرنامج يفعّل الخانات اللي بتحتاج أعمدة جديدة بس إذا السكربت بيدعمها
-  out.features = ['finalAdjust', 'serial', 'editLog', 'dayLock', 'resetData', 'alerts', 'restore'];
+  out.features = ['finalAdjust', 'serial', 'editLog', 'dayLock', 'resetData', 'alerts', 'restore', 'iban', 'notify', 'txAdjust', 'notifyDelete'];
+  // الإشعارات: اللي إلي (أو بعتها). مع الدخول بالمستخدمين بس
+  if (auth.authEnabled) {
+    out.notifications = listNotifications(auth.username, incremental ? since : '');
+    if (hasPerm(auth, 'notify')) out.team = readUsers().filter(u => u.active && u.username !== auth.username).map(u => ({ u: u.username, n: u.displayName || '' }));
+  }
   // يتغير لما تنمسح البيانات التجريبية أو تسترجع نسخة: الأجهزة الثانية بتعمل تحميل كامل
   out.dataEpoch = PropertiesService.getScriptProperties().getProperty('DATA_EPOCH') || '';
 
@@ -1527,6 +1558,160 @@ function listData(since, auth) {
     out.deleted = readDeletions(since).filter(d => readable[d.c]);
   }
   return out;
+}
+
+// ================= الإشعارات =================
+// رسالة من اللي معه صلاحية "إرسال إشعارات" لموظفين بيختارهم (أو "الكل")، والموظف بيرد.
+// الرد: "رد على" = رقم الرسالة الأصلية، ورايح لصاحبها؛ وصاحب الرسالة بيرد على موظف معيّن من اللي وصلتهم.
+// كل واحد بيشوف اللي إله واللي بعته. "قرأها" = {المستخدم: الوقت}. ورقة مخفية، آخر 500.
+// الحذف: صاحب الرسالة بيحذفها عند الكل (مع ردودها إذا أصلية) = "محذوف"؛ اللي وصلته بيشيلها من عنده بس = "مخفي عند".
+// الصف بيضل (مع "آخر تحديث") حتى الأجهزة الثانية تعرف بالتحديث السريع وتشيله
+const NOTIFY_SHEET = '_الإشعارات';
+const NOTIFY_HEADERS = ['رقم', 'الوقت', 'من', 'إلى', 'النص', 'مهم', 'رد على', 'قرأها', 'آخر تحديث', 'محذوف', 'مخفي عند'];
+const NOTIFY_COL = { readBy: 8, updatedAt: 9, deleted: 10, hiddenFor: 11 };
+const NOTIFY_ALL = 'الكل';
+const NOTIFY_KEEP = 500;
+const NOTIFY_MAX_CHARS = 1000;
+
+function notifySheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(NOTIFY_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(NOTIFY_SHEET);
+    sheet.getRange(1, 1, 1, NOTIFY_HEADERS.length).setValues([NOTIFY_HEADERS]);
+    sheet.setFrozenRows(1);
+    sheet.hideSheet();
+  }
+  // ورقة من نسخة أقدم (بدون أعمدة الحذف): نكمل العناوين
+  if (sheet.getLastColumn() < NOTIFY_HEADERS.length) sheet.getRange(1, 1, 1, NOTIFY_HEADERS.length).setValues([NOTIFY_HEADERS]);
+  return sheet;
+}
+
+function notifyRows() {
+  const sheet = notifySheet();
+  const last = sheet.getLastRow();
+  if (last < 2) return [];
+  const tz = Session.getScriptTimeZone();
+  const fmt = (v) => (v instanceof Date ? Utilities.formatDate(v, tz, TIME_FORMAT) : String(v || ''));
+  return sheet.getRange(2, 1, last - 1, NOTIFY_HEADERS.length).getValues().map((r, i) => {
+    let readBy = {};
+    try { readBy = JSON.parse(String(r[7] || '{}')) || {}; } catch (e) { readBy = {}; }
+    let hiddenFor = [];
+    try { hiddenFor = JSON.parse(String(r[10] || '[]')) || []; } catch (e) { hiddenFor = []; }
+    const to = String(r[3] || '').trim();
+    return {
+      row: i + 2, id: String(r[0]).trim(), at: fmt(r[1]), from: String(r[2] || ''), text: String(r[4] || ''),
+      to: to === NOTIFY_ALL ? NOTIFY_ALL : to.split(',').map(x => x.trim()).filter(Boolean),
+      important: String(r[5]).trim() === 'نعم', replyTo: String(r[6] || '').trim(), readBy: readBy, updatedAt: fmt(r[8]),
+      deleted: !!String(r[9] || '').trim(), hiddenFor: Array.isArray(hiddenFor) ? hiddenFor : []
+    };
+  }).filter(n => n.id);
+}
+
+const notifyVisible = (n, user) => n.from === user || n.to === NOTIFY_ALL || n.to.indexOf(user) >= 0;
+const notifyPublic = (n) => ({ id: n.id, at: n.at, from: n.from, to: n.to, text: n.text, important: n.important, replyTo: n.replyTo, readBy: n.readBy });
+
+// الكاملة: آخر 150 إلي (بدون المحذوف والمخفي عندي). السريعة: اللي انضاف أو انقرأ أو انحذف بعد since؛
+// المحذوف أو المخفي عندي بيرجع {id, removed} حتى البرنامج يشيله
+const notifyGone = (n, user) => n.deleted || n.hiddenFor.indexOf(user) >= 0;
+
+function listNotifications(user, since) {
+  if (!user) return [];
+  const mine = notifyRows().filter(n => notifyVisible(n, user));
+  if (since) return mine.filter(n => n.updatedAt >= since).map(n => (notifyGone(n, user) ? { id: n.id, removed: true } : notifyPublic(n)));
+  return mine.filter(n => !notifyGone(n, user)).slice(-150).map(notifyPublic);
+}
+
+function setNotifyCell(sheet, row, key, value) {
+  const cell = sheet.getRange(row, NOTIFY_COL[key]);
+  cell.setNumberFormat('@');
+  cell.setValue(value);
+}
+
+// صاحب الرسالة: بتنحذف عند الكل (والأصلية مع ردودها). غيره: بتنشال من عنده بس (والأصلية مع ردودها اللي بيشوفها)
+function deleteNotify(auth, id) {
+  if (!auth.authEnabled) return { ok: false, error: 'no_users' };
+  const user = auth.username;
+  const rows = notifyRows();
+  const n = rows.filter(x => x.id === String(id || '') && !notifyGone(x, user))[0];
+  if (!n || !notifyVisible(n, user)) return { ok: false, error: 'not_found' };
+  const sheet = notifySheet();
+  const now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), TIME_FORMAT);
+  const family = rows.filter(x => !x.deleted && (x.id === n.id || (!n.replyTo && x.replyTo === n.id)));
+  if (n.from === user) {
+    family.forEach(x => {
+      setNotifyCell(sheet, x.row, 'deleted', now + ' · ' + user);
+      setNotifyCell(sheet, x.row, 'updatedAt', now);
+    });
+    return { ok: true, scope: 'all', count: family.length };
+  }
+  const mine = family.filter(x => notifyVisible(x, user) && x.hiddenFor.indexOf(user) < 0);
+  mine.forEach(x => {
+    setNotifyCell(sheet, x.row, 'hiddenFor', JSON.stringify(x.hiddenFor.concat([user])));
+    setNotifyCell(sheet, x.row, 'updatedAt', now);
+  });
+  return { ok: true, scope: 'me', count: mine.length };
+}
+
+function appendNotify(obj) {
+  const sheet = notifySheet();
+  const now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), TIME_FORMAT);
+  const id = String(Date.now()) + String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+  const n = sheet.getLastRow() + 1;
+  const range = sheet.getRange(n, 1, 1, NOTIFY_HEADERS.length);
+  range.setNumberFormat('@');
+  range.setValues([[id, now, obj.from, obj.to === NOTIFY_ALL ? NOTIFY_ALL : obj.to.join(','), obj.text, obj.important ? 'نعم' : '', obj.replyTo || '', '{}', now, '', '[]']]);
+  if (n > NOTIFY_KEEP + 100) sheet.deleteRows(2, n - NOTIFY_KEEP - 1);
+  return notifyPublic({ id: id, at: now, from: obj.from, to: obj.to, text: obj.text, important: !!obj.important, replyTo: obj.replyTo || '', readBy: {} });
+}
+
+const notifyText = (v) => String(v || '').trim().slice(0, NOTIFY_MAX_CHARS);
+
+function sendNotify(auth, data) {
+  if (!auth.authEnabled) return { ok: false, error: 'no_users' };
+  const text = notifyText(data.text);
+  if (!text) return { ok: false, error: 'empty' };
+  let to = NOTIFY_ALL;
+  if (data.to !== NOTIFY_ALL) {
+    const team = readUsers().filter(u => u.active && u.username !== auth.username).map(u => u.username);
+    to = (Array.isArray(data.to) ? data.to : []).map(String).filter((u, i, all) => team.indexOf(u) >= 0 && all.indexOf(u) === i);
+    if (!to.length) return { ok: false, error: 'no_recipients' };
+  }
+  return { ok: true, item: appendNotify({ from: auth.username, to: to, text: text, important: !!data.important }) };
+}
+
+function replyNotify(auth, data) {
+  if (!auth.authEnabled) return { ok: false, error: 'no_users' };
+  const text = notifyText(data.text);
+  if (!text) return { ok: false, error: 'empty' };
+  const root = notifyRows().filter(n => n.id === String(data.replyTo || '') && !n.replyTo && !notifyGone(n, auth.username))[0];
+  if (!root || !notifyVisible(root, auth.username)) return { ok: false, error: 'not_found' };
+  let to = [root.from];
+  if (root.from === auth.username) {
+    // صاحب الرسالة بيرد على واحد من اللي وصلتهم
+    const target = String(data.to || '');
+    const recipients = root.to === NOTIFY_ALL ? readUsers().filter(u => u.active).map(u => u.username) : root.to;
+    if (!target || target === auth.username || recipients.indexOf(target) < 0) return { ok: false, error: 'bad_target' };
+    to = [target];
+  }
+  return { ok: true, item: appendNotify({ from: auth.username, to: to, text: text, replyTo: root.id }) };
+}
+
+// قرأها: بيتسجل وقتها، و"آخر تحديث" بيتغير حتى يشوفها اللي بعت بالتحديث السريع
+function readNotify(auth, ids) {
+  const want = (Array.isArray(ids) ? ids : []).map(String);
+  if (!auth.authEnabled || !want.length) return { ok: true, count: 0 };
+  const sheet = notifySheet();
+  const now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), TIME_FORMAT);
+  let count = 0;
+  notifyRows().forEach(n => {
+    if (want.indexOf(n.id) < 0 || n.deleted || n.from === auth.username || !notifyVisible(n, auth.username) || n.readBy[auth.username]) return;
+    n.readBy[auth.username] = now;
+    setNotifyCell(sheet, n.row, 'readBy', JSON.stringify(n.readBy));
+    setNotifyCell(sheet, n.row, 'updatedAt', now);
+    count++;
+  });
+  return { ok: true, count: count, at: now };
 }
 
 // بصمة الشعار: طوله + آخر حروفه (تتغير عند تغيّر الصورة)

@@ -173,7 +173,7 @@ function renderUsdtPage() {
                         : escapeHtml(m.kind === 'adjust' ? m.note || '—' : '—')}</td>
                     <td class="p-3 font-mono font-bold num whitespace-nowrap">${fmt(Math.abs(m.amount))} <span class="text-[10px] text-slate-400">USDT</span>${m.network ? `<div class="text-[10px] text-slate-400 font-sans">${escapeHtml(m.network)} · ${fmt(m.networkFee)}$</div>` : ''}</td>
                     <td class="p-3 font-mono text-xs num whitespace-nowrap ${m.usdtEffect >= 0 ? 'text-emerald-700' : 'text-rose-700'}">${effect}</td>
-                    <td class="p-3 font-mono font-black num whitespace-nowrap">${m.kind === 'adjust' ? '—' : moneyCur(m.total, m.currency)}${m.kind !== 'adjust' ? `<div class="text-[10px] text-slate-400 font-sans">${m.pct}% · سعر ${fmt(m.rate, 2)}${m.discount ? ` · خصم ${fmt(m.discount)}` : ''}${m.finalAdjust ? ` · تعديل ${signedAmount(m.finalAdjust)}` : ''}</div>` : ''}</td>
+                    <td class="p-3 font-mono font-black num whitespace-nowrap">${m.kind === 'adjust' ? '—' : `<button data-action="usdt-receipt" data-id="${m.id}" class="amount-link" title="الفاتورة">${moneyCur(m.total, m.currency)}</button>`}${m.kind !== 'adjust' ? `<div class="text-[10px] text-slate-400 font-sans">${m.pct}% · سعر ${fmt(m.rate, 2)}${m.discount ? ` · خصم ${fmt(m.discount)}` : ''}${m.finalAdjust ? ` · تعديل ${signedAmount(m.finalAdjust)}` : ''}</div>` : ''}</td>
                     <td class="p-3 whitespace-nowrap">${st ? `<span class="badge ${PAY_STATE[st.state].cls}">${PAY_STATE[st.state].label}</span>${st.state === 'partial' ? `<div class="text-[10px] text-slate-500 mt-0.5">الباقي ${moneyCur(st.remaining, m.currency)}</div>` : ''}` : ''}</td>
                     <td class="profit-only p-3 font-mono font-black num whitespace-nowrap ${m.profitIls >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${m.kind === 'adjust' ? '' : `${m.profitIls >= 0 ? '+' : ''}${fmt(m.profitIls)} ₪`}</td>
                     <td class="p-3 text-center whitespace-nowrap">
@@ -442,9 +442,8 @@ async function saveUsdt(e) {
     if (noteOps.length) renderAccountsPage();
     updateReportsData();
     const status = await flushOutbox();
+    // الفاتورة ما بتفتح لحالها (بطلب عماد): بتنفتح من المبلغ بالسطر أو زر "فاتورة"
     showToast(existing ? 'تم تعديل الحركة' : 'تم حفظ الحركة', `${USDT_KINDS[move.kind]} ${fmt(Math.abs(move.amount))} USDT — ${syncResultMessage(status)}`, syncToastType(status));
-    // الإيداع الجديد: الفاتورة مباشرة لإرسالها للزبون
-    if (!existing && move.kind === 'deposit') openUsdtReceipt(move.id);
 }
 
 function openUsdtPay(id) {

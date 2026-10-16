@@ -73,7 +73,11 @@ const DEFAULT_CONFIG = {
     egpSendPct: 13,
     egpReceivePct: 13,
     // قفل الأيام: آخر يوم مجرود (الحركات لحد هاليوم ما بتتعدل إلا بصلاحية "تعديل الأيام المقفلة")
-    lockedThrough: ''
+    lockedThrough: '',
+    // رسالة الفاتورة على واتساب حسب الحالة: بس الجمل اللي تعدّلت (الباقي من WA_MESSAGE_DEFAULTS بـ receipts.js)
+    waMessages: {},
+    // صوت الإشعارات (على هالجهاز بس)
+    notifySound: true
 };
 
 const DEFAULT_COUNTRIES = [
@@ -164,6 +168,53 @@ function whatsappDigits(phone) {
     return d;
 }
 const hasWhatsapp = (c) => whatsappDigits(c?.phone).length >= 10 && !whatsappDigits(c?.phone).startsWith('0');
+
+// ---------- البنك: رقم الجوال للتحويل و IBAN ----------
+// IBAN بينحفظ بدون مسافات وبحروف كبيرة، وبينعرض كل 4 حروف لحال. الأرقام العربية (٠-٩) بتتحول
+const cleanIban = (v) => String(v ?? '').replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/[\s-]/g, '').toUpperCase();
+const formatIban = (v) => cleanIban(v).replace(/(.{4})(?=.)/g, '$1 ');
+
+// صحيح = شكله صح ورقم الفحص (mod 97) صح. الفلسطيني (PS) طوله 29
+function ibanValid(v) {
+    const s = cleanIban(v);
+    if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(s)) return false;
+    if (s.startsWith('PS') && s.length !== 29) return false;
+    let rem = 0;
+    for (const ch of s.slice(4) + s.slice(0, 4)) {
+        const digits = /\d/.test(ch) ? ch : String(ch.charCodeAt(0) - 55);
+        for (const d of digits) rem = (rem * 10 + Number(d)) % 97;
+    }
+    return rem === 1;
+}
+
+// رقم البنك صار رقم الجوال المربوط بالحساب؛ الحوالات القديمة فيها رقم حساب
+const looksLikePhone = (v) => /^(\+?97[02]|0097[02])?0?5\d{8}$/.test(normPhone(v));
+function accountLabel(x) {
+    if (x?.payout !== 'بنكي') return 'رقم المحفظة';
+    return !x.account || looksLikePhone(x.account) ? 'رقم الجوال' : 'رقم الحساب';
+}
+
+// نسخ نص للحافظة، وإذا المتصفح ما سمح بالطريقة القديمة. بترجع true إذا نجح.
+// writeText بتنطلب فوراً (قبل أي انتظار) حتى تضل جوّا نفس الكبسة
+async function copyText(text) {
+    try {
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+    } catch (e) { /* نجرّب الطريقة القديمة */ }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.remove();
+    return ok;
+}
 
 const newCustomerId = () => 'c' + Date.now() + Math.floor(Math.random() * 1000);
 
@@ -333,6 +384,7 @@ function normalizeCustomer(c) {
         payout: PAYOUTS.includes(c?.payout) ? c.payout : 'محفظة',
         provider: normalizeProvider(c?.payout, c?.provider),
         account: String(c?.account ?? '').trim(),
+        iban: cleanIban(c?.iban),
         createdAt: String(c?.createdAt ?? '').slice(0, 10)
     };
 }
@@ -361,6 +413,7 @@ function normalizeTx(t) {
         phone: phone === '-' ? '' : phone,
         customerId: String(t?.customerId ?? '').trim(),
         account: String(t?.account ?? '').trim(),
+        iban: cleanIban(t?.iban),
         payout: PAYOUTS.includes(t?.payout) ? t.payout : 'محفظة',
         provider: normalizeProvider(t?.payout, t?.provider),
         currency: t?.currency === 'USD' ? 'USD' : 'ILS',
@@ -376,6 +429,7 @@ function normalizeTx(t) {
         screenRate: toNum(t?.screenRate, globalConfig.screenRate),
         clientIls: toNum(t?.clientIls, 0),
         clientUsd: toNum(t?.clientUsd, 0),
+        finalAdjust: round2(toNum(t?.finalAdjust, 0)),
         costIls: toNum(t?.costIls, 0),
         profitIls: toNum(t?.profitIls, 0),
         status: STATUSES.includes(t?.status) ? t.status : STATUSES[0],

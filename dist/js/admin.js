@@ -145,7 +145,7 @@ const RESET_OPTIONS = [
     ['customers', 'الزبائن', () => customers.length],
     ['traders', 'التجار وحركاتهم', () => traders.length + traderMoves.length],
     ['closings', 'الجرد اليومي (وبينفتح قفل الأيام)', () => closings.length],
-    ['logs', 'سجل المحذوفات وسجل التعديلات', () => null]
+    ['logs', 'السجلات: المحذوفات والتعديلات والإشعارات', () => null]
 ];
 const RESET_WORD = 'امسح';
 let resetUsed = null; // {at, by} لما يكون المسح انعمل

@@ -1286,6 +1286,92 @@ kbd { font-family: inherit; direction: ltr; display: inline-block; padding: 0 0.
 .debt-chip:hover { border-color: #3b82f6; color: rgb(var(--t-blue-700, 29 78 216)); }
 
 
+/* ================= البنك (IBAN)، نسخ رقم التحويل، وتفاصيل الحوالة (transactions.js) ================= */
+.iban-hint { display: block; min-height: 1rem; margin-top: 0.25rem; font-size: 0.65rem; font-weight: 700; color: rgb(var(--t-slate-400, 148 163 184)); }
+.iban-hint.ok { color: rgb(var(--t-emerald-700, 4 120 87)); }
+.iban-hint.bad { color: rgb(var(--t-rose-700, 190 18 60)); }
+input:disabled[id$="_iban"] { opacity: 0.6; cursor: not-allowed; }
+
+.copy-btn { display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem; flex-shrink: 0; border-radius: 0.5rem; border: 1px solid rgb(var(--c-slate-200, 226 232 240)); background: rgb(var(--b-white, 255 255 255)); color: rgb(var(--t-slate-500, 100 116 139)); transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease; }
+.copy-btn svg { width: 0.85rem; height: 0.85rem; }
+.copy-btn:hover { color: rgb(var(--t-blue-700, 29 78 216)); border-color: rgb(var(--c-blue-300, 147 197 253)); }
+.copy-btn.copied { color: rgb(var(--t-emerald-700, 4 120 87)); border-color: rgb(var(--c-emerald-300, 110 231 183)); background: rgb(var(--b-emerald-50, 236 253 245)); }
+
+.copy-menu { position: fixed; z-index: 80; min-width: 13rem; max-width: calc(100vw - 1rem); padding: 0.3rem; border-radius: 0.8rem; border: 1px solid rgb(var(--c-slate-200, 226 232 240)); background: rgb(var(--b-white, 255 255 255)); box-shadow: 0 12px 30px -12px rgba(15, 23, 42, 0.35); animation: copy-menu-in 0.14s ease-out; }
+@keyframes copy-menu-in { from { opacity: 0; transform: translateY(-4px); } }
+html.motion-off .copy-menu { animation: none; }
+.copy-menu-item { display: flex; justify-content: space-between; align-items: center; gap: 1rem; width: 100%; padding: 0.5rem 0.6rem; border-radius: 0.55rem; font-size: 0.75rem; color: rgb(var(--t-slate-800, 30 41 59)); text-align: right; }
+.copy-menu-item bdi { color: rgb(var(--t-slate-500, 100 116 139)); font-size: 0.7rem; }
+.copy-menu-item:hover { background: rgb(var(--b-slate-100, 241 245 249)); }
+.copy-menu-item.all { flex-direction: column; align-items: flex-start; gap: 0.1rem; margin-top: 0.2rem; border-top: 1px solid rgb(var(--c-slate-100, 241 245 249)); border-radius: 0 0 0.55rem 0.55rem; }
+.copy-menu-item.all bdi { font-size: 0.62rem; }
+
+.txd-card { padding: 0; overflow: hidden; }
+.txd-head { padding: 1.1rem 1.25rem 1rem; border-bottom: 1px solid rgb(var(--c-slate-100, 241 245 249)); background: rgb(var(--b-slate-50, 248 250 252)); }
+.txd-name { font-size: 1.05rem; font-weight: 900; color: rgb(var(--t-slate-900, 15 23 42)); text-align: right; }
+.txd-name:hover { color: rgb(var(--t-blue-700, 29 78 216)); text-decoration: underline; }
+.txd-amount { font-size: 1.6rem; font-weight: 900; line-height: 1.2; color: rgb(var(--t-slate-900, 15 23 42)); }
+.txd-body { padding: 0.9rem 1.25rem 1rem; display: flex; flex-direction: column; gap: 0.9rem; }
+.txd-title { font-size: 0.68rem; font-weight: 800; color: rgb(var(--t-slate-400, 148 163 184)); margin-bottom: 0.2rem; }
+.txd-row { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.42rem 0; border-bottom: 1px dashed rgb(var(--c-slate-200, 226 232 240)); font-size: 0.78rem; }
+.txd-row:last-child, .profit-only:last-child .txd-row { border-bottom: 0; }
+.txd-label { color: rgb(var(--t-slate-500, 100 116 139)); white-space: nowrap; }
+.txd-value { display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 700; color: rgb(var(--t-slate-800, 30 41 59)); text-align: left; min-width: 0; flex-wrap: wrap; justify-content: flex-end; }
+.txd-iban { font-size: 0.72rem; word-break: break-all; }
+/* المبلغ بالسطر بيفتح الفاتورة */
+.amount-link { font: inherit; color: inherit; text-align: inherit; border-radius: 0.35rem; cursor: pointer; text-decoration: underline dotted rgb(148 163 184 / 0.7); text-underline-offset: 4px; transition: color 0.15s ease; }
+.amount-link:hover { color: rgb(var(--t-blue-700, 29 78 216)); text-decoration: underline; }
+.txd-stack { flex-direction: column; align-items: stretch; gap: 0.3rem; }
+.txd-stack .txd-value { justify-content: space-between; flex-wrap: nowrap; }
+.txd-link { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; color: rgb(var(--t-slate-400, 148 163 184)); border-radius: 0.35rem; padding: 0.1rem 0.25rem; }
+.txd-link:hover { color: rgb(var(--t-blue-700, 29 78 216)); background: rgb(var(--b-blue-50, 239 246 255)); text-decoration: underline; }
+.txd-copy-all { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.5rem; padding: 0.4rem 0.7rem; border-radius: 0.6rem; font-size: 0.7rem; font-weight: 800; color: rgb(var(--t-blue-700, 29 78 216)); background: rgb(var(--b-blue-50, 239 246 255)); }
+.txd-copy-all svg { width: 0.85rem; height: 0.85rem; }
+.txd-copy-all.copied { color: rgb(var(--t-emerald-700, 4 120 87)); background: rgb(var(--b-emerald-50, 236 253 245)); }
+.txd-audit { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; font-size: 0.68rem; color: rgb(var(--t-slate-400, 148 163 184)); }
+.txd-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.85rem 1.25rem; border-top: 1px solid rgb(var(--c-slate-100, 241 245 249)); }
+.txd-actions > button:not(.wa-btn) { flex: 1 1 auto; padding: 0.55rem 0.9rem; border-radius: 0.65rem; font-size: 0.75rem; font-weight: 800; transition: background-color 0.15s ease; }
+.txd-actions .wa-btn { padding: 0.55rem 0.8rem; }
+
+/* رسالة الفاتورة بنافذة واتساب، ونسخة الجوال (زر مشاركة واحد بدل خطوات النسخ واللصق) */
+.wa-msg { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.6rem; border-radius: 0.7rem; border: 1px dashed rgb(var(--c-slate-300, 203 213 225)); background: rgb(var(--b-slate-50, 248 250 252)); }
+.wa-msg-text { flex: 1; font-size: 0.72rem; line-height: 1.6; color: rgb(var(--t-slate-700, 51 65 85)); white-space: pre-wrap; }
+#wa-copy-msg.wa-copied { color: rgb(var(--t-emerald-700, 4 120 87)); background: rgb(var(--b-emerald-50, 236 253 245)); }
+#waShareModal.wa-phone.wa-can-share .wa-steps,
+#waShareModal.wa-phone.wa-can-share #wa-open,
+#waShareModal.wa-phone.wa-can-share #wa-copy-btn { display: none; }
+#waShareModal.wa-phone.wa-can-share #wa-share-native { order: -1; width: 100%; padding: 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; color: #fff; background: #10b981; }
+
+/* ================= الإشعارات (notify.js) ================= */
+.notify-btn { position: relative; padding: 0 0.7rem; }
+.notify-badge { position: absolute; top: -0.4rem; left: -0.4rem; min-width: 1.15rem; height: 1.15rem; padding: 0 0.3rem; border-radius: 9999px; background: #e11d48; color: #fff; font-size: 0.62rem; font-weight: 900; line-height: 1.15rem; text-align: center; box-shadow: 0 0 0 2px rgb(var(--b-white, 255 255 255)); }
+.notify-list { max-height: min(65vh, 34rem); overflow-y: auto; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.notify-empty { padding: 2rem 1rem; text-align: center; font-size: 0.75rem; color: rgb(var(--t-slate-400, 148 163 184)); line-height: 1.8; }
+.notify-thread { padding: 0.6rem; border-radius: 0.9rem; border: 1px solid rgb(var(--c-slate-200, 226 232 240)); background: rgb(var(--b-white, 255 255 255)); }
+.notify-msg { padding: 0.55rem 0.65rem; border-radius: 0.7rem; }
+.notify-msg.unread { background: rgb(var(--b-blue-50, 239 246 255)); box-shadow: inset -3px 0 0 #3b82f6; }
+.notify-msg.mine { background: rgb(var(--b-slate-50, 248 250 252)); }
+.notify-meta { display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: rgb(var(--t-slate-800, 30 41 59)); }
+.notify-meta b { font-weight: 900; }
+.notify-at { margin-inline-start: auto; font-size: 0.62rem; font-weight: 600; color: rgb(var(--t-slate-400, 148 163 184)); direction: ltr; unicode-bidi: isolate; }
+.notify-read .notify-at { margin-inline-start: 0; }
+.notify-del { font-size: 0.7rem; line-height: 1; padding: 0.2rem 0.3rem; border-radius: 0.4rem; opacity: 0.45; filter: grayscale(1); transition: opacity 0.15s ease, background-color 0.15s ease; }
+.notify-del:hover, .notify-del:focus-visible { opacity: 1; filter: none; background: rgb(var(--b-rose-50, 255 241 242)); }
+.notify-at[title] { cursor: help; }
+.notify-imp { font-size: 0.6rem; font-weight: 800; padding: 0.05rem 0.4rem; border-radius: 9999px; background: rgb(var(--b-amber-100, 254 243 199)); color: rgb(var(--t-amber-800, 146 64 14)); }
+.notify-text { margin-top: 0.25rem; font-size: 0.8rem; line-height: 1.7; color: rgb(var(--t-slate-700, 51 65 85)); white-space: pre-wrap; overflow-wrap: anywhere; }
+.notify-replies { margin-top: 0.35rem; margin-inline-start: 0.9rem; padding-inline-start: 0.6rem; border-inline-start: 2px solid rgb(var(--c-slate-200, 226 232 240)); display: flex; flex-direction: column; gap: 0.3rem; }
+.notify-read { margin-top: 0.4rem; display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.65rem; color: rgb(var(--t-slate-500, 100 116 139)); }
+.notify-read .ok { color: rgb(var(--t-emerald-700, 4 120 87)); font-weight: 700; }
+.notify-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; }
+.notify-reply-btn { font-size: 0.68rem; font-weight: 800; padding: 0.3rem 0.65rem; border-radius: 0.55rem; color: rgb(var(--t-blue-700, 29 78 216)); background: rgb(var(--b-blue-50, 239 246 255)); }
+.notify-reply-btn:hover { background: rgb(var(--b-blue-100, 219 234 254)); }
+.notify-reply-box { margin-top: 0.5rem; }
+.notify-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; padding: 0.7rem 1rem; border-top: 1px solid rgb(var(--c-slate-100, 241 245 249)); }
+.notify-foot button { font-size: 0.7rem; font-weight: 800; padding: 0.4rem 0.7rem; border-radius: 0.6rem; background: rgb(var(--b-slate-100, 241 245 249)); color: rgb(var(--t-slate-700, 51 65 85)); }
+.notify-foot button:disabled { opacity: 0.75; cursor: default; }
+.notify-alert { border: 2px solid rgb(var(--c-amber-300, 252 211 77)); }
+
 /* ================= الوضع الداكن ================= */
 /* الألوان نفسها متغيرات (build/tailwind.config.js) وبتتحول لحالها، وهون بس اللي إله شكل خاص بالداكن.
    <html data-theme="dark"> بيتحط من js/theme.js (ومن سكربت صغير بأول index.html قبل أول رسم) */

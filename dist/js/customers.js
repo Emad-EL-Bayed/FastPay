@@ -133,7 +133,7 @@ function renderCustomersTable() {
     const index = buildCustomerStatsIndex();
 
     const rows = customers
-        .filter(c => !search || c.name.toLowerCase().includes(search) || (searchDigits && (whatsappDigits(c.phone).includes(searchDigits) || normPhone(c.account).includes(searchDigits))))
+        .filter(c => !search || c.name.toLowerCase().includes(search) || (searchDigits && (whatsappDigits(c.phone).includes(searchDigits) || normPhone(c.account).includes(searchDigits) || (c.iban && c.iban.toLowerCase().includes(searchDigits)))))
         .map(c => ({ c, s: customerStats(c, index) }));
 
     const sorters = {
@@ -213,7 +213,7 @@ function openCustomerProfile(id, fallbackName = '') {
             || egpMoves.find(m => m.customerName && ((id && m.customerId === id) || normName(m.customerName) === normName(fallbackName))));
         if (!tx && !um) return;
         c = normalizeCustomer(tx
-            ? { id: id || '', name: tx.recipient, payout: tx.payout, provider: tx.provider, account: tx.account }
+            ? { id: id || '', name: tx.recipient, payout: tx.payout, provider: tx.provider, account: tx.account, iban: tx.iban }
             : { id: id || '', name: um.customerName, payout: 'كاش' });
     }
     profileCustomer = c;
@@ -253,6 +253,7 @@ function profileHeadHtml(c, s, registered) {
                     <div class="text-xs text-slate-300 mt-0.5 flex flex-wrap gap-x-2">
                         <span>${escapeHtml(payoutLabel(c))}</span>
                         ${c.account ? `<span>·</span><bdi class="ltr-num font-mono">${escapeHtml(c.account)}</bdi>` : ''}
+                        ${c.iban ? `<span>·</span><bdi class="ltr-num font-mono">${escapeHtml(formatIban(c.iban))}</bdi>` : ''}
                     </div>
                 </div>
             </div>
@@ -510,20 +511,34 @@ function openCustomerModal(c = null) {
     $('m_cust_payout').value = c ? c.payout : 'محفظة';
     fillProviderSelect($('m_cust_provider'), $('m_cust_payout').value, c?.provider);
     $('m_cust_account').value = c ? c.account : '';
+    setIbanField($('m_cust_iban'), $('m_cust_iban_hint'), c?.iban);
+    syncCustPayoutFields();
     openModal('custModal');
     (c && !c.phone ? $('m_cust_phone') : $('m_cust_name')).focus();
+}
+
+// البنك: رقم الجوال المربوط بالحساب و IBAN (اختياري)؛ المحفظة: رقمها
+function syncCustPayoutFields() {
+    const payout = $('m_cust_payout').value;
+    $('m_cust_account_label').textContent = payout === 'بنكي' ? 'رقم الجوال (للتحويل)' : 'رقم المحفظة';
+    $('m_cust_iban_wrap').classList.toggle('hidden', payout !== 'بنكي');
 }
 
 async function saveCustomerManual(e) {
     e.preventDefault();
     const editId = $('cust_edit_id').value;
+    const existingIban = (customers.find(x => x.id === editId) || {}).iban || '';
+    // IBAN بس للبنك؛ إذا غيّرت لمحفظة بيضل محفوظ للمرة الجاية
+    const iban = $('m_cust_payout').value === 'بنكي' ? readIbanField($('m_cust_iban')) : existingIban;
+    if (iban === null) return;
     const data = normalizeCustomer({
         id: editId || newCustomerId(),
         phone: $('m_cust_phone').value,
         name: $('m_cust_name').value,
         payout: $('m_cust_payout').value,
         provider: $('m_cust_provider').value,
-        account: $('m_cust_account').value
+        account: $('m_cust_account').value,
+        iban: sheetHas('iban') ? iban : existingIban
     });
     if (!data.name) return showToast('تنبيه', 'اسم الزبون مطلوب', 'warning');
     if (data.phone && !hasWhatsapp(data)) {
@@ -538,7 +553,7 @@ async function saveCustomerManual(e) {
     let renamed = { ops: [], count: 0 };
     if (existing) {
         const oldName = existing.name;
-        Object.assign(existing, { name: data.name, phone: data.phone, payout: data.payout, provider: data.provider, account: data.account });
+        Object.assign(existing, { name: data.name, phone: data.phone, payout: data.payout, provider: data.provider, account: data.account, iban: data.iban });
         if (existing.name !== oldName) renamed = renameCustomerOps(existing, oldName);
         queueOps({ action: 'upsert_customer', customer: existing }, ...renamed.ops);
     } else {

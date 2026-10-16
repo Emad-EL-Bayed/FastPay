@@ -16,7 +16,28 @@ const CLICK_ACTIONS = {
     'retry-sync': retryFailedSync,
     'select-customer': (el) => selectCustomerFromSearch(el.dataset.id),
     'edit-tx': (el) => openEditTxModal(toNum(el.dataset.id, NaN)),
-    'delete-tx': (el) => deleteTxPrompt(toNum(el.dataset.id, NaN)),
+    'delete-tx': (el) => { closeModal('txDetailsModal'); deleteTxPrompt(toNum(el.dataset.id, NaN)); },
+    'tx-details': (el) => openTxDetails(toNum(el.dataset.id, NaN)),
+    'open-notify': openNotifyPanel,
+    'notify-compose': openNotifyCompose,
+    'notify-send': sendNotifyCompose,
+    'notify-reply': openNotifyReply,
+    'notify-reply-send': sendNotifyReply,
+    'notify-reply-cancel': () => { notifyReplyOpen = null; renderNotifyList(); },
+    'notify-ack': ackImportant,
+    'notify-delete': (el) => deleteNotification(el.dataset.id),
+    'notify-alert-reply': replyFromAlert,
+    'notify-sound': toggleNotifySound,
+    'notify-permission': requestNotifyPermission,
+    'txd-edit': (el) => { closeModal('txDetailsModal'); openEditTxModal(toNum(el.dataset.id, NaN)); },
+    'txd-customer': () => {
+        const t = ledger.find(x => x.id === txDetailsId);
+        closeModal('txDetailsModal');
+        if (t) openCustomerProfile(t.customerId, t.recipient);
+    },
+    'tx-copy': onTxCopy,
+    'txd-copy': copyTxField,
+    'copy-pick': (el) => pickCopyItem(toNum(el.dataset.i, -1)),
     'open-customer-modal': () => openCustomerModal(),
     'edit-customer': (el) => openCustomerModal(customers.find(c => c.id === el.dataset.id)),
     'delete-customer': (el) => deleteCustomerPrompt(el.dataset.id),
@@ -88,6 +109,7 @@ const CLICK_ACTIONS = {
     'wa-copy': waCopyAgain,
     'wa-download': waDownload,
     'wa-share-native': waShareNative,
+    'wa-copy-msg': waCopyMessage,
     'open-closing': openClosingModal,
     'load-deleted': loadDeletedList,
     'restore-deleted': (el) => restoreDeletedPrompt(el.dataset.id),
@@ -115,6 +137,7 @@ const CLICK_ACTIONS = {
     'usdt-select-customer': (el) => selectUsdtCustomer(el.dataset.id),
     'usdt-pay': (el) => openUsdtPay(toNum(el.dataset.id, NaN)),
     'final-adjust': (el) => bumpFinalAdjust(el.dataset.target, toNum(el.dataset.step, 0)),
+    'tx-final-adjust': (el) => bumpTxFinalAdjust(toNum(el.dataset.step, 0)),
     'usdt-receipt': (el) => openUsdtReceipt(toNum(el.dataset.id, NaN)),
     'edit-usdt': (el) => openUsdtModal('deposit', usdtMoves.find(m => m.id === toNum(el.dataset.id, NaN))),
     'delete-usdt': (el) => deleteUsdtPrompt(toNum(el.dataset.id, NaN)),
@@ -172,6 +195,8 @@ const CLICK_ACTIONS = {
 
 function bindEvents() {
     bindGlobalEvents();
+    bindIbanEvents();
+    bindNotifyEvents();
     bindThemeEvents();
     bindAdminEvents();
     bindSearchEvents();
@@ -202,6 +227,7 @@ function bindGlobalEvents() {
         }
 
         if (!e.target.closest('#user-menu') && !e.target.closest('#user-chip')) closeUserMenu();
+        if (!e.target.closest('#copy-menu') && !e.target.closest('[data-action="tx-copy"]')) closeCopyMenu();
         if (!e.target.closest('#mnav-more-menu') && !e.target.closest('#mnav-more')) $('mnav-more-menu').classList.add('hidden');
 
         if (!e.target.closest('#us-customer-dropdown') && e.target !== $('us_customer')) closeUsdtCustomerPicker();
@@ -221,9 +247,13 @@ function bindGlobalEvents() {
     });
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
+        // الإشعار المهم ما بيسكّر إلا بـ "قرأت"
+        if (!$('notifyAlertModal').classList.contains('hidden')) return;
         closeAppConfirm();
+        // قائمة النسخ مفتوحة: Esc بيسكّرها هي بس
+        if (!$('copy-menu').classList.contains('hidden')) return closeCopyMenu();
         // نغلق النافذة العليا فقط (مثلاً الفاتورة فوق ملف الزبون، أو الحركة فوق حساب التاجر)
-        const top = ['searchModal', 'resetModal', 'editsModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'accountModal', 'amoveModal', 'tmoveModal', 'traderModal', 'custModal', 'editTxModal', 'countryModal', 'customerModal', 'traderPanel']
+        const top = ['searchModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'accountModal', 'amoveModal', 'tmoveModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal', 'traderPanel']
             .find(id => !$(id).classList.contains('hidden'));
         if (top) closeModal(top);
         $('customer-search-dropdown').classList.add('hidden');
@@ -247,20 +277,29 @@ function bindCalculatorEvents() {
 
 // سجل الحوالات وتعديل الحوالة
 function bindLedgerEvents() {
-    $('edit_tx_payout').addEventListener('change', () => fillProviderSelect($('edit_tx_provider'), $('edit_tx_payout').value));
+    $('edit_tx_payout').addEventListener('change', () => {
+        fillProviderSelect($('edit_tx_provider'), $('edit_tx_payout').value);
+        syncEditTxPayoutFields();
+    });
     $('edit_tx_currency').addEventListener('change', recalcEditModal);
     $('edit_tx_cost_mode').addEventListener('change', recalcEditModal);
     $('tx_search').addEventListener('input', resetLedgerAndRender);
     ['tx_date_filter', 'tx_month_filter'].forEach(id => $(id).addEventListener('change', resetLedgerAndRender));
     $('editTxForm').addEventListener('submit', saveEditedTransaction);
+    // قائمة النسخ ثابتة بمكانها: بتتسكّر لما الصفحة أو الجدول يتحرك
+    document.addEventListener('scroll', () => { if (!$('copy-menu').classList.contains('hidden')) closeCopyMenu(); }, { passive: true, capture: true });
+    window.addEventListener('resize', closeCopyMenu);
     $('edit_tx_country').addEventListener('change', onEditCountrySelect);
-    ['edit_tx_orig', 'edit_tx_factor', 'edit_tx_cost_pct', 'edit_tx_profit_pct', 'edit_tx_minus', 'edit_tx_screen']
+    ['edit_tx_orig', 'edit_tx_factor', 'edit_tx_cost_pct', 'edit_tx_profit_pct', 'edit_tx_minus', 'edit_tx_screen', 'edit_tx_final_adjust']
         .forEach(id => $(id).addEventListener('input', recalcEditModal));
 }
 
 // الزبائن
 function bindCustomerEvents() {
-    $('m_cust_payout').addEventListener('change', () => fillProviderSelect($('m_cust_provider'), $('m_cust_payout').value));
+    $('m_cust_payout').addEventListener('change', () => {
+        fillProviderSelect($('m_cust_provider'), $('m_cust_payout').value);
+        syncCustPayoutFields();
+    });
     $('cust_search').addEventListener('input', renderCustomersTable);
     $('cust_sort').addEventListener('change', renderCustomersTable);
     $('custForm').addEventListener('submit', saveCustomerManual);

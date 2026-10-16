@@ -407,7 +407,7 @@ function egpRowHtml(m) {
         ? '<span class="text-slate-500">تحويل</span>'
         : `<span class="${m.egpEffect >= 0 ? 'text-emerald-700' : 'text-rose-700'}">${m.egpEffect >= 0 ? '+' : '−'}${fmtEgp(Math.abs(m.egpEffect))}</span>`;
     const total = trade
-        ? `${moneyCur(m.total, m.currency)}<div class="text-[10px] text-slate-400 font-sans">الألف ${fmt(egpPerThousand(m.rate, m.usdRate, m.currency))} ${CUR_SYM[m.currency]}${m.screen > 0 ? ` · ${fmt(egpPctOf(m.kind, m.screen, m.rate))}%` : ''}${m.finalAdjust ? ` · تعديل ${signedAmount(m.finalAdjust)}` : ''}</div>`
+        ? `<button data-action="egp-receipt" data-id="${m.id}" class="amount-link" title="الإيصال">${moneyCur(m.total, m.currency)}</button><div class="text-[10px] text-slate-400 font-sans">الألف ${fmt(egpPerThousand(m.rate, m.usdRate, m.currency))} ${CUR_SYM[m.currency]}${m.screen > 0 ? ` · ${fmt(egpPctOf(m.kind, m.screen, m.rate))}%` : ''}${m.finalAdjust ? ` · تعديل ${signedAmount(m.finalAdjust)}` : ''}</div>`
         : m.kind === 'topup' ? `${moneyCur(m.total, m.currency)}<div class="text-[10px] text-slate-400 font-sans">${m.egp >= 0 ? 'شراء' : 'بيع'} جنيه</div>` : '—';
     return `
         <tr class="hover:bg-slate-50">
@@ -654,7 +654,7 @@ function setEgpKind(kind, { keepValues = false, dir = $('eg_dir').value } = {}) 
         $('eg_dir').value = EGP_DIR_OPTIONS[kind].some(([v]) => v === dir) ? dir : 'in';
     }
     $('eg_party_label').textContent = kind === 'send' ? 'اسم المستلم (اختياري)' : kind === 'receive' ? 'اسم المرسل (اختياري)' : 'من مين؟ تاجر أو صراف (اختياري)';
-    $('eg_party_number_label').textContent = kind === 'send' ? 'رقم فودافون / عنوان انستا باي للمستلم *' : 'رقم المرسل (اختياري)';
+    $('eg_party_number_label').textContent = kind === 'send' ? 'رقم فودافون / عنوان انستا باي للمستلم (اختياري)' : 'رقم المرسل (اختياري)';
     $('eg_amount_label').textContent = kind === 'send' ? 'المبلغ اللي بيوصل (جنيه)' : kind === 'receive' ? 'المبلغ اللي وصلنا (جنيه)' : 'المبلغ بالجنيه';
     $('eg_pct_label').textContent = kind === 'send' ? 'نسبة الإرسال %' : 'نسبة الاستقبال %';
     $('eg_usd_label').textContent = kind === 'send' ? 'سعر شراء الدولار ₪' : 'سعر صرف الدولار ₪';
@@ -677,7 +677,7 @@ function syncEgpPartyFields() {
     const allowed = kind === 'send' || kind === 'receive' || kind === 'topup';
     $('eg_party_fields').classList.toggle('hidden', !(allowed && egpPartyOpen));
     $('eg_party_toggle').classList.toggle('hidden', !allowed || egpPartyOpen);
-    $('eg_party_toggle').textContent = kind === 'send' ? '+ بيانات المستلم (الاسم والرقم) *' : kind === 'receive' ? '+ بيانات المرسل (الاسم والرقم)' : '+ من مين؟ (تاجر أو صراف)';
+    $('eg_party_toggle').textContent = kind === 'send' ? '+ بيانات المستلم (الاسم والرقم)' : kind === 'receive' ? '+ بيانات المرسل (الاسم والرقم)' : '+ من مين؟ (تاجر أو صراف)';
 }
 
 function setEgpPartyOpen(open) {
@@ -821,10 +821,7 @@ async function saveEgp(e) {
     if (trade && !(f.screen > 0)) return warn('ما في شاشة للجنيه، ثبّتها من كرت أسعار الجنيه');
     if (trade && !(f.rate > 0)) return warn(`النسبة لازم تكون بين 0 و ${EGP_MAX_PCT}%`, 'eg_pct');
     if (trade && f.currency === 'ILS' && !(f.usdRate > 0)) return warn('سعر الدولار غير صحيح', 'eg_usd_rate');
-    if (f.kind === 'send' && !$('eg_party_number').value.trim()) {
-        setEgpPartyOpen(true);
-        return warn('اكتب رقم فودافون أو عنوان انستا باي للمستلم', 'eg_party_number');
-    }
+    // رقم المستلم بالإرسال اختياري (بطلب عماد 2026-10-16)
     if (f.kind === 'topup' && !(f.total > 0)) return warn('اكتب المبلغ اللي دفعته أو قبضته', 'eg_total');
     const existing = egpMoves.find(m => m.id === editingEgpId);
     // الزبون المختار من القائمة، أو بنفس الاسم، أو زبون جديد (مثل الحاسبة و USDT)
@@ -870,8 +867,7 @@ async function saveEgp(e) {
     const status = await flushOutbox();
     showToast(existing ? 'تم تعديل الحركة' : 'تم حفظ الحركة', `${EGP_KINDS[move.kind]} ${fmtEgp(Math.abs(move.egp))} جنيه — ${syncResultMessage(status)}`, syncToastType(status));
     if (negative.length) showToast('انتبه: رصيد سالب', negative.map(egpWalletName).join('، '), 'warning');
-    // الإرسال الجديد: الفاتورة مباشرة لإرسالها للزبون
-    if (!existing && move.kind === 'send') openEgpReceipt(move.id);
+    // الإيصال ما بيفتح لحاله (بطلب عماد): بينفتح من المبلغ بالسطر أو زر "فاتورة"
 }
 
 function openEgpPay(id) {
