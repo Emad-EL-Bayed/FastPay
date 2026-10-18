@@ -28,7 +28,12 @@ const CLICK_ACTIONS = {
     'notify-delete': (el) => deleteNotification(el.dataset.id),
     'notify-alert-reply': replyFromAlert,
     'notify-sound': toggleNotifySound,
-    'notify-permission': requestNotifyPermission,
+    'notify-permission': onNotifyPermissionClick,
+    'notify-push-off': disablePush,
+    'push-save': savePushSettings,
+    'push-test': testPush,
+    'push-clear': clearPushSettings,
+    'push-account-pick': () => $('push_account_input').click(),
     'txd-edit': (el) => { closeModal('txDetailsModal'); openEditTxModal(toNum(el.dataset.id, NaN)); },
     'txd-customer': () => {
         const t = ledger.find(x => x.id === txDetailsId);
@@ -214,6 +219,7 @@ function bindEvents() {
     bindGlobalEvents();
     bindIbanEvents();
     bindNotifyEvents();
+    bindPushEvents();
     bindThemeEvents();
     bindAdminEvents();
     bindSearchEvents();

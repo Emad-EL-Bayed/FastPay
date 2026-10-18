@@ -238,6 +238,7 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
     if (Array.isArray(data.team)) notifyTeam = data.team;
     if (data.serverTime) notifyCursor = data.serverTime;
     if ('notifications' in data) applyNotifications(data.notifications, { full: !data.incremental });
+    if ('push' in data) applyPushState(data.push, !data.incremental);
     else renderNotifyBadge();
     if ('lastBackup' in data) { lastBackupAt = data.lastBackup || ''; renderBackupStatus(); }
     // المسح لمرة وحدة: بعده زر المسح بيختفي

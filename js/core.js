@@ -15,7 +15,9 @@ const STORAGE = {
     // جلسة الدخول على هذا الجهاز { token, username, displayName, avatarSig, perms, auth }
     session: 'fastpay_v10_session',
     // نسخة من صورتي الشخصية { user, sig, data } حتى تظهر فوراً بدون طلبها كل مرة
-    avatar: 'fastpay_v11_avatar'
+    avatar: 'fastpay_v11_avatar',
+    // إشعارات الجوال على هالجهاز { token: رمز فاير بيز, user, at } (push.js)
+    push: 'fastpay_v12_push'
 };
 
 // مفاتيح قديمة كانت تحفظ الزبائن والحوالات داخل المتصفح، تُمسح عند الفتح

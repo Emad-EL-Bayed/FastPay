@@ -9,6 +9,7 @@ function loadSettingsPage() {
     renderEgpTierSettings();
     renderBackupStatus();
     renderAdminTools();
+    renderPushSettings();
     $('deleted-section').classList.toggle('hidden', !hasPerm('delete'));
     $('set_screen_rate').value = globalConfig.screenRate;
     $('set_market_rate').textContent = globalConfig.marketRate ? globalConfig.marketRate + ' ₪' : '—';

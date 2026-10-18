@@ -196,7 +196,9 @@ async function logout() {
     // العمليات المعلقة تُرسل باسم المستخدم الحالي قبل الخروج
     if (outbox.length) await flushOutbox();
     if (outbox.length) return showToast('لا يمكن الخروج الآن', 'في عمليات لم تصل للشيت بعد. تأكد من الاتصال ثم حاول مجدداً', 'warning');
-    await postToSheets({ action: 'logout' });
+    // جهاز الإشعارات بيطلع مع المستخدم (حتى ما توصله إشعارات غيره لو دخل حساب ثاني على نفس الجوال)
+    await postToSheets({ action: 'logout', pushToken: pushLocal()?.token || '' });
+    savePushLocal(null);
     session = { username: session?.username || '', auth: true };
     saveSession();
     location.reload();

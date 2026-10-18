@@ -6,5 +6,5 @@ cd "$(dirname "$0")/.."
 sh build/build-css.sh
 rm -rf dist
 mkdir -p dist
-cp -R index.html styles.css tailwind.css manifest.webmanifest js assets dist/
+cp -R index.html styles.css tailwind.css manifest.webmanifest firebase-messaging-sw.js js assets dist/
 echo "جاهز: $(pwd)/dist"

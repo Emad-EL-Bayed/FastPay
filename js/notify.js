@@ -298,6 +298,11 @@ function renderNotifyList() {
 function renderNotifyFoot() {
     const sound = globalConfig.notifySound !== false;
     $('notify-sound-btn').textContent = sound ? '🔊 الصوت شغّال' : '🔇 الصوت مسكّر';
+    // إشعارات الجوال (push.js) لما تكون مجهّزة، وإلا إشعارات المتصفح والصفحة مفتوحة
+    renderPushControls();
+}
+
+function renderBrowserNotifyButton() {
     const supported = 'Notification' in window;
     const perm = supported ? Notification.permission : 'unsupported';
     const btn = $('notify-perm-btn');
