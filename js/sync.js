@@ -34,14 +34,19 @@ async function postToSheets(payload, { noSession = false } = {}) {
 }
 
 // ---------- قراءة الزبائن والحوالات من الشيت ----------
-function setDataStatus(state, message = '') {
+// state: loading (لسا ما في بيانات) / stale (النسخة المحفوظة معروضة لحد ما يوصل الشيت) / ready / error.
+// offline: النسخة المحفوظة والشيت مش متصل (اللمعة بتوقف والبيانات بتضل باهتة)
+function setDataStatus(state, message = '', { offline = false } = {}) {
     dataState = state;
     if (state === 'error') sheetReadFailed = true;
+    document.body.classList.toggle('data-loading', state === 'loading');
+    document.body.classList.toggle('data-stale', state === 'stale');
+    document.body.classList.toggle('data-offline', state === 'stale' && offline);
     $('data-status-bar').classList.toggle('hidden', state === 'ready');
     $('data-status-bar').classList.toggle('!border-rose-200', state === 'error');
     $('data-status-text').textContent = message;
     $('data-status-text').className = 'font-bold ' + (state === 'error' ? 'text-rose-700' : 'text-slate-600');
-    $('data-status-retry').classList.toggle('hidden', state !== 'error');
+    $('data-status-retry').classList.toggle('hidden', !(state === 'error' || (state === 'stale' && offline)));
     // أثناء التحميل نمنع الحفظ حتى لا تختلط البيانات القديمة بالجديدة
     $('save-tx-btn').disabled = state === 'loading';
 }
@@ -127,6 +132,47 @@ function afterCountriesChanged(before) {
     if (!pageHidden('countries')) renderCountriesTable();
 }
 
+// ---------- "مين عدّل قبلي": آخر تحديث لكل سطر ----------
+// 'ledger:123' ← '2026-10-18 21:00:00' زي ما وصلنا من الشيت (أو من رد الحفظ). كل تعديل أو حذف بيبعته
+// معه (_base)، والسكربت ما بيكتب فوق سطر تغيّر بعدها (conflicts.js بيسأل)
+let rowStamps = new Map();
+const stampKey = (name, id) => name + ':' + String(id);
+
+function takeStamps(data, full) {
+    if (full) rowStamps = new Map();
+    Object.keys(COLLECTION_NORMALIZERS).forEach(name => {
+        (Array.isArray(data[name]) ? data[name] : []).forEach(r => {
+            if (r && r.id !== undefined && r.id !== '' && r.updatedAt) rowStamps.set(stampKey(name, r.id), String(r.updatedAt));
+        });
+    });
+    (data.deleted || []).forEach(d => rowStamps.delete(stampKey(d.c, d.id)));
+}
+
+// العملية على أي سطر: [القائمة، مكان السطر بالعملية] (الحذف بـ op.id)
+const OP_ROWS = {
+    upsert: ['ledger', null], delete: ['ledger', null],
+    upsert_customer: ['customers', 'customer'], delete_customer: ['customers', null],
+    upsert_expense: ['expenses', 'expense'], delete_expense: ['expenses', null],
+    upsert_trader: ['traders', 'trader'], delete_trader: ['traders', null],
+    upsert_tmove: ['traderMoves', 'move'], delete_tmove: ['traderMoves', null],
+    upsert_service: ['traderServices', 'service'], delete_service: ['traderServices', null],
+    upsert_country: ['countries', 'country'], delete_country: ['countries', null],
+    upsert_account: ['accounts', 'account'], delete_account: ['accounts', null],
+    upsert_amove: ['accountMoves', 'move'], delete_amove: ['accountMoves', null],
+    upsert_usdt: ['usdtMoves', 'move'], delete_usdt: ['usdtMoves', null],
+    upsert_egp_wallet: ['egpWallets', 'wallet'], delete_egp_wallet: ['egpWallets', null],
+    upsert_egp: ['egpMoves', 'move'], delete_egp: ['egpMoves', null],
+    upsert_closing: ['closings', 'closing']
+};
+const opIsDelete = (op) => op.action === 'delete' || String(op.action || '').startsWith('delete_');
+
+function opRowKey(op) {
+    const t = OP_ROWS[op?.action];
+    if (!t) return null;
+    const id = opIsDelete(op) ? op.id : (t[1] ? op[t[1]] : op)?.id;
+    return id === undefined || id === null || id === '' ? null : stampKey(t[0], id);
+}
+
 // يدمج الصفوف المتغيرة والمحذوفة في البيانات الموجودة
 function mergeIncremental(data) {
     Object.entries(COLLECTION_NORMALIZERS).forEach(([name, c]) => {
@@ -141,6 +187,9 @@ function mergeIncremental(data) {
     });
 }
 
+// النسخة المحفوظة (cache.js) بتتحدث بالسريع إذا آخر تحميل كامل خلال يوم، وبعدها تحميل كامل بالخلفية
+const STALE_QUICK_MS = 24 * 60 * 60 * 1000;
+
 async function loadFromSheets({ manual = false, silent = false } = {}) {
     if (!globalConfig.driveWebhook) {
         setLiveIndicator(false);
@@ -150,7 +199,10 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
     }
 
     const seq = ++loadSeq;
-    if (!silent) {
+    // النسخة المحفوظة معروضة: ما بنمسحها، بس بتلمع لحد ما يوصل الشيت
+    const stale = dataState === 'stale';
+    if (stale) setDataStatus('stale', staleStatusText(false));
+    else if (!silent) {
         setDataStatus('loading', 'جاري تحميل الزبائن والحوالات من Google Sheets...');
         renderDataViews();
     }
@@ -159,13 +211,16 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
 
     // نرسل العمليات المعلقة أولاً حتى تكون القراءة محدّثة
     await flushOutbox();
-    const quick = !manual && silent && syncCursor && dataState === 'ready' && Date.now() - lastFullLoadMs < FULL_RELOAD_MS;
+    const quick = !manual && syncCursor && (stale
+        ? Date.now() - lastFullLoadMs < STALE_QUICK_MS
+        : silent && dataState === 'ready' && Date.now() - lastFullLoadMs < FULL_RELOAD_MS);
     const result = await postToSheets(quick ? { action: 'list', since: syncCursor } : { action: 'list' });
     if (seq !== loadSeq) return; // وصل طلب تحميل أحدث
     sheetReading = false;
 
     const data = result.data;
     if (result.error === 'auth_required') {
+        clearSnapshot();
         sheetReadFailed = true;
         setLiveIndicator(false);
         setDataStatus('error', 'سجّل الدخول لعرض البيانات');
@@ -177,6 +232,12 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
             : 'تأكد من نشر السكربت الجديد (google-apps-script.gs) ومن صحة الرابط.';
         sheetReadFailed = true;
         setLiveIndicator(false);
+        // النسخة المحفوظة بتضل معروضة (باهتة) مع "مش متصل"
+        if (stale) {
+            setDataStatus('stale', staleStatusText(true), { offline: true });
+            if (manual) showToast('تعذرت المزامنة', reason, 'error');
+            return;
+        }
         // التحديث الصامت لا يمسح البيانات المعروضة عند الفشل
         if (silent) {
             if (manual) showToast('تعذرت المزامنة', reason, 'error');
@@ -198,6 +259,8 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
         : -1;
     const countriesBefore = JSON.stringify(countries);
     const servicesBefore = JSON.stringify(traderServices);
+    // اللي تغيّر من آخر مرة بيومض لحظة بعد الرسم (مش بأول تحميل بدون نسخة)
+    const stampsBefore = stale || silent ? new Map(rowStamps) : null;
     if (data.incremental) {
         mergeIncremental(data);
     } else {
@@ -229,6 +292,7 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
         closings = (data.closings || []).map(normalizeClosing).filter(c => c.id);
         lastFullLoadMs = Date.now();
     }
+    takeStamps(data, !data.incremental);
     // السكربت القديم لا يرسل serverTime، فيبقى التحميل كاملاً في كل مرة
     syncCursor = data.serverTime || null;
     updateAuthFromServer(data);
@@ -262,8 +326,13 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
     checkLowBalances();
     setLiveIndicator(true);
     // التحديث السريع بدون تغييرات لا يعيد رسم الصفحة
-    if (changedCount !== 0 || !silent) renderDataViews();
+    if (changedCount !== 0 || !silent || stale) renderDataViews();
+    if (stampsBefore) flashChangedRows(stampsBefore);
+    scheduleSnapshot();
     if (manual) showToast('تم التحديث من الشيت', `${ledger.length} حوالة، ${customers.length} زبون، ${expenses.length} مصروف`, 'info');
+    // من النسخة المحفوظة بالسريع، وآخر تحميل كامل قديم: تحميل كامل بالخلفية (بيلقط اللي السريع ما بيشوفه، زي حذف سطر بإيد بالشيت)
+    if (stale && quick && Date.now() - lastFullLoadMs >= FULL_RELOAD_MS) setTimeout(() => loadFromSheets({ silent: true }), 300);
+    showNextConflict();
 }
 
 // ---------- الكتابة: صندوق العمليات المعلقة (Outbox) ----------
@@ -333,9 +402,34 @@ function applyOpLocally(op) {
     }
 }
 
+// العمليات اللي بتنضاف مع بعض مجموعة وحدة (_grp): السكربت بيفحصها كلها قبل ما يكتب (تعديل حوالة ودفعاتها مثلاً).
+// كل تعديل أو حذف على سطر موجود بياخد _base = آخر تحديث شفناه إله؛ وإذا في عملية قبلها على نفس السطر لسا بالانتظار '@prev'
 function queueOps(...ops) {
-    outbox.push(...ops.map(op => JSON.parse(JSON.stringify(op))));
+    const list = ops.map(op => JSON.parse(JSON.stringify(op)));
+    const grp = list.length > 1 ? 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) : '';
+    const queued = new Set(outbox.map(opRowKey).filter(Boolean));
+    list.forEach(op => {
+        if (grp) op._grp = grp;
+        const key = opRowKey(op);
+        if (!key) return;
+        if (queued.has(key)) op._base = '@prev';
+        else if (rowStamps.has(key)) op._base = rowStamps.get(key);
+        queued.add(key);
+    });
+    outbox.push(...list);
     saveAll();
+}
+
+// دفعة لحد 25 عملية، بدون ما تنقسم مجموعة بين دفعتين (إلا لو هي أكبر من 25)
+function nextBatchSize() {
+    let n = Math.min(25, outbox.length);
+    const g = outbox[n - 1]?._grp;
+    if (n < outbox.length && g && outbox[n]?._grp === g) {
+        let k = n - 1;
+        while (k > 0 && outbox[k - 1]._grp === g) k--;
+        if (k > 0) n = k;
+    }
+    return n;
 }
 
 function flushOutbox() {
@@ -346,16 +440,22 @@ function flushOutbox() {
         let status = outbox.length ? 'ok' : 'idle';
         renderLedgerTable();
         updateLiveCard();
-        let rejected = 0, locked = 0;
+        let rejected = 0, locked = 0, conflicted = 0;
         while (outbox.length) {
             if (!globalConfig.driveWebhook) { status = 'disabled'; break; }
             // عدة عمليات في طلب واحد (السكربت القديم لا يدعمها فنرجع لعملية لكل طلب)
             if (batchSupported && outbox.length > 1) {
-                const ops = outbox.slice(0, 25);
+                const ops = outbox.slice(0, nextBatchSize());
                 const r = await postToSheets({ action: 'batch', ops });
                 if (r.status === 'ok' && Array.isArray(r.data?.results)) {
                     let stop = false;
                     for (const res of r.data.results) {
+                        // حدا عدّل السطر قبلي: العملية (ومجموعتها) بتطلع من الانتظار لحد ما تختار (conflicts.js)
+                        if (res.error === 'conflict' || res.error === 'conflict_group') {
+                            holdConflict(outbox.shift(), res);
+                            conflicted++;
+                            continue;
+                        }
                         if (res.ok || res.error === 'forbidden' || res.error === 'day_locked') {
                             if (res.ok) applyWriteResult(outbox[0], res);
                             else if (res.error === 'day_locked') locked++;
@@ -367,6 +467,8 @@ function flushOutbox() {
                         stop = true;
                         break;
                     }
+                    // عمليات ورا المتعارضة على نفس السطر ما بتنبعت (كانت رح تكتب فوقه)
+                    if (conflicted) holdChainedConflicts();
                     saveAll();
                     if (stop) break;
                     continue;
@@ -377,6 +479,13 @@ function flushOutbox() {
                 break;
             }
             const r = await postToSheets(outbox[0]);
+            if (r.status === 'failed' && r.error === 'conflict') {
+                holdConflict(outbox.shift(), r.data || {});
+                conflicted++;
+                holdChainedConflicts();
+                saveAll();
+                continue;
+            }
             // عملية لا تسمح بها الصلاحية (أو على يوم مقفل) لن تنجح أبداً: نحذفها من الانتظار
             if (r.status === 'failed' && (r.error === 'forbidden' || r.error === 'day_locked')) {
                 if (r.error === 'day_locked') locked++; else rejected++;
@@ -391,10 +500,13 @@ function flushOutbox() {
         }
         if (rejected) showToast('عملية مرفوضة', `${rejected > 1 ? rejected + ' عمليات' : 'عملية'} لا تملك صلاحيتها، لم تُحفظ في الشيت`, 'error');
         if (locked) showToast('اليوم مقفل بعد الجرد', `${locked > 1 ? locked + ' عمليات' : 'عملية'} على أيام انعمل إلها جرد ما انحفظت. اطلب من المدير يفتح الأيام.`, 'error');
-        // المرفوض كان ظاهر عندنا: نرجع نحمّل من الشيت
-        if (rejected || locked) {
+        // عمليات ورا عملية متعارضة على نفس السطر بتستنى معها
+        if (conflicted) holdChainedConflicts();
+        // المرفوض كان ظاهر عندنا (والمتعارض: بيبين اللي بالشيت لحد ما تختار): نرجع نحمّل من الشيت
+        if (rejected || locked || conflicted) {
             lastFullLoadMs = 0;
             setTimeout(() => loadFromSheets({ silent: true }), 0);
+            if (conflicted) setTimeout(showNextConflict, 0);
         }
         lastFlushFailed = status === 'failed' || status === 'disabled';
         if (status === 'ok') lastUpdateAt = nowTimeLabel();
@@ -409,7 +521,13 @@ function flushOutbox() {
 
 // السكربت بيرجّع رقم الإيصال للحوالة أو حركة USDT/الجنيه الجديدة: نحطه عندنا فوراً (الفاتورة بتنفتح بعد الحفظ)
 function applyWriteResult(op, res) {
-    if (!res?.serial || !op) return;
+    if (!op || !res) return;
+    const key = opRowKey(op);
+    if (key) {
+        if (opIsDelete(op)) rowStamps.delete(key);
+        else if (res.updatedAt) rowStamps.set(key, String(res.updatedAt));
+    }
+    if (!res.serial) return;
     const target = op.action === 'upsert' ? ledger.find(t => t.id === toNum(op.id, NaN))
         : op.action === 'upsert_usdt' ? usdtMoves.find(m => m.id === toNum(op.move?.id, NaN))
         : op.action === 'upsert_egp' ? egpMoves.find(m => m.id === toNum(op.move?.id, NaN))

@@ -17,7 +17,9 @@ const STORAGE = {
     // نسخة من صورتي الشخصية { user, sig, data } حتى تظهر فوراً بدون طلبها كل مرة
     avatar: 'fastpay_v11_avatar',
     // إشعارات الجوال على هالجهاز { token: رمز فاير بيز, user, at } (push.js)
-    push: 'fastpay_v12_push'
+    push: 'fastpay_v12_push',
+    // تعديلات ما انحفظت لأنه حدا عدّل نفس السطر قبل (conflicts.js)، لحد ما تختار [{group, ops, info}]
+    conflicts: 'fastpay_v13_conflicts'
 };
 
 // مفاتيح قديمة كانت تحفظ الزبائن والحوالات داخل المتصفح، تُمسح عند الفتح
@@ -413,7 +415,7 @@ let ledger = [];
 let expenses = [];
 let sheetSupportsExpenses = true; // يصبح false إذا كان سكربت الشيت قديماً
 let sheetSupportsCountries = false; // تسعير الدول في الشيت (السكربت الجديد)، وإلا يبقى في المتصفح
-let dataState = 'loading'; // loading | ready | error
+let dataState = 'loading'; // loading | stale (النسخة المحفوظة لحد ما يوصل الشيت، cache.js) | ready | error
 
 LEGACY_DATA_KEYS.forEach(key => {
     try { localStorage.removeItem(key); } catch (e) { /* التخزين محظور */ }

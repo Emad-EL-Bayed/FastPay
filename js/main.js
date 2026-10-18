@@ -34,6 +34,8 @@ const CLICK_ACTIONS = {
     'push-test': testPush,
     'push-clear': clearPushSettings,
     'push-account-pick': () => $('push_account_input').click(),
+    'conflict-mine': () => resolveConflict(true),
+    'conflict-theirs': () => resolveConflict(false),
     'txd-edit': (el) => { closeModal('txDetailsModal'); openEditTxModal(toNum(el.dataset.id, NaN)); },
     'txd-customer': () => {
         const t = ledger.find(x => x.id === txDetailsId);
@@ -250,7 +252,9 @@ function bindGlobalEvents() {
     document.addEventListener('click', (e) => {
         const el = e.target.closest('[data-action]');
         if (el && el.tagName !== 'SELECT' && CLICK_ACTIONS[el.dataset.action]) {
-            CLICK_ACTIONS[el.dataset.action](el);
+            // النسخة المحفوظة لسا ما تحدثت: تعديل وحذف الموجود بيستنى (cache.js)
+            if (staleBlocks(el.dataset.action)) warnStale();
+            else CLICK_ACTIONS[el.dataset.action](el);
         }
 
         if (!e.target.closest('#user-menu') && !e.target.closest('#user-chip')) closeUserMenu();
@@ -270,12 +274,14 @@ function bindGlobalEvents() {
     });
     document.addEventListener('change', (e) => {
         const el = e.target;
-        if (el.dataset.action === 'change-status') changeOrderStatus(toNum(el.dataset.id, NaN), el.value);
+        if (el.dataset.action !== 'change-status') return;
+        if (staleBlocks('edit-tx')) { warnStale(); renderLedgerTable(); return; }
+        changeOrderStatus(toNum(el.dataset.id, NaN), el.value);
     });
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
-        // الإشعار المهم ما بيسكّر إلا بـ "قرأت"
-        if (!$('notifyAlertModal').classList.contains('hidden')) return;
+        // الإشعار المهم ما بيسكّر إلا بـ "قرأت"، و"مين عدّل قبلي" إلا بالاختيار
+        if (!$('notifyAlertModal').classList.contains('hidden') || !$('conflictModal').classList.contains('hidden')) return;
         closeAppConfirm();
         // قائمة النسخ مفتوحة: Esc بيسكّرها هي بس
         if (!$('copy-menu').classList.contains('hidden')) return closeCopyMenu();
@@ -490,8 +496,8 @@ document.addEventListener('DOMContentLoaded', () => {
     moveNavIndicator();
     if (authEnabled && !session?.token) showLogin();
 
-    // الزبائن والحوالات تُقرأ من Google Sheets عند كل فتح
-    loadFromSheets();
+    // آخر نسخة محفوظة على الجهاز فوراً (إذا في)، وبنفس اللحظة من Google Sheets (cache.js)
+    startDataLoad();
 
     fetchLiveDollarRate();
     fetchEgpRate();
@@ -499,7 +505,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // إعادة إرسال العمليات المعلقة تلقائياً كل دقيقة وعند عودة الإنترنت
     setInterval(() => { if (outbox.length) flushOutbox(); }, 60 * 1000);
-    window.addEventListener('online', () => { if (outbox.length) flushOutbox(); });
+    window.addEventListener('online', () => {
+        if (dataState === 'stale') loadFromSheets();
+        else if (outbox.length) flushOutbox();
+    });
 
     // تحديث حيّ واحد كل دقيقتين (سعر الشاشة + الشيت معاً)، وعند الرجوع للصفحة
     setInterval(liveCycle, LIVE_REFRESH_MS);

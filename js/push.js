@@ -13,6 +13,7 @@ const PUSH_SDK = 'https://www.gstatic.com/firebasejs/10.14.1/';
 let pushState = null;
 let pushBusy = false;
 let pushAccountText = '';
+let pushSetupWasReady = null;
 
 function pushLocal() {
     const v = loadJSON(STORAGE.push, null);
@@ -233,6 +234,11 @@ function renderPushSettings() {
         : st.web ? '<span class="text-amber-700 font-bold">ناقص ملف حساب الخدمة (الخطوة 3)</span>'
         : st.projectId ? '<span class="text-amber-700 font-bold">ناقص إعداد الويب ومفتاح VAPID (الخطوة 2)</span>'
         : '<span class="text-slate-500 font-bold">مش مجهّزة لسا</span>';
+    // الخطوات بتتسكّر لحالها أول ما يكتمل الإعداد (بتضل تحت "تغيير إعداد فاير بيز")
+    if (st.ready !== pushSetupWasReady) {
+        $('push-setup-box').open = !st.ready;
+        pushSetupWasReady = !!st.ready;
+    }
     if (st.web && !$('push_web_config').value) $('push_web_config').placeholder = `مضبوط (${st.web.projectId}). الصق إعداد جديد بس إذا بدك تغيّره`;
     if (st.web?.vapidKey && !$('push_vapid').value) $('push_vapid').placeholder = 'مضبوط. الصق مفتاح جديد بس إذا بدك تغيّره';
     $('push_account_name').textContent = pushAccountText ? '✓ ' + (pushAccountProject() || 'ملف') : st.ready || st.projectId ? 'مرفوع للسكربت (ما بيرجع للبرنامج)' : 'ما انختار ملف';

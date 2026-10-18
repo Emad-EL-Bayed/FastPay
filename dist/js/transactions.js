@@ -164,7 +164,8 @@ function flashTxSaved() {
 
 // ================= سجل الحوالات =================
 function emptyMessage(total, noMatch, noData) {
-    if (dataState === 'loading') return 'جاري التحميل من Google Sheets...';
+    // أول مرة على الجهاز (ما في نسخة محفوظة): أسطر فاضية بتلمع بدل الكلام
+    if (dataState === 'loading') return skeletonLines();
     if (dataState === 'error' && !total) return 'تعذر قراءة البيانات من Google Sheets';
     return total ? noMatch : noData;
 }

@@ -28,36 +28,38 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=78">
+    <link rel="stylesheet" href="styles.css?v=80">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=78">
+    <link rel="stylesheet" href="tailwind.css?v=80">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/core.js?v=78" defer></script>
-    <script src="js/theme.js?v=78" defer></script>
-    <script src="js/logo-data.js?v=78" defer></script>
-    <script src="js/shell.js?v=78" defer></script>
-    <script src="js/calculator.js?v=78" defer></script>
-    <script src="js/reports.js?v=78" defer></script>
-    <script src="js/sync.js?v=78" defer></script>
-    <script src="js/transactions.js?v=78" defer></script>
-    <script src="js/receipts.js?v=78" defer></script>
-    <script src="js/customers.js?v=78" defer></script>
-    <script src="js/countries.js?v=78" defer></script>
-    <script src="js/service-logos.js?v=78" defer></script>
-    <script src="js/traders.js?v=78" defer></script>
-    <script src="js/expenses.js?v=78" defer></script>
-    <script src="js/settings.js?v=78" defer></script>
-    <script src="js/accounts.js?v=78" defer></script>
-    <script src="js/usdt.js?v=78" defer></script>
-    <script src="js/egp.js?v=78" defer></script>
-    <script src="js/closing.js?v=78" defer></script>
-    <script src="js/admin.js?v=78" defer></script>
-    <script src="js/position.js?v=78" defer></script>
-    <script src="js/search.js?v=78" defer></script>
-    <script src="js/notify.js?v=78" defer></script>
-    <script src="js/push.js?v=78" defer></script>
-    <script src="js/auth.js?v=78" defer></script>
-    <script src="js/main.js?v=78" defer></script>
+    <script src="js/core.js?v=80" defer></script>
+    <script src="js/theme.js?v=80" defer></script>
+    <script src="js/logo-data.js?v=80" defer></script>
+    <script src="js/shell.js?v=80" defer></script>
+    <script src="js/calculator.js?v=80" defer></script>
+    <script src="js/reports.js?v=80" defer></script>
+    <script src="js/sync.js?v=80" defer></script>
+    <script src="js/conflicts.js?v=80" defer></script>
+    <script src="js/cache.js?v=80" defer></script>
+    <script src="js/transactions.js?v=80" defer></script>
+    <script src="js/receipts.js?v=80" defer></script>
+    <script src="js/customers.js?v=80" defer></script>
+    <script src="js/countries.js?v=80" defer></script>
+    <script src="js/service-logos.js?v=80" defer></script>
+    <script src="js/traders.js?v=80" defer></script>
+    <script src="js/expenses.js?v=80" defer></script>
+    <script src="js/settings.js?v=80" defer></script>
+    <script src="js/accounts.js?v=80" defer></script>
+    <script src="js/usdt.js?v=80" defer></script>
+    <script src="js/egp.js?v=80" defer></script>
+    <script src="js/closing.js?v=80" defer></script>
+    <script src="js/admin.js?v=80" defer></script>
+    <script src="js/position.js?v=80" defer></script>
+    <script src="js/search.js?v=80" defer></script>
+    <script src="js/notify.js?v=80" defer></script>
+    <script src="js/push.js?v=80" defer></script>
+    <script src="js/auth.js?v=80" defer></script>
+    <script src="js/main.js?v=80" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -1217,7 +1219,10 @@
                     </div>
                     <div id="push-status" class="text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
                     <p id="push-script-note" class="hidden text-[11px] font-bold text-amber-700">انشر سكربت Google Sheets الجديد أول</p>
-                    <ol class="push-steps">
+                    <!-- الخطوات: مفتوحة لحد ما يكتمل الإعداد، وبعدها مسكّرة تحت "تغيير إعداد فاير بيز" (renderPushSettings) -->
+                    <details id="push-setup-box" class="push-setup" open>
+                    <summary class="text-xs font-bold text-slate-600 cursor-pointer">تغيير إعداد فاير بيز</summary>
+                    <ol class="push-steps mt-3">
                         <li>
                             <b>اعمل مشروع بفاير بيز</b>
                             <span>افتح <a href="https://console.firebase.google.com" target="_blank" rel="noopener" class="font-bold text-blue-700">console.firebase.google.com</a> بإيميلك ← Add project (أو Create a project) ← اسم مثل fastpay ← Google Analytics مش ضروري (سكّره) ← Create.</span>
@@ -1239,8 +1244,9 @@
                             </div>
                         </li>
                     </ol>
+                    <button id="push-save-btn" data-action="push-save" class="mt-3 text-xs font-bold bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg">حفظ</button>
+                    </details>
                     <div class="flex flex-wrap gap-2">
-                        <button id="push-save-btn" data-action="push-save" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg">حفظ</button>
                         <button id="push-test-btn" data-action="push-test" class="hidden text-xs font-bold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg">إشعار تجربة لأجهزتي</button>
                         <button id="push-clear-btn" data-action="push-clear" class="hidden text-xs font-bold bg-rose-50 hover:bg-rose-100 disabled:opacity-50 text-rose-700 px-4 py-2.5 rounded-lg">إيقاف ومسح الإعداد</button>
                     </div>
@@ -1493,6 +1499,30 @@
                 <button id="notify-perm-btn" data-action="notify-permission"></button>
                 <button id="notify-push-off" data-action="notify-push-off" class="hidden">إيقاف على هالجهاز</button>
             </div>
+        </div>
+    </div>
+
+    <!-- "مين عدّل قبلي" (conflicts.js): حدا عدّل أو حذف السطر قبل ما يوصل تعديلك. ما بتسكّر إلا بالاختيار -->
+    <div id="conflictModal" class="modal fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[80] hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="section-card max-w-lg w-full p-6 my-auto space-y-4" role="alertdialog" aria-labelledby="conflict-title">
+            <div class="flex items-start gap-3">
+                <span class="conflict-icon" aria-hidden="true">⚠️</span>
+                <div class="min-w-0">
+                    <h3 id="conflict-title" class="text-base font-black text-slate-900"></h3>
+                    <p id="conflict-summary" class="text-xs text-slate-600 leading-6 mt-1"></p>
+                </div>
+            </div>
+            <div id="conflict-diff" class="conflict-diff">
+                <table class="w-full text-xs">
+                    <thead><tr><th>الحقل</th><th id="conflict-theirs-label">عنده هلّق</th><th>تعديلك</th></tr></thead>
+                    <tbody id="conflict-diff-body"></tbody>
+                </table>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button data-action="conflict-theirs" id="conflict-keep-theirs" class="flex-1 min-w-[9rem] bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2.5 rounded-lg"></button>
+                <button data-action="conflict-mine" id="conflict-keep-mine" class="flex-1 min-w-[9rem] bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold text-xs py-2.5 rounded-lg"></button>
+            </div>
+            <p id="conflict-left" class="text-[11px] text-slate-400 text-center"></p>
         </div>
     </div>
 

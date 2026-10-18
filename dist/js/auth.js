@@ -199,6 +199,9 @@ async function logout() {
     // جهاز الإشعارات بيطلع مع المستخدم (حتى ما توصله إشعارات غيره لو دخل حساب ثاني على نفس الجوال)
     await postToSheets({ action: 'logout', pushToken: pushLocal()?.token || '' });
     savePushLocal(null);
+    // النسخة المحفوظة إلك بس: بتنمسح من الجهاز
+    clearSnapshot();
+    try { localStorage.removeItem(STORAGE.conflicts); } catch (e) { /* محظور */ }
     session = { username: session?.username || '', auth: true };
     saveSession();
     location.reload();

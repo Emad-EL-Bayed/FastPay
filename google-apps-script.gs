@@ -521,15 +521,136 @@ function doPost(e) {
 
 // عدة عمليات كتابة في طلب واحد (أسرع بكثير من طلب لكل عملية).
 // نتوقف عند أول خطأ حتى يعيد البرنامج إرسال الباقي بالترتيب؛ المرفوضة بالصلاحية تُتجاوز.
+// "مين عدّل قبلي": العمليات اللي انبعتت مع بعض (_grp، مثلاً تعديل حوالة ودفعاتها) بتنفحص كلها أول،
+// وإذا وحدة فيها عليها تعارض ما بينكتب إشي من المجموعة (حتى ما تنحفظ الدفعة بدون الحوالة)
 function applyBatch(ops, auth) {
   const results = [];
-  for (let i = 0; i < (ops || []).length; i++) {
-    let r;
-    try { r = applyWrite(ops[i] || {}, auth); } catch (err) { r = { ok: false, error: String(err) }; }
-    results.push(r);
-    if (!r.ok && r.error !== 'forbidden' && r.error !== 'day_locked') break;
+  const list = ops || [];
+  for (let i = 0; i < list.length;) {
+    const grp = list[i] && list[i]._grp;
+    let j = i + 1;
+    if (grp) while (j < list.length && list[j] && list[j]._grp === grp) j++;
+    const group = list.slice(i, j).map(op => op || {});
+    i = j;
+    let conflict = null, at = -1;
+    group.forEach((op, k) => {
+      if (conflict || !op._base || op._force) return;
+      let c = null;
+      try { c = canWrite(op, auth) ? opConflict(op) : null; } catch (err) { c = null; }
+      if (c) { conflict = c; at = k; }
+    });
+    if (conflict) {
+      group.forEach((op, k) => results.push(k === at ? conflict : { ok: false, error: 'conflict_group' }));
+      continue;
+    }
+    for (let k = 0; k < group.length; k++) {
+      let r;
+      try { r = applyWrite(Object.assign({}, group[k], { _checked: true }), auth); } catch (err) { r = { ok: false, error: String(err) }; }
+      results.push(r);
+      if (!r.ok && r.error !== 'forbidden' && r.error !== 'day_locked' && r.error !== 'conflict') return { ok: true, results: results };
+    }
   }
   return { ok: true, results: results };
+}
+
+// ================= "مين عدّل قبلي" (بطلب عماد 2026-10-18) =================
+// كل تعديل أو حذف بيبعت معه _base = "آخر تحديث" للسطر زي ما شافه البرنامج. إذا السطر بالشيت تغيّر بعدها
+// (موظف ثاني، أو تعديل يدوي بالشيت) ما بنكتب فوقه: بنرجّع conflict مع مين وإمتى وشو الفرق، والبرنامج بيسأل.
+// _base = '@prev': عملية ثانية على نفس السطر ورا عملية لسا بالانتظار (اتفحصت هي). _force: المستخدم اختار يكتب فوقه.
+const OP_TARGETS = {
+  upsert: ['ledger', null], 'delete': ['ledger', null],
+  upsert_customer: ['customers', 'customer'], delete_customer: ['customers', null],
+  upsert_expense: ['expenses', 'expense'], delete_expense: ['expenses', null],
+  upsert_trader: ['traders', 'trader'], delete_trader: ['traders', null],
+  upsert_tmove: ['traderMoves', 'move'], delete_tmove: ['traderMoves', null],
+  upsert_service: ['traderServices', 'service'], delete_service: ['traderServices', null],
+  upsert_country: ['countries', 'country'], delete_country: ['countries', null],
+  upsert_account: ['accounts', 'account'], delete_account: ['accounts', null],
+  upsert_amove: ['accountMoves', 'move'], delete_amove: ['accountMoves', null],
+  upsert_usdt: ['usdtMoves', 'move'], delete_usdt: ['usdtMoves', null],
+  upsert_egp_wallet: ['egpWallets', 'wallet'], delete_egp_wallet: ['egpWallets', null],
+  upsert_egp: ['egpMoves', 'move'], delete_egp: ['egpMoves', null],
+  upsert_closing: ['closings', 'closing']
+};
+
+// السطر اللي بتكتب عليه العملية: { name, id, obj (للتعديل), isDelete }
+function opTarget(data) {
+  const action = data.action || 'upsert';
+  const t = OP_TARGETS[action];
+  if (!t) return null;
+  const isDelete = action === 'delete' || action.indexOf('delete_') === 0;
+  const obj = isDelete ? null : (t[1] ? data[t[1]] : data);
+  const id = isDelete ? data.id : obj && obj.id;
+  if (id === undefined || id === null || String(id) === '') return null;
+  return { name: t[0], id: id, obj: obj, isDelete: isDelete };
+}
+
+// نفس فحص الصلاحية تبع applyWrite (حتى ما نرجّع بيانات سطر لحدا ما إله صلاحية عليه)
+function canWrite(op, auth) {
+  const a = op.action || 'upsert';
+  if (a === 'upsert_amove' || a === 'delete_amove') {
+    const sheet = getSheet(AMOVE_SHEET, AMOVE_FIELDS);
+    return a === 'upsert_amove'
+      ? amoveAllowed(auth, sheet, op.move && op.move.id, op.move && op.move.refType, false)
+      : amoveAllowed(auth, sheet, op.id, null, true);
+  }
+  const need = ACTION_PERMS[a];
+  return !!need && allowed(auth, need);
+}
+
+// "آخر تحديث" بشكل واحد للمقارنة (الخلية ممكن تكون تاريخ أو نص، والقديم ممكن يوصل ISO)
+function normStamp(v, tz) {
+  if (v instanceof Date) return Utilities.formatDate(v, tz, TIME_FORMAT);
+  const t = String(v === undefined || v === null ? '' : v).trim();
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(t)) {
+    const d = new Date(t);
+    if (!isNaN(d.getTime())) return Utilities.formatDate(d, tz, TIME_FORMAT);
+  }
+  return t;
+}
+
+// مين حذف السطر وإمتى (من سجل المحذوفات)
+function lastDeletionOf(name, id) {
+  const hits = deletionRows().filter(d => d.c === name && d.id === String(id) && !d.restored);
+  return hits.length ? hits[hits.length - 1] : null;
+}
+
+function opConflict(data) {
+  const base = String(data._base || '');
+  if (!base || base === '@prev' || data._force) return null;
+  const t = opTarget(data);
+  if (!t) return null;
+  const c = collectionByName(t.name);
+  if (!c) return null;
+  const tz = Session.getScriptTimeZone();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(c.sheet);
+  const keys = sheet ? columnKeys(sheet, c.fields) : [];
+  const r = sheet ? findRow(sheet, keys, 'id', t.id) : -1;
+  if (r < 0) {
+    // انحذف من غيري: حذفي إله ما بيضر، بس التعديل كان رح يرجّعه
+    if (t.isDelete) return null;
+    const del = lastDeletionOf(t.name, t.id);
+    return { ok: false, error: 'conflict', gone: true, collection: t.name, id: String(t.id), by: del ? del.by : '', at: del ? del.at : '', summary: del ? del.summary : '' };
+  }
+  const updIdx = keys.indexOf('updatedAt');
+  if (updIdx < 0) return null;
+  const old = sheet.getRange(r, 1, 1, keys.length).getValues()[0].map((v, i) => (v instanceof Date && keys[i] !== 'updatedAt' ? fromSheetValue(keys[i], v, tz) : v));
+  const cur = normStamp(old[updIdx], tz);
+  if (!cur || cur === normStamp(base, tz)) return null;
+  const snap = {};
+  keys.forEach((k, i) => { if (k && k !== 'logo') snap[k] = fromSheetValue(k, old[i], tz); });
+  const byIdx = keys.indexOf('updatedBy');
+  const out = { ok: false, error: 'conflict', collection: t.name, id: String(t.id), at: cur, by: byIdx >= 0 ? String(old[byIdx] || '') : '', summary: deletionSummary(t.name, snap), isDelete: t.isDelete };
+  if (!t.isDelete) {
+    // شو بيتغير لو كتبنا فوقه: قيمته هلّق ← قيمتي
+    const mine = old.slice();
+    keys.forEach((k, i) => {
+      if (!k || EDIT_SKIP.indexOf(k) >= 0) return;
+      if (t.obj[k] !== undefined && t.obj[k] !== null) mine[i] = toSheetValue(k, t.obj[k]);
+    });
+    out.diff = rowChanges(keys, c.fields, old, mine).slice(0, 25).map(x => [x[1], x[2], x[3]]);
+  }
+  return out;
 }
 
 // عملية كتابة واحدة (إضافة / تعديل / حذف) بعد فحص صلاحيتها
@@ -538,6 +659,10 @@ function applyWrite(data, auth) {
   const need = ACTION_PERMS[action];
   if (!need && action !== 'upsert_amove' && action !== 'delete_amove') return { ok: false, error: 'unknown_action' };
   if (need && !allowed(auth, need)) return { ok: false, error: 'forbidden' };
+  if (data._base && !data._checked && !data._force && canWrite(data, auth)) {
+    const conflict = opConflict(data);
+    if (conflict) return conflict;
+  }
   switch (action) {
     case 'upsert': {
       const tx = Object.assign({}, data);
@@ -1027,7 +1152,7 @@ function readCollection(c, since) {
     })
     .map(r => {
       const obj = {};
-      keys.forEach((k, i) => { if (k) obj[k] = fromSheetValue(k, r[i], tz); });
+      keys.forEach((k, i) => { if (k) obj[k] = k === 'updatedAt' ? normStamp(r[i], tz) : fromSheetValue(k, r[i], tz); });
       return obj;
     });
 }
@@ -1170,9 +1295,10 @@ function upsertRow(sheet, fields, key, obj, collection) {
   // نحدّث فقط الحقول المرسلة ونحافظ على باقي الأعمدة كما هي
   const old = r > 0 ? range.getValues()[0].map((v, i) => (v instanceof Date ? fromSheetValue(keys[i], v, tz) : v)) : null;
   const row = old ? old.slice() : keys.map(() => '');
+  const stamp = Utilities.formatDate(new Date(), tz, TIME_FORMAT);
   keys.forEach((k, i) => {
     if (!k) return;
-    if (k === 'updatedAt') row[i] = Utilities.formatDate(new Date(), tz, TIME_FORMAT);
+    if (k === 'updatedAt') row[i] = stamp;
     // مين أضاف ومين عدّل: من الجلسة فقط، ونتجاهل ما يرسله البرنامج
     else if (k === 'createdBy') { if (r < 0 && CURRENT_USER) row[i] = CURRENT_USER; }
     else if (k === 'updatedBy') { if (CURRENT_USER) row[i] = CURRENT_USER; }
@@ -1185,6 +1311,7 @@ function upsertRow(sheet, fields, key, obj, collection) {
   if (collection && lockViolation(collection, keys, old, row, changes)) return { ok: false, error: 'day_locked' };
 
   const result = { ok: true };
+  if (keys.indexOf('updatedAt') >= 0) result.updatedAt = stamp;
   const sIdx = keys.indexOf('serial');
   const wantsSerial = SERIAL_RULES[collection];
   if (sIdx >= 0 && wantsSerial && wantsSerial(fromSheetValue('kind', row[keys.indexOf('kind')] || '', tz)) && !String(row[sIdx]).trim()) {
@@ -1661,7 +1788,7 @@ function listData(since, auth) {
   }
   out.authEnabled = !!auth.authEnabled;
   // ميزات هالنسخة من السكربت: البرنامج يفعّل الخانات اللي بتحتاج أعمدة جديدة بس إذا السكربت بيدعمها
-  out.features = ['finalAdjust', 'serial', 'editLog', 'dayLock', 'resetData', 'alerts', 'restore', 'iban', 'notify', 'txAdjust', 'notifyDelete', 'market', 'traderServices', 'serviceLogo', 'push'];
+  out.features = ['finalAdjust', 'serial', 'editLog', 'dayLock', 'resetData', 'alerts', 'restore', 'iban', 'notify', 'txAdjust', 'notifyDelete', 'market', 'traderServices', 'serviceLogo', 'push', 'conflicts'];
   // إشعارات الجوال: إعداد فاير بيز للمتصفح (مش سري) وهل حساب الخدمة موجود. حساب الخدمة نفسه ما بيطلع أبداً
   if (auth.authEnabled) out.push = pushPublicState(auth);
   // سعر السوق (زي الشاشة) مع كل قراءة: من الذاكرة المؤقتة، فما بيبطّئ

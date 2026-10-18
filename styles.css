@@ -1209,6 +1209,40 @@ tr:hover .cust-count-pill { background: rgb(var(--b-blue-100, 219 234 254)); }
 .push-steps b { color: rgb(var(--t-slate-900, 15 23 42)); font-size: 0.82rem; }
 .push-steps code { direction: ltr; unicode-bidi: isolate; font-size: 0.7rem; padding: 0 0.25rem; border-radius: 0.3rem; background: rgb(var(--b-slate-100, 241 245 249)); }
 
+/* ================= التحميل: الشيمر (cache.js) ================= */
+/* النسخة المحفوظة معروضة لحد ما يوصل الشيت (body.data-stale): البيانات باهتة شوي وعليها لمعة بتمر.
+   أول مرة على الجهاز (body.data-loading): نفس اللمعة فوق أسطر فاضية (.skel-line). بدون نت (data-offline): باهتة بدون لمعة */
+@keyframes data-shimmer { from { background-position: 130% 0; } to { background-position: -30% 0; } }
+:is(#page-transactions, #page-usdt, #page-egp, #page-accounts, #page-expenses, #page-traders, #page-customers, #page-reports, #page-position) { position: relative; }
+body:is(.data-stale, .data-loading) :is(#page-transactions, #page-usdt, #page-egp, #page-accounts, #page-expenses, #page-traders, #page-customers, #page-reports, #page-position)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    border-radius: 1.25rem;
+    background: linear-gradient(100deg, transparent 38%, var(--shimmer, rgba(255, 255, 255, 0.6)) 50%, transparent 62%);
+    background-size: 260% 100%;
+    animation: data-shimmer 1.5s ease-in-out infinite;
+}
+body.data-stale :is(#page-transactions, #page-usdt, #page-egp, #page-accounts, #page-expenses, #page-traders, #page-customers, #page-reports, #page-position) > * { opacity: 0.72; transition: opacity 0.35s ease; }
+body.data-offline :is(#page-transactions, #page-usdt, #page-egp, #page-accounts, #page-expenses, #page-traders, #page-customers, #page-reports, #page-position)::after { animation: none; background: none; }
+html[data-theme="dark"] { --shimmer: rgba(255, 255, 255, 0.07); }
+html.motion-off body :is(#page-transactions, #page-usdt, #page-egp, #page-accounts, #page-expenses, #page-traders, #page-customers, #page-reports, #page-position)::after { animation: none; background: none; }
+@media (prefers-reduced-motion: reduce) { body :is(#page-transactions, #page-usdt, #page-egp, #page-accounts, #page-expenses, #page-traders, #page-customers, #page-reports, #page-position)::after { animation: none; background: none; } }
+.skel-list { display: flex; flex-direction: column; gap: 0.65rem; padding: 0.4rem 0; }
+.skel-line { display: block; height: 0.8rem; border-radius: 0.4rem; background: rgb(var(--b-slate-100, 241 245 249)); }
+/* اللي تغيّر بعد التحديث بيومض لحظة */
+@keyframes row-changed { 0% { background-color: rgba(250, 204, 21, 0.35); } 100% { background-color: transparent; } }
+.row-changed { animation: row-changed 1.8s ease-out; }
+
+/* "مين عدّل قبلي" (conflicts.js) */
+.conflict-icon { width: 2.5rem; height: 2.5rem; flex-shrink: 0; border-radius: 0.9rem; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgb(var(--b-amber-50, 255 251 235)); border: 1px solid rgb(var(--c-amber-200, 253 230 138)); }
+.conflict-diff { border: 1px solid rgb(var(--c-slate-200, 226 232 240)); border-radius: 0.8rem; overflow: hidden; }
+.conflict-diff th { text-align: right; padding: 0.5rem 0.7rem; font-size: 0.68rem; font-weight: 800; color: rgb(var(--t-slate-500, 100 116 139)); background: rgb(var(--b-slate-50, 248 250 252)); border-bottom: 1px solid rgb(var(--c-slate-200, 226 232 240)); }
+.conflict-diff td { padding: 0.5rem 0.7rem; border-bottom: 1px solid rgb(var(--c-slate-100, 241 245 249)); vertical-align: top; overflow-wrap: anywhere; }
+.conflict-diff tr:last-child td { border-bottom: 0; }
+
 /* فلتر الحالات في السجل: زر تشغيل/إيقاف لكل حالة */
 .status-toggle { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.4rem 0.7rem; border-radius: 9999px; border: 1px solid rgb(var(--c-slate-200, 226 232 240)); background: rgb(var(--b-white, 255 255 255)); font-size: 0.75rem; font-weight: 800; color: rgb(var(--t-slate-400, 148 163 184)); transition: all 0.15s ease; }
 .status-toggle .sw { position: relative; width: 1.75rem; height: 1rem; border-radius: 9999px; background: rgb(var(--b-slate-300, 203 213 225)); flex-shrink: 0; transition: background-color 0.15s ease; }
