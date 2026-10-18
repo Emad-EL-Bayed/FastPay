@@ -6,6 +6,7 @@
 // ================= الإعدادات =================
 function loadSettingsPage() {
     renderUsdtSettings();
+    renderEgpTierSettings();
     renderBackupStatus();
     renderAdminTools();
     $('deleted-section').classList.toggle('hidden', !hasPerm('delete'));
@@ -90,7 +91,8 @@ const SHARED_SETTINGS = {
     companySubtitle: { label: 'السطر تحت اسم الشركة', type: 'str' },
     receiptFooter: { label: 'الجملة أسفل الفاتورة', type: 'str' },
     waMessages: { label: 'رسالة الفاتورة على واتساب حسب الحالة (بس اللي تعدّل)', type: 'json' },
-    usdtDepositPct: { label: 'USDT: نسبة الإيداع الافتراضية %', type: 'num' },
+    usdtDepositPct: { label: 'USDT: نسبة الإيداع % (أول شريحة)', type: 'num' },
+    usdtDepositTiers: { label: 'USDT: شرائح نسبة الإيداع فوق أول شريحة [{min: من كم USDT, pct}]', type: 'json' },
     usdtNetworks: { label: 'USDT: الشبكات ورسومها', type: 'json' },
     usdtTiers: { label: 'USDT: شرائح نسبة السحب', type: 'json' },
     egpRateMode: { label: 'شاشة الجنيه: auto تلقائي من السوق / manual مثبّت يدوياً', type: 'str' },
@@ -98,6 +100,8 @@ const SHARED_SETTINGS = {
     egpRateUpdated: { label: 'وقت تثبيت شاشة الجنيه', type: 'str', manualOnly: 'egpRateMode' },
     egpSendPct: { label: 'الجنيه: نسبة الإرسال % (الزبون بياخد جنيه أقل من السوق)', type: 'num' },
     egpReceivePct: { label: 'الجنيه: نسبة الاستقبال % (الزبون بياخد أقل من قيمة الجنيه بالسوق)', type: 'num' },
+    egpSendTiers: { label: 'الجنيه: شرائح نسبة الإرسال فوق أول شريحة [{min: من كم شيكل, pct}]', type: 'json' },
+    egpReceiveTiers: { label: 'الجنيه: شرائح نسبة الاستقبال فوق أول شريحة [{min: من كم شيكل, pct}]', type: 'json' },
     lockedThrough: { label: 'قفل الأيام: الحركات لحد هاد التاريخ ما بتتعدل (بيتحدث مع كل جرد)', type: 'str' }
 };
 

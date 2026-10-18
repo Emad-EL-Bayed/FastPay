@@ -143,7 +143,7 @@ const RESET_OPTIONS = [
     ['amoves', 'حركات الحسابات (الأرصدة بترجع صفر)', () => accountMoves.length],
     ['expenses', 'المصاريف', () => expenses.length],
     ['customers', 'الزبائن', () => customers.length],
-    ['traders', 'التجار وحركاتهم', () => traders.length + traderMoves.length],
+    ['traders', 'التجار وحركاتهم وخدماتهم', () => traders.length + traderMoves.length + traderServices.length],
     ['closings', 'الجرد اليومي (وبينفتح قفل الأيام)', () => closings.length],
     ['logs', 'السجلات: المحذوفات والتعديلات والإشعارات', () => null]
 ];
@@ -215,7 +215,7 @@ const RESTORE_OPTIONS = [
     ['accounts', 'الحسابات وحركاتها', () => accounts.length + accountMoves.length],
     ['expenses', 'المصاريف', () => expenses.length],
     ['customers', 'الزبائن', () => customers.length],
-    ['traders', 'التجار وحركاتهم', () => traders.length + traderMoves.length],
+    ['traders', 'التجار وحركاتهم وخدماتهم', () => traders.length + traderMoves.length + traderServices.length],
     ['closings', 'الجرد اليومي', () => closings.length],
     ['settings', 'الإعدادات وتسعير الدول (وقفل الأيام)', () => null],
     ['users', 'المستخدمين وكلمات السر', () => null]

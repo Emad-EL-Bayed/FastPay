@@ -11,36 +11,64 @@ function newTxId() {
 }
 
 let lastSavedTxId = null;
+let txSaving = false;
 
-async function saveNewTransaction() {
+// الحوالة بتنحفظ عندنا فوراً (النموذج بيفضى والتأكيد بيطلع)، وبعدين بتنبعت للشيت بالخلفية.
+// كانت تستنى رد الشيت قبل ما يفضى النموذج، وزر "حفظ" بشريط الجوال ما كان يتسكّر ولا يبيّن شي،
+// فبالنت الضعيف عماد كبس مرة ثانية وانحفظت نفس الحوالة مرتين (2026-10-17)
+function saveNewTransaction() {
+    if (txSaving) return;
     const form = readNewTxForm();
     if (!form) return;
-    startSaveTxButton();
-    let saved = false;
+    const same = recentSameTx(form);
+    if (same) {
+        const mins = Math.max(1, Math.round((Date.now() - same.id) / 60000));
+        showAppConfirm('هاي الحوالة انحفظت قبل شوي',
+            `${same.recipient} — ${txAmountText(same)} ${receiptNo(same)} انحفظت قبل ${mins === 1 ? 'دقيقة' : mins + ' دقايق'}. بدك تحفظها كمان مرة؟`,
+            () => commitNewTransaction(form));
+        return;
+    }
+    commitNewTransaction(form);
+}
+
+const txAmountText = (tx) => (tx.currency === 'USD' ? `$${fmt(tx.clientUsd)}` : `${fmt(tx.clientIls)} ₪`);
+
+// نفس الزبون والمصدر والمبلغ والعملة، انحفظت من هالجهاز أو غيره خلال آخر دقيقتين (الرقم = وقت الإنشاء)
+function recentSameTx({ recipient, input }) {
+    const now = Date.now();
+    return ledger.find(t => now - t.id < 2 * 60000 && t.id <= now
+        && normName(t.recipient) === normName(recipient) && t.country === input.country
+        && t.currency === input.currency && Math.abs(t.orig - input.orig) < 0.005);
+}
+
+async function commitNewTransaction(form) {
+    txSaving = true;
+    let tx;
     try {
         const customer = upsertTxCustomer(form);
-        const tx = buildNewTx(form, customer);
+        tx = buildNewTx(form, customer);
         ledger.unshift(tx);
         highlightTxId = tx.id;
+        lastSavedTxId = tx.id;
         queueOps({ action: 'upsert_customer', customer }, { action: 'upsert', ...tx });
+        // تفريغ النموذج للحوالة التالية (المصدر المختار يبقى كما هو)
+        resetCalcForm();
         renderLedgerTable();
         renderCustomersTable();
         renderRecentTx();
-
-        const syncStatus = await flushOutbox();
-        saved = true;
-        const amountText = tx.currency === 'USD' ? `$${fmt(tx.clientUsd)}` : `${fmt(tx.clientIls)} ₪`;
-        showToast('تم حفظ الحوالة', `${form.recipient} — ${amountText} بسعر شاشة ${tx.screenRate}. ${syncResultMessage(syncStatus)}`, syncToastType(syncStatus));
-
-        lastSavedTxId = tx.id;
         $('last-receipt-btn').classList.remove('hidden');
-        if (PAID_STATUSES.includes(tx.status) && sheetSupportsWallets && accounts.length) openTxPayModal(tx, tx.status, { afterCreate: true });
-        // تفريغ النموذج للحوالة التالية (المصدر المختار يبقى كما هو)
-        resetCalcForm();
-        $('calc_recipient').focus();
+        flashTxSaved();
+        showToast('تم حفظ الحوالة', `${form.recipient} — ${txAmountText(tx)} بسعر شاشة ${tx.screenRate}`, 'success');
     } finally {
-        finishSaveTxButton(saved);
+        txSaving = false;
     }
+    if (PAID_STATUSES.includes(tx.status) && sheetSupportsWallets && accounts.length) openTxPayModal(tx, tx.status, { afterCreate: true });
+    // الجوال: بدون كيبورد، بنطلع لأول الحاسبة فبيبين النموذج فاضي
+    else if (isTouchDevice()) window.scrollTo({ top: 0 });
+    else $('calc_recipient').focus();
+    // بس إذا ما وصلت للشيت منقول (الحفظ نفسه صار)
+    const syncStatus = await flushOutbox();
+    if (syncToastType(syncStatus) !== 'success') showToast('الحوالة محفوظة عندك', syncResultMessage(syncStatus), 'warning');
 }
 
 // نموذج الحاسبة بعد التحقق، أو null بعد تنبيه بالخانة الناقصة
@@ -118,30 +146,20 @@ function buildNewTx({ input, recipient, payout, provider, account, iban, date, s
     };
 }
 
-// زر الحفظ: "جاري الحفظ..." ثم "✓ تم الحفظ" لثانية، ويبقى معطلاً أثناء تحميل البيانات
-function startSaveTxButton() {
-    const btn = $('save-tx-btn');
-    btn.disabled = true;
-    btn.classList.add('saving');
-    btn.querySelector('.save-btn-label').textContent = 'جاري الحفظ...';
-}
-
-function finishSaveTxButton(saved) {
+// زر الحفظ: "✓ تم الحفظ" لثانية، ويبقى معطلاً أثناء تحميل البيانات. والجوال بيرجف رجفة خفيفة (الأندرويد)
+function flashTxSaved() {
     const btn = $('save-tx-btn');
     const label = btn.querySelector('.save-btn-label');
-    btn.classList.remove('saving');
-    if (saved) {
-        btn.classList.add('done');
-        label.textContent = '✓ تم الحفظ';
-        setTimeout(() => {
-            btn.classList.remove('done');
-            label.textContent = 'حفظ الحوالة';
-            btn.disabled = dataState === 'loading';
-        }, 1300);
-    } else {
+    btn.disabled = true;
+    btn.classList.add('done');
+    label.textContent = '✓ تم الحفظ';
+    try { navigator.vibrate?.(40); } catch (e) { /* مش مدعوم */ }
+    clearTimeout(flashTxSaved.timer);
+    flashTxSaved.timer = setTimeout(() => {
+        btn.classList.remove('done');
         label.textContent = 'حفظ الحوالة';
         btn.disabled = dataState === 'loading';
-    }
+    }, 1300);
 }
 
 // ================= سجل الحوالات =================

@@ -75,7 +75,8 @@ function switchTab(tab) {
     if (tab === 'egp') renderEgpPage();
     if (tab === 'accounts') renderAccountsPage();
     if (tab === 'users') renderUsersPage();
-    if (tab === 'traders') renderTraders();
+    // زر التجار بالقائمة دايماً بيفتح القائمة (مش آخر تاجر كان مفتوح)
+    if (tab === 'traders') { panelTraderId = null; renderTraders(); }
     if (tab === 'customers') renderCustomersTable();
     if (tab === 'countries') renderCountriesTable();
     if (tab === 'settings') loadSettingsPage();
@@ -88,14 +89,43 @@ function switchTab(tab) {
 // يصبح true عندما يكتب المستخدم سعراً خاصاً في الحاسبة، حتى لا يمسحه التحديث التلقائي
 let calcRateTouched = false;
 
+// مصدر السعر تحت سعر الشاشة بالإعدادات
+const RATE_SOURCE_NOTE = {
+    market: ' · من سوق العملات (زي الشاشة)',
+    coinbase: ' · من Coinbase (احتياط، ممكن يتأخر عن الشاشة)',
+    daily: ' · سعر يومي (المصدر المباشر ما رد)'
+};
+
 // حالة الاتصال بسعر السوق: loading | ok | manual | error
 let rateStatus = 'loading';
 let lastRateFetchMs = 0;
 
 // طلب واحد لسعر السوق يخدم الدولار والجنيه معاً (نحتفظ بالرد دقيقة)
-// الرد: { rates: { ILS, EGP }, live } — live = false يعني المصدر المباشر ما رد وهاد سعر يومي
+// الرد: { rates: { ILS, EGP, EUR, JOD }, live, source } — source: market (سوق العملات عبر السكربت، زي الشاشة)،
+// coinbase (احتياط، ممكن يتأخر)، daily (سعر يومي)؛ live = false يعني سعر يومي
 let marketRatesCache = null; // { at, promise }
-async function loadMarketRates() {
+// آخر مرة وصل سعر السوق من السكربت: الاحتياط (Coinbase) ما بيكتب فوقه تلقائياً خلال 10 دقايق
+// (كان Coinbase يوصل بعده عند فتح الصفحة ويرجّع السعر المتأخر)
+let lastScriptMarketMs = 0;
+const scriptMarketFresh = () => Date.now() - lastScriptMarketMs < 10 * 60 * 1000;
+
+// سعر السوق من السكربت (رد market أو مع قراءة الشيت) بنفس شكل الرد
+function marketFromScript(m) {
+    const ils = toNum(m?.rates?.ILS, NaN);
+    if (!(ils > 0)) return null;
+    return { rates: { ILS: ils, EGP: toNum(m.rates.EGP, NaN), EUR: toNum(m.rates.EUR, 0), JOD: toNum(m.rates.JOD, 0) }, live: true, source: 'market' };
+}
+
+async function loadMarketRates({ fresh = false } = {}) {
+    // الأدق أول: السكربت (إذا منشور بالنسخة اللي فيها السوق)
+    if (globalConfig.driveWebhook && sheetHas('market')) {
+        const r = await postToSheets({ action: 'market', fresh });
+        const data = r.status === 'ok' ? marketFromScript(r.data?.market) : null;
+        if (data) {
+            lastScriptMarketMs = Date.now();
+            return data;
+        }
+    }
     let lastErr;
     for (const src of RATE_SOURCES) {
         try {
@@ -105,7 +135,7 @@ async function loadMarketRates() {
             const rates = src.rates(await r.json());
             const ils = toNum(rates?.ILS, NaN);
             if (!(ils > 0)) throw new Error('no ILS rate');
-            return { rates: { ILS: ils, EGP: toNum(rates?.EGP, NaN), EUR: toNum(rates?.EUR, 0), JOD: toNum(rates?.JOD, 0) }, live: src.live };
+            return { rates: { ILS: ils, EGP: toNum(rates?.EGP, NaN), EUR: toNum(rates?.EUR, 0), JOD: toNum(rates?.JOD, 0) }, live: src.live, source: src.source };
         } catch (err) {
             console.warn('Rate source failed:', src.url, err);
             lastErr = err;
@@ -116,7 +146,7 @@ async function loadMarketRates() {
 
 function fetchMarketRates({ fresh = false } = {}) {
     if (!fresh && marketRatesCache && Date.now() - marketRatesCache.at < 60 * 1000) return marketRatesCache.promise;
-    const promise = loadMarketRates();
+    const promise = loadMarketRates({ fresh });
     marketRatesCache = { at: Date.now(), promise };
     promise.catch(() => { if (marketRatesCache?.promise === promise) marketRatesCache = null; });
     return promise;
@@ -140,22 +170,13 @@ async function fetchLiveDollarRate({ manual = false } = {}) {
 
         // ربما ثبّت المستخدم سعراً يدوياً أثناء انتظار الرد
         if (!manual && globalConfig.rateMode === 'manual') return;
-
-        // سعر الشاشة = سعر السوق كما هو، وفرق البيع والشراء يُحسب منه
-        globalConfig.marketRate = round3(market);
-        globalConfig.marketLive = data.live;
-        // اليورو والدينار (لكل دولار): لحسابات التجار بصفحة المركز المالي
-        globalConfig.marketFx = { EUR: data.rates.EUR, JOD: data.rates.JOD };
-        globalConfig.screenRate = round3(market);
-        globalConfig.rateMode = 'auto';
-        globalConfig.screenRateLastUpdated = nowTimeLabel();
-        rateStatus = 'ok';
+        applyMarketData(data, { manual });
+        // الرد انتجاهل (سعر السكربت أحدث): بس نشيل "جاري جلب السعر"
+        if (rateStatus === 'loading') {
+            rateStatus = 'ok';
+            applyScreenRateToUI();
+        }
         lastUpdateAt = nowTimeLabel();
-        if (manual) calcRateTouched = false;
-
-        saveAll();
-        applyScreenRateToUI();
-        runLiveCalc();
 
         if (manual) showToast('تم تحديث سعر الشاشة', `${globalConfig.screenRate} ₪ ${data.live ? 'من السوق' : 'سعر يومي (المصدر المباشر ما رد)'} — التحديث التلقائي مفعّل`, data.live ? 'success' : 'warning');
     } catch (err) {
@@ -164,6 +185,38 @@ async function fetchLiveDollarRate({ manual = false } = {}) {
         applyScreenRateToUI();
         if (manual) showToast('تنبيه الاتصال', 'تعذر جلب سعر السوق حالياً، تم الإبقاء على السعر المعتمد', 'warning');
     }
+}
+
+// سعر الشاشة = سعر السوق كما هو، وفرق البيع والشراء يُحسب منه
+function applyMarketData(data, { manual = false } = {}) {
+    const market = toNum(data?.rates?.ILS, NaN);
+    if (!(market > 0)) return;
+    if (!manual && data.source !== 'market' && scriptMarketFresh()) return;
+    globalConfig.marketRate = round3(market);
+    globalConfig.marketLive = data.live;
+    globalConfig.marketSource = data.source || '';
+    // اليورو والدينار (لكل دولار): لحسابات التجار بصفحة المركز المالي
+    globalConfig.marketFx = { EUR: data.rates.EUR, JOD: data.rates.JOD };
+    globalConfig.screenRate = round3(market);
+    globalConfig.rateMode = 'auto';
+    globalConfig.screenRateLastUpdated = nowTimeLabel();
+    rateStatus = 'ok';
+    lastRateFetchMs = Date.now();
+    if (manual) calcRateTouched = false;
+    saveAll();
+    applyScreenRateToUI();
+    runLiveCalc();
+}
+
+// سعر السوق وصل مع قراءة الشيت (كل دقيقتين، من ذاكرة السكربت): بيصير الرد المخزّن، وبيتطبّق على الدولار والجنيه
+// إذا الوضع تلقائي. هيك السعر بيتبع الشاشة بدون طلبات زيادة
+function useScriptMarket(m) {
+    const data = marketFromScript(m);
+    if (!data) return;
+    lastScriptMarketMs = Date.now();
+    marketRatesCache = { at: Date.now(), promise: Promise.resolve(data) };
+    if (globalConfig.rateMode !== 'manual') applyMarketData(data);
+    applyEgpMarket(data);
 }
 
 function pinScreenRateManual() {
@@ -207,7 +260,7 @@ function applyScreenRateToUI() {
     const badge = $('rate-mode-badge');
     badge.textContent = isManual ? '🔒 يدوي مثبّت' : (rateStatus === 'error' ? 'تلقائي · غير متصل' : 'تلقائي من السوق');
     badge.className = 'badge ' + (isManual ? 'bg-amber-50 text-amber-700' : rateStatus === 'error' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700');
-    $('screen-update-time').textContent = rateStatus === 'loading' ? 'جاري جلب السعر...' : (updated ? `آخر تحديث: ${updated}${!isManual && globalConfig.marketLive === false ? ' · سعر يومي (المصدر المباشر ما رد)' : ''}` : 'لم يُحدَّث بعد');
+    $('screen-update-time').textContent = rateStatus === 'loading' ? 'جاري جلب السعر...' : (updated ? `آخر تحديث: ${updated}${isManual ? '' : RATE_SOURCE_NOTE[globalConfig.marketLive === false ? 'daily' : globalConfig.marketSource] || ''}` : 'لم يُحدَّث بعد');
 
     renderSellBuyRates();
     // أسعار الجنيه بالشيكل تعتمد على سعر البيع والشراء
@@ -330,6 +383,19 @@ function closeModal(id) {
     $(id).classList.add('hidden');
     // إغلاق نافذة الدفع بدون حفظ = إلغاء
     if (id === 'payModal' && payCtx) cancelPayModal();
+}
+
+// زر "⚙️ النسب والشرائح" بصفحة USDT ونافذة أسعار الجنيه: بيفتح الإعدادات على كرتها (لصاحب صلاحية الإعدادات)
+function openSettingsCard(id) {
+    if (!hasPerm('settings')) return showToast('تنبيه', 'تعديل الإعدادات لصاحب صلاحية الإعدادات', 'warning');
+    // الإشعار "المهم" ما بيتسكّر إلا بـ "قرأت"
+    document.querySelectorAll('.modal:not(.hidden):not(#notifyAlertModal)').forEach(m => closeModal(m.id));
+    switchTab('settings');
+    // بعد ما الصفحة ترسم وتخلص حركة الدخول
+    setTimeout(() => {
+        $(id)?.scrollIntoView({ behavior: motionReduced() ? 'instant' : 'smooth', block: 'start' });
+        replayClass($(id), 'card-flash');
+    }, 350);
 }
 
 function showAppConfirm(title, message, onConfirm) {

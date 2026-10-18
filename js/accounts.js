@@ -441,7 +441,7 @@ function openPayModal(ctx) {
                         <div class="text-[10px] text-slate-400">الرصيد ${moneyCur(b, ctx.currency)}</div>
                     </div>
                     <button type="button" data-action="pay-fill" data-id="${escapeHtml(a.id)}" class="text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-md shrink-0">الباقي</button>
-                    <input type="number" step="any" min="0" inputmode="decimal" data-acc="${escapeHtml(a.id)}" class="pay-input" placeholder="0">
+                    <input type="text" inputmode="decimal" autocomplete="off" data-commas data-acc="${escapeHtml(a.id)}" class="pay-input" placeholder="0">
                 </div>`;
         }).join('');
     $('pay_settle').checked = false;
@@ -518,7 +518,8 @@ const txPaid = (t) => paidFor('tx', t.id, t.currency, -1);
 
 function openTxPayModal(tx, wantedStatus = 'مكتمل', { afterCreate = false } = {}) {
     openPayModal({
-        title: `دفع الحوالة ${receiptNo(tx)}`,
+        // الحوالة اللي لسا انحفظت ما إلها رقم إيصال لحد ما يرد الشيت (بلاش الرقم الطويل المؤقت)
+        title: tx.serial ? `دفع الحوالة ${receiptNo(tx)}` : 'دفع الحوالة الجديدة',
         subtitle: `${tx.recipient} · ${payoutLabel(tx)}`,
         currency: tx.currency,
         due: txDue(tx),

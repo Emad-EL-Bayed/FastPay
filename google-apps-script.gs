@@ -10,6 +10,8 @@ const CUST_SHEET = 'الزبائن';
 const EXP_SHEET = 'المصاريف';
 const TRADER_SHEET = 'التجار';
 const TMOVE_SHEET = 'حركات التجار';
+// خدمات كل تاجر (ويسترن، باي بال...) بجدول عمولتها: بتنختار بحركة التاجر فعمولتها بتنحسب لحالها
+const SERVICE_SHEET = 'خدمات التجار';
 const COUNTRY_SHEET = 'تسعير الدول';
 const ACCOUNT_SHEET = 'الحسابات';
 const AMOVE_SHEET = 'حركات الحسابات';
@@ -91,6 +93,8 @@ const TRADER_FIELDS = [
   ['logo', 'الشعار']
 ];
 
+// العمولة = المبلغ × النسبة + الثابت (جدول الخدمة فيه الثنتين: 5$ أو 1.8%)
+// الجملة: شراء بنسبته وبيع بنسبتي، والربح = المبلغ × (نسبة البيع − نسبة الشراء)، بيضل بصفحة التجار بس
 const TMOVE_FIELDS = [
   ['id', 'رقم الحركة'],
   ['date', 'التاريخ'],
@@ -100,9 +104,29 @@ const TMOVE_FIELDS = [
   ['currency', 'العملة'],
   ['amount', 'المبلغ'],
   ['commissionPct', 'العمولة %'],
+  ['commissionFixed', 'عمولة ثابتة'],
   ['commission', 'قيمة العمولة'],
   ['effect', 'الأثر على الرصيد'],
+  ['buyPct', 'نسبة الشراء %'],
+  ['profit', 'ربح الجملة'],
+  ['serviceId', 'رقم الخدمة'],
   ['note', 'ملاحظات'],
+  ['updatedAt', 'آخر تحديث']
+];
+
+// خدمات التجار (بصفحة التجار بس، الحاسبة ما إلها دخل): جدول العمولة نص JSON
+// [{upTo: لحد كم $ (فاضي = وأكثر), pct, fixed}]
+// الشعار: فاضي = بينختار من اسم الخدمة، "brand:paypal,tiktok" = شعارات جاهزة بالبرنامج، "none" = بدون،
+// أو صورة صغيرة data:image (مرفوعة، أقل من 15 ألف حرف) — بترجع مع list عادي لأنها صغيرة
+const SERVICE_FIELDS = [
+  ['id', 'رقم الخدمة'],
+  ['traderId', 'رقم التاجر'],
+  ['traderName', 'التاجر'],
+  ['name', 'الخدمة'],
+  ['order', 'الترتيب'],
+  ['tiers', 'جدول العمولة'],
+  ['note', 'ملاحظات'],
+  ['logo', 'الشعار'],
   ['updatedAt', 'آخر تحديث']
 ];
 
@@ -257,16 +281,19 @@ const CLOSING_FIELDS = [
 
 // مين أضاف ومين عدّل: يكتبها السكربت من جلسة الدخول (لا يمكن تزويرها من البرنامج)
 const AUDIT_FIELDS = [['createdBy', 'أُضيفت بواسطة'], ['updatedBy', 'آخر تعديل بواسطة']];
-[TX_FIELDS, CUST_FIELDS, EXP_FIELDS, TRADER_FIELDS, TMOVE_FIELDS, COUNTRY_FIELDS, ACCOUNT_FIELDS, AMOVE_FIELDS, USDT_FIELDS, EGP_WALLET_FIELDS, EGP_FIELDS, SETTINGS_FIELDS, CLOSING_FIELDS]
+[TX_FIELDS, CUST_FIELDS, EXP_FIELDS, TRADER_FIELDS, TMOVE_FIELDS, SERVICE_FIELDS, COUNTRY_FIELDS, ACCOUNT_FIELDS, AMOVE_FIELDS, USDT_FIELDS, EGP_WALLET_FIELDS, EGP_FIELDS, SETTINGS_FIELDS, CLOSING_FIELDS]
   .forEach(f => { if (!f.some(x => x[0] === 'createdBy')) f.push(...AUDIT_FIELDS); });
 
 // أعمدة لم يعد البرنامج يستخدمها: تُحذف عند ترتيب الشيت
 const OBSOLETE_LABELS = {
-  [TX_SHEET]: ['رقم الجوال', 'phone']
+  [TX_SHEET]: ['رقم الجوال', 'phone', 'رقم التاجر', 'رقم الخدمة', 'عمولة التاجر $'],
+  // ربط الحاسبة بالتجار (نسخة 10، انشال بطلب عماد: الحاسبة ما إلها دخل بالتجار)
+  [TMOVE_SHEET]: ['مرتبطة بـ', 'رقم المرتبط'],
+  [SERVICE_SHEET]: ['نوع التكلفة', 'التكلفة', 'نسبة الربح %']
 };
 
 // غيّر هذا الرقم عند أي تغيير في الأعمدة ليُعاد ترتيب الشيت مرة واحدة تلقائياً
-const LAYOUT_VERSION = '9';
+const LAYOUT_VERSION = '12';
 
 // أسماء أعمدة قديمة تُعاد تسميتها تلقائياً
 const LEGACY_LABELS = {
@@ -283,6 +310,7 @@ const COLLECTIONS = [
   { name: 'expenses', sheet: EXP_SHEET, fields: EXP_FIELDS, read: ['expenses', 'reports'] },
   { name: 'traders', sheet: TRADER_SHEET, fields: TRADER_FIELDS, read: ['traders'] },
   { name: 'traderMoves', sheet: TMOVE_SHEET, fields: TMOVE_FIELDS, read: ['traders'] },
+  { name: 'traderServices', sheet: SERVICE_SHEET, fields: SERVICE_FIELDS, required: 'name', read: ['traders'] },
   { name: 'countries', sheet: COUNTRY_SHEET, fields: COUNTRY_FIELDS, read: ['calculator', 'transactions', 'countries'] },
   { name: 'accounts', sheet: ACCOUNT_SHEET, fields: ACCOUNT_FIELDS, read: ['accounts', 'transactions', 'usdt', 'egp', 'calculator'] },
   { name: 'accountMoves', sheet: AMOVE_SHEET, fields: AMOVE_FIELDS, read: ['accounts', 'transactions', 'usdt', 'egp', 'calculator'] },
@@ -326,6 +354,8 @@ const ACTION_PERMS = {
   delete_trader: { any: ['traders'], del: true },
   upsert_tmove: { any: ['traders'] },
   delete_tmove: { any: ['traders'], del: true },
+  upsert_service: { any: ['traders'] },
+  delete_service: { any: ['traders'], del: true },
   upsert_country: { any: ['countries'] },
   delete_country: { any: ['countries'], del: true },
   upsert_account: { any: ['accounts'] },
@@ -364,6 +394,8 @@ const VALUE_LABELS = {
     paid_for_me: 'أرسل عني',
     recv_for_him: 'استلمت له',
     paid_for_him: 'أرسلت عنه',
+    buy_whole: 'شراء جملة',
+    sell_whole: 'بيع جملة',
     he_paid: 'دفع لي',
     i_paid: 'دفعت له',
     deposit: 'إيداع',
@@ -452,8 +484,14 @@ function doPost(e) {
         return json(readNotify(auth, data.ids));
       case 'notify_delete':
         return json(deleteNotify(auth, data.id));
-      case 'notify_poll':
-        return json({ ok: true, serverTime: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), TIME_FORMAT), notifications: auth.authEnabled ? listNotifications(auth.username, typeof data.since === 'string' && data.since.length >= 16 ? data.since : '') : [] });
+      case 'market':
+        return json({ ok: true, market: marketRates(!!data.fresh) });
+      case 'notify_poll': {
+        const now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), TIME_FORMAT);
+        const since = typeof data.since === 'string' && data.since.length >= 16 ? data.since : '';
+        const list = auth.authEnabled && sheetChangedSince(NOTIFY_SHEET, since, now) ? listNotifications(auth.username, since) : [];
+        return json({ ok: true, serverTime: now, notifications: list });
+      }
       case 'backups_list':
         return json(hasPerm(auth, 'users') ? { ok: true, items: listBackups() } : { ok: false, error: 'forbidden' });
       case 'backup_info':
@@ -506,6 +544,8 @@ function applyWrite(data, auth) {
     case 'delete_trader': return removeRow('traders', data.id);
     case 'upsert_tmove': return writeRow('traderMoves', data.move);
     case 'delete_tmove': return removeRow('traderMoves', data.id);
+    case 'upsert_service': return writeRow('traderServices', cleanServiceLogo(data.service));
+    case 'delete_service': return removeRow('traderServices', data.id);
     case 'upsert_country': return writeRow('countries', data.country);
     case 'delete_country': return removeRow('countries', data.id);
     case 'upsert_account': return writeRow('accounts', data.account);
@@ -574,13 +614,17 @@ function usersSheet() {
 // تُقرأ مرة واحدة لكل طلب، وتُمسح عند أي كتابة على ورقة المستخدمين
 let USERS_CACHE = null;
 
+// بقراءة وحدة للورقة كلها (بتنقرأ بكل طلب للدخول، فكل قراءة بتفرق)
 function readUsers() {
   if (USERS_CACHE) return USERS_CACHE;
-  const sheet = usersSheet();
-  const keys = columnKeys(sheet, USER_FIELDS);
-  const last = sheet.getLastRow();
-  if (last < 2) return [];
-  const rows = sheet.getRange(2, 1, last - 1, keys.length).getDisplayValues();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(USERS_SHEET);
+  if (!sheet) return [];
+  const values = sheet.getDataRange().getDisplayValues();
+  if (values.length < 2) return [];
+  const labelToKey = {};
+  USER_FIELDS.forEach(([key, label]) => { labelToKey[label] = key; labelToKey[key] = key; });
+  const keys = values[0].map(h => labelToKey[String(h).trim()] || null);
+  const rows = values.slice(1);
   USERS_CACHE = rows.map((r, i) => {
     const u = { row: i + 2 };
     keys.forEach((k, j) => { if (k) u[k] = String(r[j]).trim(); });
@@ -846,10 +890,11 @@ function رتّب_الشيت() {
   } catch (err) {
     copyInFile = true;
   }
-  [[TX_SHEET, TX_FIELDS], [CUST_SHEET, CUST_FIELDS], [EXP_SHEET, EXP_FIELDS], [TRADER_SHEET, TRADER_FIELDS], [TMOVE_SHEET, TMOVE_FIELDS], [COUNTRY_SHEET, COUNTRY_FIELDS], [ACCOUNT_SHEET, ACCOUNT_FIELDS], [AMOVE_SHEET, AMOVE_FIELDS], [USDT_SHEET, USDT_FIELDS], [EGP_WALLET_SHEET, EGP_WALLET_FIELDS], [EGP_SHEET, EGP_FIELDS], [SETTINGS_SHEET, SETTINGS_FIELDS], [CLOSING_SHEET, CLOSING_FIELDS]].forEach(([name, fields]) => {
+  [[TX_SHEET, TX_FIELDS], [CUST_SHEET, CUST_FIELDS], [EXP_SHEET, EXP_FIELDS], [TRADER_SHEET, TRADER_FIELDS], [TMOVE_SHEET, TMOVE_FIELDS], [SERVICE_SHEET, SERVICE_FIELDS], [COUNTRY_SHEET, COUNTRY_FIELDS], [ACCOUNT_SHEET, ACCOUNT_FIELDS], [AMOVE_SHEET, AMOVE_FIELDS], [USDT_SHEET, USDT_FIELDS], [EGP_WALLET_SHEET, EGP_WALLET_FIELDS], [EGP_SHEET, EGP_FIELDS], [SETTINGS_SHEET, SETTINGS_FIELDS], [CLOSING_SHEET, CLOSING_FIELDS]].forEach(([name, fields]) => {
     reorderSheet(getSheet(name, fields), name, fields, copyInFile);
   });
   ensureIds(getSheet(CUST_SHEET, CUST_FIELDS), CUST_FIELDS, 'name');
+  translateTypeColumn(getSheet(TX_SHEET, TX_FIELDS));
   fillMissingSerials();
   PropertiesService.getScriptProperties().setProperty('LAYOUT_VERSION', LAYOUT_VERSION);
 }
@@ -898,6 +943,7 @@ function reorderSheet(sheet, name, fields, copyInFile) {
   }
 
   sheet.clearContents();
+  touchSheet(name);
   const headerRange = sheet.getRange(1, 1, 1, newHeaders.length);
   headerRange.setValues([newHeaders]);
   headerRange.setFontWeight('bold');
@@ -908,6 +954,73 @@ function reorderSheet(sheet, name, fields, copyInFile) {
   }
   sheet.setFrozenRows(1);
   sheet.setRightToLeft(true);
+}
+
+// ================= وقت آخر كتابة لكل ورقة (التحديث السريع بيتخطى الورقة اللي ما تغيّرت) =================
+// كل كتابة بتسجّل MOD_<الورقة> = الوقت (مرة بكل طلب)، و onEdit كمان للتعديل اليدوي. الطلبات بتمشي بالدور (القفل)،
+// فأي تحديث سريع since قبل الكتابة بيلاقي MOD ≥ since وبيقرأ الورقة. ورقة بدون MOD (قبل هالنسخة) بتنقرأ زي قبل.
+// كان التحديث السريع (كل دقيقتين من كل جهاز) بيقرأ كل الأوراق: ~110 رحلة لجوجل حتى لو ما تغيّر شي (2026-10-17)
+const MOD_PREFIX = 'MOD_';
+let TOUCHED = {};
+let PROPS_CACHE = null;
+
+function touchSheet(name) {
+  if (TOUCHED[name]) return;
+  TOUCHED[name] = true;
+  PROPS_CACHE = null;
+  PropertiesService.getScriptProperties().setProperty(MOD_PREFIX + name, Utilities.formatDate(new Date(), Session.getScriptTimeZone(), TIME_FORMAT));
+}
+
+// كل الخصائص بقراءة وحدة
+function scriptProps() {
+  if (!PROPS_CACHE) PROPS_CACHE = PropertiesService.getScriptProperties().getProperties();
+  return PROPS_CACHE;
+}
+
+// الورقة تغيّرت بعد since؟ بدون وقت مسجّل: بنقرأها، وبنسجّل وقت هالقراءة (أي كتابة بعدها بتحدّثه)
+function sheetChangedSince(name, since, now) {
+  if (!since) return true;
+  const m = scriptProps()[MOD_PREFIX + name];
+  if (m) return m >= since;
+  PropertiesService.getScriptProperties().setProperty(MOD_PREFIX + name, now);
+  return true;
+}
+
+// الورقة كلها بقراءة وحدة (كانت 4-7 قراءات لكل ورقة). since: بس الصفوف اللي "آخر تحديث" فيها ≥ since
+function readCollection(c, since) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(c.sheet);
+  if (!sheet) return [];
+  let values = sheet.getDataRange().getValues();
+  if (values.length < 2) return [];
+  const labelToKey = {};
+  c.fields.forEach(([key, label]) => { labelToKey[label] = key; });
+  let keys = values[0].map(h => labelToKey[String(h).trim()] || null);
+  // صف انضاف بإيد بالشيت بدون رقم (زبون مثلاً): بياخد رقم، وبنرجع نقرأ
+  if (c.required) {
+    const idI = keys.indexOf('id');
+    const reqI = keys.indexOf(c.required);
+    if (idI >= 0 && reqI >= 0 && values.some((r, i) => i > 0 && String(r[idI]).trim() === '' && String(r[reqI]).trim() !== '')) {
+      ensureIds(sheet, c.fields, c.required);
+      values = sheet.getDataRange().getValues();
+      keys = values[0].map(h => labelToKey[String(h).trim()] || null);
+    }
+  }
+  const tz = Session.getScriptTimeZone();
+  const idIdx = keys.indexOf('id');
+  const updIdx = keys.indexOf('updatedAt');
+  return values.slice(1)
+    .filter(r => {
+      if (idIdx >= 0 && String(r[idIdx]).trim() === '') return false;
+      if (!since) return true;
+      if (updIdx < 0) return false;
+      const v = r[updIdx] instanceof Date ? Utilities.formatDate(r[updIdx], tz, TIME_FORMAT) : String(r[updIdx]).trim();
+      return !!v && v >= since;
+    })
+    .map(r => {
+      const obj = {};
+      keys.forEach((k, i) => { if (k) obj[k] = fromSheetValue(k, r[i], tz); });
+      return obj;
+    });
 }
 
 function json(obj) {
@@ -986,6 +1099,7 @@ function ensureIds(sheet, fields, requiredKey) {
     if (!String(row[0]).trim() && String(req[i][0]).trim()) { row[0] = 'c' + (base + i); changedRows.push(i + 2); }
   });
   if (!changedRows.length) return;
+  touchSheet(sheet.getName());
   const range = sheet.getRange(2, idCol, last - 1, 1);
   range.setNumberFormat('@');
   range.setValues(ids);
@@ -1008,7 +1122,10 @@ function translateTypeColumn(sheet) {
     const label = TYPE_LABELS[String(row[0]).trim()];
     if (label) { row[0] = label; changed = true; }
   });
-  if (changed) range.setValues(values);
+  if (changed) {
+    range.setValues(values);
+    touchSheet(sheet.getName());
+  }
 }
 
 function toSheetValue(key, value) {
@@ -1070,6 +1187,7 @@ function upsertRow(sheet, fields, key, obj, collection) {
   // تنسيق نصي حتى لا تضيع الأصفار في بداية أرقام الجوالات
   range.setNumberFormat('@');
   range.setValues([row]);
+  touchSheet(sheet.getName());
   if (changes.length) logEdit(collection, obj[key], keys, row, changes);
   return result;
 }
@@ -1087,6 +1205,7 @@ function deleteRow(sheet, fields, key, value, collection) {
     keys.forEach((k, i) => { if (k && k !== 'logo') snapshot[k] = fromSheetValue(k, row[i], tz); });
     if (collection && dayIsLocked(collection, String(snapshot.date || '').slice(0, 10))) return { ok: false, error: 'day_locked' };
     sheet.deleteRow(r);
+    touchSheet(sheet.getName());
   }
   if (collection) logDeletion(collection, value, snapshot);
   return { ok: true };
@@ -1131,6 +1250,7 @@ function fillMissingSerials() {
   items.sort((a, b) => a.id - b.id);
   const now = Utilities.formatDate(new Date(), tz, TIME_FORMAT);
   items.forEach(it => {
+    touchSheet(it.sheet.getName());
     stampCell(it.sheet.getRange(it.row, it.col), String(nextSerial()));
     if (it.upd > 0) stampCell(it.sheet.getRange(it.row, it.upd), now);
   });
@@ -1288,7 +1408,7 @@ const RESET_GROUPS = {
   amoves: [AMOVE_SHEET],
   expenses: [EXP_SHEET],
   customers: [CUST_SHEET],
-  traders: [TRADER_SHEET, TMOVE_SHEET],
+  traders: [TRADER_SHEET, TMOVE_SHEET, SERVICE_SHEET],
   closings: [CLOSING_SHEET],
   logs: [DELETED_SHEET, EDITS_SHEET, '_الإشعارات']
 };
@@ -1311,6 +1431,7 @@ function resetData(auth, what) {
     const last = sheet.getLastRow();
     counts[name] = Math.max(0, last - 1);
     if (last > 1) sheet.getRange(2, 1, last - 1, Math.max(sheet.getLastColumn(), 1)).clearContent();
+    touchSheet(name);
   }));
   const props = PropertiesService.getScriptProperties();
   if (['ledger', 'usdt', 'egp'].every(g => groups.indexOf(g) >= 0)) props.deleteProperty('RECEIPT_SERIAL');
@@ -1347,7 +1468,7 @@ const RESTORE_GROUPS = {
   accounts: [ACCOUNT_SHEET, AMOVE_SHEET],
   expenses: [EXP_SHEET],
   customers: [CUST_SHEET],
-  traders: [TRADER_SHEET, TMOVE_SHEET],
+  traders: [TRADER_SHEET, TMOVE_SHEET, SERVICE_SHEET],
   closings: [CLOSING_SHEET],
   settings: [SETTINGS_SHEET, COUNTRY_SHEET],
   users: [USERS_SHEET]
@@ -1457,6 +1578,7 @@ function copySheetRows(src, name) {
   }));
   const last = target.getLastRow();
   if (last > 1) target.getRange(2, 1, last - 1, Math.max(target.getLastColumn(), headers.length)).clearContent();
+  touchSheet(name);
   if (rows.length) {
     const range = target.getRange(2, 1, rows.length, headers.length);
     range.setNumberFormat('@');
@@ -1530,10 +1652,13 @@ function listData(since, auth) {
   }
   out.authEnabled = !!auth.authEnabled;
   // ميزات هالنسخة من السكربت: البرنامج يفعّل الخانات اللي بتحتاج أعمدة جديدة بس إذا السكربت بيدعمها
-  out.features = ['finalAdjust', 'serial', 'editLog', 'dayLock', 'resetData', 'alerts', 'restore', 'iban', 'notify', 'txAdjust', 'notifyDelete'];
+  out.features = ['finalAdjust', 'serial', 'editLog', 'dayLock', 'resetData', 'alerts', 'restore', 'iban', 'notify', 'txAdjust', 'notifyDelete', 'market', 'traderServices', 'serviceLogo'];
+  // سعر السوق (زي الشاشة) مع كل قراءة: من الذاكرة المؤقتة، فما بيبطّئ
+  out.market = marketRates(false);
+  const sinceOrEmpty = incremental ? since : '';
   // الإشعارات: اللي إلي (أو بعتها). مع الدخول بالمستخدمين بس
   if (auth.authEnabled) {
-    out.notifications = listNotifications(auth.username, incremental ? since : '');
+    out.notifications = sheetChangedSince(NOTIFY_SHEET, sinceOrEmpty, serverTime) ? listNotifications(auth.username, sinceOrEmpty) : [];
     if (hasPerm(auth, 'notify')) out.team = readUsers().filter(u => u.active && u.username !== auth.username).map(u => ({ u: u.username, n: u.displayName || '' }));
   }
   // يتغير لما تنمسح البيانات التجريبية أو تسترجع نسخة: الأجهزة الثانية بتعمل تحميل كامل
@@ -1542,10 +1667,8 @@ function listData(since, auth) {
   COLLECTIONS.forEach(c => {
     // ورقة لا يملك المستخدم صلاحية قراءتها: ترجع فارغة
     if (c.read && !c.read.some(p => hasPerm(auth, p))) { out[c.name] = []; return; }
-    const sheet = getSheet(c.sheet, c.fields);
-    if (c.name === 'ledger' && !incremental) translateTypeColumn(sheet);
-    if (c.required) ensureIds(sheet, c.fields, c.required);
-    out[c.name] = incremental ? readChanged(sheet, c.fields, 'id', since) : readAll(sheet, c.fields, 'id');
+    // التحديث السريع: الورقة اللي ما انكتب عليها من آخر مرة ما بتنقرأ أصلاً
+    out[c.name] = sheetChangedSince(c.sheet, sinceOrEmpty, serverTime) ? readCollection(c, sinceOrEmpty) : [];
   });
   // الشعارات كبيرة: نرسل بصمة صغيرة فقط، والبرنامج يطلب الشعار عند تغيّرها (action: logos)
   out.traders.forEach(t => {
@@ -1555,8 +1678,58 @@ function listData(since, auth) {
   if (incremental) {
     const readable = {};
     COLLECTIONS.forEach(c => { readable[c.name] = !c.read || c.read.some(p => hasPerm(auth, p)); });
-    out.deleted = readDeletions(since).filter(d => readable[d.c]);
+    out.deleted = sheetChangedSince(DELETED_SHEET, since, serverTime) ? readDeletions(since).filter(d => readable[d.c]) : [];
   }
+  return out;
+}
+
+// ================= سعر السوق (الشاشة) =================
+// المتصفح ما بيقدر يقرأ Yahoo مباشرة (ما بيسمح)، فالسكربت بيجيبه من سيرفرات جوجل وبيخبّيه دقيقة لكل الأجهزة.
+// Yahoo = سوق العملات الحقيقي زي الشاشة، وبالويكند بيضل على إغلاق الجمعة زيها. Coinbase (اللي كان البرنامج
+// بيقرأه) طلع متأخر ساعات: السبت 2026-10-17 كان 3.097 والشاشة 3.111. إذا Yahoo ما رد، البرنامج بيرجع لـ Coinbase.
+// أول نشر بعد هالإضافة جوجل بيطلب سماح "الاتصال بخدمة خارجية" (UrlFetchApp)
+const MARKET_SYMBOLS = { ILS: 'ILS=X', EGP: 'EGP=X', EUR: 'EUR=X', JOD: 'JOD=X' };
+const MARKET_KEY = 'market_v1';
+const MARKET_FAIL_KEY = 'market_fail_v1';
+
+// {rates: {ILS, EGP, EUR, JOD} (لكل دولار), at: وقت آخر سعر بالسوق (ثواني), source} أو null
+function marketRates(fresh) {
+  const cache = CacheService.getScriptCache();
+  if (!fresh) {
+    const hit = cache.get(MARKET_KEY);
+    if (hit) { try { return JSON.parse(hit); } catch (e) { /* نجيبه من جديد */ } }
+    // فشل قبل شوي: ما نعيد المحاولة مع كل طلب (بتبطّئ)، بعد 5 دقايق
+    if (cache.get(MARKET_FAIL_KEY)) return null;
+  }
+  const codes = Object.keys(MARKET_SYMBOLS);
+  const rates = {};
+  let at = 0;
+  try {
+    const responses = UrlFetchApp.fetchAll(codes.map(c => ({
+      url: 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(MARKET_SYMBOLS[c]) + '?interval=1m&range=1d',
+      muteHttpExceptions: true,
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    })));
+    responses.forEach((res, i) => {
+      if (res.getResponseCode() !== 200) return;
+      try {
+        const meta = JSON.parse(res.getContentText()).chart.result[0].meta;
+        const price = Number(meta.regularMarketPrice);
+        if (price > 0) {
+          rates[codes[i]] = price;
+          at = Math.max(at, Number(meta.regularMarketTime) || 0);
+        }
+      } catch (e) { /* رمز ما رجع */ }
+    });
+  } catch (e) {
+    // ما في سماح للخدمة الخارجية أو جوجل ما وصل
+  }
+  if (!(rates.ILS > 0)) {
+    cache.put(MARKET_FAIL_KEY, '1', 300);
+    return null;
+  }
+  const out = { rates: rates, at: at, source: 'yahoo' };
+  cache.put(MARKET_KEY, JSON.stringify(out), 60);
   return out;
 }
 
@@ -1623,6 +1796,7 @@ function listNotifications(user, since) {
 }
 
 function setNotifyCell(sheet, row, key, value) {
+  touchSheet(NOTIFY_SHEET);
   const cell = sheet.getRange(row, NOTIFY_COL[key]);
   cell.setNumberFormat('@');
   cell.setValue(value);
@@ -1662,6 +1836,7 @@ function appendNotify(obj) {
   range.setNumberFormat('@');
   range.setValues([[id, now, obj.from, obj.to === NOTIFY_ALL ? NOTIFY_ALL : obj.to.join(','), obj.text, obj.important ? 'نعم' : '', obj.replyTo || '', '{}', now, '', '[]']]);
   if (n > NOTIFY_KEEP + 100) sheet.deleteRows(2, n - NOTIFY_KEEP - 1);
+  touchSheet(NOTIFY_SHEET);
   return notifyPublic({ id: id, at: now, from: obj.from, to: obj.to, text: obj.text, important: !!obj.important, replyTo: obj.replyTo || '', readBy: {} });
 }
 
@@ -1715,6 +1890,14 @@ function readNotify(auth, ids) {
 }
 
 // بصمة الشعار: طوله + آخر حروفه (تتغير عند تغيّر الصورة)
+// شعار الخدمة: شعار جاهز (brand:…)، بدون (none)، أو صورة صغيرة. غير هيك بينشال حتى ما تكبر قراءة list
+function cleanServiceLogo(sv) {
+  if (!sv || typeof sv !== 'object') return sv;
+  const v = String(sv.logo || '');
+  const ok = v === '' || v === 'none' || /^brand:[a-z0-9,]{1,200}$/.test(v) || (/^data:image\//.test(v) && v.length <= 15000);
+  return ok ? sv : Object.assign({}, sv, { logo: '' });
+}
+
 function logoSig(logo) {
   const v = String(logo || '');
   return v ? v.length + ':' + v.slice(-16) : '';
@@ -1730,33 +1913,6 @@ function readLogos(ids) {
   return logos;
 }
 
-// يقرأ عمود "آخر تحديث" فقط، ثم الصفوف التي تغيّرت بعد since
-function readChanged(sheet, fields, key, since) {
-  const keys = columnKeys(sheet, fields);
-  const last = sheet.getLastRow();
-  const updCol = keys.indexOf('updatedAt') + 1;
-  if (last < 2 || updCol < 1) return [];
-  const tz = Session.getScriptTimeZone();
-  const stamps = sheet.getRange(2, updCol, last - 1, 1).getValues();
-  const rows = [];
-  stamps.forEach((r, i) => {
-    const v = r[0] instanceof Date ? Utilities.formatDate(r[0], tz, TIME_FORMAT) : String(r[0]).trim();
-    if (v && v >= since) rows.push(i + 2);
-  });
-  if (!rows.length) return [];
-
-  const keyIdx = keys.indexOf(key);
-  const toObj = (r) => {
-    const obj = {};
-    keys.forEach((k, i) => { if (k) obj[k] = fromSheetValue(k, r[i], tz); });
-    return obj;
-  };
-  // صفوف قليلة: نقرأها واحداً واحداً، وإلا نقرأ الورقة مرة واحدة
-  const values = rows.length <= 25
-    ? rows.map(n => sheet.getRange(n, 1, 1, keys.length).getValues()[0])
-    : (() => { const all = sheet.getRange(2, 1, last - 1, keys.length).getValues(); return rows.map(n => all[n - 2]); })();
-  return values.filter(r => keyIdx < 0 || String(r[keyIdx]).trim() !== '').map(toObj);
-}
 
 // الأعمدة: القائمة، الرقم، وقت الحذف، بواسطة، ملخص، البيانات (نسخة السطر)، رقم السجل، استُرجع
 const DELETED_HEADERS = ['القائمة', 'الرقم', 'وقت الحذف', 'بواسطة', 'ملخص', 'البيانات', 'رقم السجل', 'استُرجع'];
@@ -1791,6 +1947,7 @@ function logDeletion(collection, id, snapshot) {
   range.setNumberFormat('@');
   range.setValues([[collection, String(id), now, CURRENT_USER || '', deletionSummary(collection, snapshot),
     snapshot ? JSON.stringify(snapshot).slice(0, 45000) : '', Utilities.getUuid().slice(0, 8), '']]);
+  touchSheet(DELETED_SHEET);
   // نحتفظ بآخر 1000 عملية حذف فقط
   if (row > 1200) sheet.deleteRows(2, row - 1001);
 }
@@ -1836,6 +1993,7 @@ function restoreDeletion(logId) {
   }
   const now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), TIME_FORMAT);
   stampCell(deletedSheet().getRange(d.row, 8), now + (CURRENT_USER ? ' · ' + CURRENT_USER : ''));
+  touchSheet(DELETED_SHEET);
   return { ok: true, c: d.c, id: d.id };
 }
 
@@ -1907,6 +2065,7 @@ function onEdit(e) {
   const range = sheet.getRange(first, updCol, lastRow - first + 1, 1);
   range.setNumberFormat('@');
   range.setValues(Array(lastRow - first + 1).fill([now]));
+  touchSheet(sheet.getName());
 }
 
 // كلمة سر كُتبت بيدك في ورقة المستخدمين: تُشفَّر فوراً حتى لا تبقى مقروءة

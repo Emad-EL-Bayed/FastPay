@@ -28,34 +28,35 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=60">
+    <link rel="stylesheet" href="styles.css?v=77">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=60">
+    <link rel="stylesheet" href="tailwind.css?v=77">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/core.js?v=60" defer></script>
-    <script src="js/theme.js?v=60" defer></script>
-    <script src="js/logo-data.js?v=60" defer></script>
-    <script src="js/shell.js?v=60" defer></script>
-    <script src="js/calculator.js?v=60" defer></script>
-    <script src="js/reports.js?v=60" defer></script>
-    <script src="js/sync.js?v=60" defer></script>
-    <script src="js/transactions.js?v=60" defer></script>
-    <script src="js/receipts.js?v=60" defer></script>
-    <script src="js/customers.js?v=60" defer></script>
-    <script src="js/countries.js?v=60" defer></script>
-    <script src="js/traders.js?v=60" defer></script>
-    <script src="js/expenses.js?v=60" defer></script>
-    <script src="js/settings.js?v=60" defer></script>
-    <script src="js/accounts.js?v=60" defer></script>
-    <script src="js/usdt.js?v=60" defer></script>
-    <script src="js/egp.js?v=60" defer></script>
-    <script src="js/closing.js?v=60" defer></script>
-    <script src="js/admin.js?v=60" defer></script>
-    <script src="js/position.js?v=60" defer></script>
-    <script src="js/search.js?v=60" defer></script>
-    <script src="js/notify.js?v=60" defer></script>
-    <script src="js/auth.js?v=60" defer></script>
-    <script src="js/main.js?v=60" defer></script>
+    <script src="js/core.js?v=77" defer></script>
+    <script src="js/theme.js?v=77" defer></script>
+    <script src="js/logo-data.js?v=77" defer></script>
+    <script src="js/shell.js?v=77" defer></script>
+    <script src="js/calculator.js?v=77" defer></script>
+    <script src="js/reports.js?v=77" defer></script>
+    <script src="js/sync.js?v=77" defer></script>
+    <script src="js/transactions.js?v=77" defer></script>
+    <script src="js/receipts.js?v=77" defer></script>
+    <script src="js/customers.js?v=77" defer></script>
+    <script src="js/countries.js?v=77" defer></script>
+    <script src="js/service-logos.js?v=77" defer></script>
+    <script src="js/traders.js?v=77" defer></script>
+    <script src="js/expenses.js?v=77" defer></script>
+    <script src="js/settings.js?v=77" defer></script>
+    <script src="js/accounts.js?v=77" defer></script>
+    <script src="js/usdt.js?v=77" defer></script>
+    <script src="js/egp.js?v=77" defer></script>
+    <script src="js/closing.js?v=77" defer></script>
+    <script src="js/admin.js?v=77" defer></script>
+    <script src="js/position.js?v=77" defer></script>
+    <script src="js/search.js?v=77" defer></script>
+    <script src="js/notify.js?v=77" defer></script>
+    <script src="js/auth.js?v=77" defer></script>
+    <script src="js/main.js?v=77" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -266,7 +267,7 @@
                                     </div>
                                     <div id="account-row">
                                         <label for="calc_account" id="calc_account_label" class="calc-label">رقم المحفظة</label>
-                                        <input type="text" id="calc_account" class="calc-input font-mono">
+                                        <input type="text" id="calc_account" data-latin class="calc-input font-mono">
                                     </div>
                                     <!-- البنك بس: IBAN اختياري (calculator.js syncIbanField) -->
                                     <div id="iban-row" class="hidden sm:col-span-2">
@@ -297,7 +298,7 @@
                             <div class="grid grid-cols-5 gap-3">
                                 <div class="col-span-3">
                                     <label for="calc_orig_amount" class="calc-label">المبلغ <span id="calc_amount_hint" class="text-slate-400 font-medium"></span> *</label>
-                                    <input type="number" step="any" min="0" inputmode="decimal" id="calc_orig_amount" placeholder="0" class="calc-input calc-amount num">
+                                    <input type="text" inputmode="decimal" autocomplete="off" data-commas id="calc_orig_amount" placeholder="0" class="calc-input calc-amount num">
                                 </div>
                                 <div class="col-span-2">
                                     <label for="calc_factor" id="calc_factor_label" class="calc-label">المعامل</label>
@@ -656,6 +657,7 @@
                             <option value="withdraw">سحب</option>
                             <option value="adjust">تعديل رصيد</option>
                         </select>
+                        <button id="usdt-settings-link" data-action="settings-card" data-target="usdt-settings" class="hidden shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-lg transition" title="نسب الإيداع والسحب وشرائحها والشبكات">⚙️ النسب</button>
                     </div>
                 </div>
                 <div class="section-card overflow-hidden">
@@ -729,7 +731,7 @@
                                 <button type="button" data-action="egpq-dir" data-dir="receive" class="seg-btn" role="radio">استقبال جنيه</button>
                             </div>
                             <div class="flex gap-2 items-stretch">
-                                <input type="number" step="any" min="0" id="egpq_amount" inputmode="decimal" placeholder="المبلغ" class="flex-1 min-w-0 field font-black text-base">
+                                <input type="text" inputmode="decimal" autocomplete="off" data-commas id="egpq_amount" placeholder="المبلغ" class="flex-1 min-w-0 field font-black text-base">
                                 <div id="egpq-units" class="seg seg-sm" role="radiogroup" aria-label="عملة المبلغ">
                                     <button type="button" data-action="egpq-unit" data-unit="EGP" class="seg-btn" role="radio">جنيه</button>
                                     <button type="button" data-action="egpq-unit" data-unit="ILS" class="seg-btn" role="radio">₪</button>
@@ -852,7 +854,7 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label for="exp_amount" class="font-bold block mb-1 text-slate-700">المبلغ ₪ *</label>
-                                <input type="number" step="any" min="0" id="exp_amount" required class="w-full field font-bold">
+                                <input type="text" inputmode="decimal" autocomplete="off" data-commas id="exp_amount" required class="w-full field font-bold">
                             </div>
                             <div>
                                 <label for="exp_date" class="font-bold block mb-1 text-slate-700">التاريخ</label>
@@ -906,23 +908,38 @@
             </div>
 
             <!-- ================= التجار (حسابات جارية بين تاجر وتاجر) ================= -->
+            <!-- التجار (traders.js): وجهين بنفس الصفحة: القائمة، أو حساب تاجر واحد بتبويبات (بدل النافذة) -->
             <div id="page-traders" class="space-y-4 hidden">
                 <div id="traders-unsupported" class="hidden section-card !border-amber-200 bg-amber-50/60 p-3 text-xs font-bold text-amber-800">
                     سكربت Google Sheets الحالي لا يدعم التجار بعد. حدّث السكربت وانشر نسخة جديدة.
                 </div>
-                <div class="section-card p-4 flex flex-col md:flex-row gap-3 justify-between items-center">
-                    <div>
-                        <h3 class="font-bold text-slate-900">حسابات التجار</h3>
-                        <p class="text-xs text-slate-400">لكل تاجر رصيد مستقل بكل عملة: <span class="text-emerald-700 font-bold">لنا عنده</span> أو <span class="text-rose-700 font-bold">له عندنا</span></p>
+                <div id="traders-list-view" class="space-y-4">
+                    <div class="section-card p-4 space-y-3">
+                        <div class="flex flex-col md:flex-row gap-3 justify-between md:items-center">
+                            <div>
+                                <h3 class="font-bold text-slate-900">حسابات التجار</h3>
+                                <p class="text-xs text-slate-400">لكل تاجر رصيد مستقل بكل عملة: <span class="text-emerald-700 font-bold">لنا عنده</span> أو <span class="text-rose-700 font-bold">له عندنا</span></p>
+                            </div>
+                            <div class="flex gap-2 w-full md:w-auto">
+                                <input type="search" id="trader_search" placeholder="ابحث باسم التاجر أو رقمه..." class="flex-1 md:w-56 text-xs field">
+                                <select id="trader_sort" class="shrink-0 text-xs border border-slate-200 rounded-lg p-2.5 bg-white font-semibold" aria-label="ترتيب التجار">
+                                    <option value="recent">آخر تعامل</option>
+                                    <option value="balance">الأكبر رصيداً</option>
+                                    <option value="name">الاسم</option>
+                                </select>
+                                <button data-action="open-trader-modal" class="shrink-0 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition">+ تاجر</button>
+                            </div>
+                        </div>
+                        <div id="trader_filters" class="tv-scroll" role="group" aria-label="فلتر التجار"></div>
                     </div>
-                    <div class="flex gap-2 w-full md:w-auto">
-                        <input type="search" id="trader_search" placeholder="ابحث باسم التاجر..." class="flex-1 md:w-56 text-xs field">
-                        <button data-action="open-trader-modal" class="shrink-0 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition">+ تاجر جديد</button>
-                    </div>
+                    <!-- مجموع الأرصدة لكل عملة -->
+                    <div id="traders-totals" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
+                    <div id="traders-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
                 </div>
-                <!-- مجموع الأرصدة لكل عملة -->
-                <div id="traders-totals" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
-                <div id="traders-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
+                <!-- حساب التاجر: الرأس، الأرصدة، والتبويبات (الكشف، الخدمات، الجملة، المعلومات) -->
+                <div id="trader-view" class="hidden">
+                    <div id="trader-profile" class="space-y-4 max-w-5xl mx-auto" aria-label="حساب التاجر"></div>
+                </div>
             </div>
 
             <!-- ================= 4. إدارة الزبائن ================= -->
@@ -1195,20 +1212,37 @@
                 <div id="usdt-settings" class="section-card p-6 max-w-2xl space-y-5">
                     <div>
                         <h3 class="text-base font-bold text-slate-900">إعدادات USDT</h3>
-                        <p class="text-xs text-slate-400">تُحفظ تلقائياً عند التعديل. سعر الإيداع = سعر البيع، وسعر السحب = سعر الشراء (من الأعلى)</p>
+                        <p class="text-xs text-slate-400">تُحفظ تلقائياً عند التعديل لكل الأجهزة. سعر الإيداع = سعر الشراء، وسعر السحب = سعر البيع (من الأعلى). الشرائح حسب كمية الـ USDT، والنسبة بتتعبّى لحالها بنافذة الحركة وبتقدر تغيّرها لحركة وحدة.</p>
                     </div>
-                    <div class="max-w-xs">
-                        <label for="set_usdt_deposit_pct" class="block text-xs font-bold text-slate-700 mb-1">نسبة الإيداع الافتراضية %</label>
-                        <input type="number" step="0.1" min="0" id="set_usdt_deposit_pct" class="w-full font-bold field">
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">نسبة الإيداع حسب المبلغ</span><button type="button" data-action="usdt-tier-add" data-kind="deposit" class="text-xs font-bold text-blue-700">+ شريحة</button></div>
+                        <div id="usdt-deposit-tiers-list" class="space-y-2"></div>
                     </div>
                     <div class="space-y-2">
                         <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">الشبكات ورسومها ($)</span><button type="button" data-action="usdt-net-add" class="text-xs font-bold text-blue-700">+ شبكة</button></div>
                         <div id="usdt-networks-list" class="space-y-2"></div>
                     </div>
                     <div class="space-y-2">
-                        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">نسبة السحب حسب المبلغ</span><button type="button" data-action="usdt-tier-add" class="text-xs font-bold text-blue-700">+ شريحة</button></div>
+                        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">نسبة السحب حسب المبلغ</span><button type="button" data-action="usdt-tier-add" data-kind="withdraw" class="text-xs font-bold text-blue-700">+ شريحة</button></div>
                         <div id="usdt-tiers-list" class="space-y-2"></div>
                     </div>
+                </div>
+
+                <!-- إعدادات الجنيه: شرائح نسبة الإرسال والاستقبال حسب المبلغ بالشيكل (egp.js renderEgpTierSettings)، تُحفظ عند التعديل -->
+                <div id="egp-settings" class="section-card p-6 max-w-2xl space-y-5">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">إعدادات الجنيه المصري</h3>
+                        <p class="text-xs text-slate-400">نسبتنا حسب المبلغ بالشيكل اللي بيدفعه الزبون (إرسال) أو بياخده (استقبال)، والدولار بيتحول لشيكل. اكتب النسبة أو سعر الألف جنيه وبتنحسب الثانية. تُحفظ تلقائياً لكل الأجهزة. أول شريحة هي نفس النسبة بـ "⚙️ الأسعار" بصفحة الجنيه.</p>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">نسبة الإرسال حسب المبلغ</span><button type="button" data-action="egp-tier-add" data-kind="send" class="text-xs font-bold text-blue-700">+ شريحة</button></div>
+                        <div id="egp-send-tiers" class="space-y-2"></div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">نسبة الاستقبال حسب المبلغ</span><button type="button" data-action="egp-tier-add" data-kind="receive" class="text-xs font-bold text-blue-700">+ شريحة</button></div>
+                        <div id="egp-receive-tiers" class="space-y-2"></div>
+                    </div>
+                    <p id="egp-tiers-market" class="text-[11px] text-slate-400"></p>
                 </div>
 
                 <!-- بيانات الشركة للفاتورة -->
@@ -1256,7 +1290,7 @@
                         </div>
                         <div id="sync-token-wrap">
                             <label for="set_sync_token" class="block text-xs font-bold text-slate-700 mb-1">مفتاح الحماية السري (Token)</label>
-                            <input type="password" id="set_sync_token" dir="ltr" autocomplete="off" class="w-full text-xs font-mono border border-slate-200 rounded-lg p-2.5 outline-none bg-slate-50 focus:border-blue-500">
+                            <input type="text" id="set_sync_token" dir="ltr" autocomplete="off" spellcheck="false" class="masked-input w-full text-xs font-mono border border-slate-200 rounded-lg p-2.5 outline-none bg-slate-50 focus:border-blue-500">
                             <span class="text-[10px] text-slate-400 block mt-1">نفس القيمة المحفوظة في السكربت باسم SYNC_TOKEN. بدونه يستطيع أي شخص يملك الرابط الكتابة في الشيت.</span>
                         </div>
                         <button data-action="reload-sheets" class="w-full bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold py-2.5 rounded-xl text-xs transition">
@@ -1384,7 +1418,7 @@
                 </div>
                 <div>
                     <label for="m_cust_account" id="m_cust_account_label" class="font-bold block mb-1 text-slate-700">رقم المحفظة</label>
-                    <input type="text" id="m_cust_account" class="w-full field font-mono">
+                    <input type="text" id="m_cust_account" data-latin class="w-full field font-mono">
                 </div>
                 <div id="m_cust_iban_wrap" class="hidden">
                     <label for="m_cust_iban" class="font-bold block mb-1 text-slate-700">IBAN <span class="font-medium text-slate-400">(اختياري)</span></label>
@@ -1509,7 +1543,7 @@
                     </div>
                     <div>
                         <label for="edit_tx_account" id="edit_tx_account_label" class="font-bold block mb-1 text-slate-700">رقم المحفظة</label>
-                        <input type="text" id="edit_tx_account" class="w-full border border-slate-200 rounded-lg p-2 bg-white font-mono">
+                        <input type="text" id="edit_tx_account" data-latin class="w-full border border-slate-200 rounded-lg p-2 bg-white font-mono">
                     </div>
                 </div>
                 <div id="edit_tx_iban_wrap" class="hidden">
@@ -1533,7 +1567,7 @@
                 <div class="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
                     <div>
                         <label for="edit_tx_orig" class="font-bold block mb-1 text-slate-500">المبلغ الأصلي</label>
-                        <input type="number" step="any" min="0" id="edit_tx_orig" class="w-full border border-slate-200 rounded p-1.5 bg-white font-bold">
+                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="edit_tx_orig" class="w-full border border-slate-200 rounded p-1.5 bg-white font-bold">
                     </div>
                     <div>
                         <label for="edit_tx_factor" class="font-bold block mb-1 text-slate-500">المعامل (<span id="edit_op_symbol">÷</span>)</label>
@@ -1615,14 +1649,14 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label for="tr_commission" class="font-bold block mb-1 text-slate-700">نسبته %</label>
-                        <input type="number" step="any" min="0" id="tr_commission" class="w-full field font-bold">
-                        <span class="text-[10px] text-slate-400 block mt-1">لما هو يستلم أو يرسل لك</span>
+                        <label for="tr_commission" class="font-bold block mb-1 text-slate-700">نسبة شراء الجملة منه %</label>
+                        <input type="number" step="any" min="0" id="tr_commission" placeholder="0" class="w-full field font-bold">
+                        <span class="text-[10px] text-slate-400 block mt-1">بتتعبّى لحالها بـ "شراء جملة"</span>
                     </div>
                     <div>
-                        <label for="tr_my_commission" class="font-bold block mb-1 text-slate-700">نسبتي %</label>
-                        <input type="number" step="any" min="0" id="tr_my_commission" class="w-full field font-bold">
-                        <span class="text-[10px] text-slate-400 block mt-1">لما أنا أستلم أو أرسل له</span>
+                        <label for="tr_my_commission" class="font-bold block mb-1 text-slate-700">نسبة بيع الجملة إله %</label>
+                        <input type="number" step="any" min="0" id="tr_my_commission" placeholder="0" class="w-full field font-bold">
+                        <span class="text-[10px] text-slate-400 block mt-1">بتتعبّى لحالها بـ "بيع جملة"</span>
                     </div>
                 </div>
                 <div>
@@ -1651,11 +1685,13 @@
                 <div>
                     <span class="font-bold block mb-1.5 text-slate-700">نوع الحركة</span>
                     <div id="tm_kinds" class="grid grid-cols-3 gap-1.5"></div>
+                    <!-- الجملة: شراء بنسبته وبيع بنسبتي، والبيع بيحسب الربح (traders.js) -->
+                    <div id="tm_kinds_whole" class="grid grid-cols-2 gap-1.5 mt-1.5"></div>
                 </div>
                 <div class="grid grid-cols-5 gap-2">
                     <div class="col-span-3">
                         <label for="tm_amount" class="font-bold block mb-1 text-slate-700">المبلغ *</label>
-                        <input type="number" step="any" min="0" id="tm_amount" required class="w-full field font-black text-lg">
+                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="tm_amount" required class="w-full field font-black text-lg">
                     </div>
                     <div class="col-span-2">
                         <label for="tm_currency" class="font-bold block mb-1 text-slate-700">العملة</label>
@@ -1667,10 +1703,25 @@
                         </select>
                     </div>
                 </div>
+                <!-- خدمة التاجر (لنا/له بالدولار): العمولة من جدولها حسب المبلغ -->
+                <div id="tm_service_wrap" class="hidden">
+                    <span class="font-bold block mb-1.5 text-slate-700">الخدمة (العمولة من جدولها)</span>
+                    <select id="tm_service" class="hidden" aria-hidden="true" tabindex="-1"></select>
+                    <div id="tm_service_chips" class="flex flex-wrap gap-2"></div>
+                </div>
+                <p id="tm_service_note" class="hidden text-[11px] text-slate-500">جداول خدمات التاجر بالدولار، فبهالعملة العمولة بإيدك.</p>
                 <div class="grid grid-cols-2 gap-2" id="tm_commission_row">
                     <div>
                         <label for="tm_commission" id="tm_commission_label" class="font-bold block mb-1 text-slate-700">العمولة %</label>
                         <input type="number" step="any" min="0" id="tm_commission" class="w-full field font-bold">
+                    </div>
+                    <div>
+                        <label for="tm_commission_fixed" class="font-bold block mb-1 text-slate-700">+ مبلغ ثابت</label>
+                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="tm_commission_fixed" placeholder="0" class="w-full field font-bold">
+                    </div>
+                    <div id="tm_buy_pct_wrap" class="hidden">
+                        <label for="tm_buy_pct" class="font-bold block mb-1 text-slate-700">اشتريتها بـ %</label>
+                        <input type="number" step="any" min="0" id="tm_buy_pct" class="w-full field font-bold">
                     </div>
                     <div>
                         <label for="tm_date" class="font-bold block mb-1 text-slate-700">التاريخ</label>
@@ -1690,9 +1741,63 @@
         </div>
     </div>
 
-    <!-- Modal: حساب التاجر (كشف الحساب) -->
-    <div id="traderPanel" class="modal fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center sm:p-6 overflow-y-auto">
-        <div id="trader-profile" class="cust-sheet w-full sm:max-w-3xl bg-white sm:rounded-2xl rounded-t-2xl" role="dialog" aria-modal="true" aria-label="حساب التاجر"></div>
+    <!-- Modal: خدمة تاجر (traders.js): جدول عمولته بالشرائح زي ما بيبعته، أو لصق رسالته من واتساب.
+         بتنختار بحركة التاجر فعمولتها بتنحسب لحالها (الحاسبة ما إلها دخل بالتجار) -->
+    <div id="serviceModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="section-card max-w-xl w-full p-6 my-auto">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                <h3 id="serviceModalTitle" class="text-base font-bold text-slate-900">خدمة جديدة</h3>
+                <button data-action="close-modal" data-modal="serviceModal" class="text-slate-400 hover:text-slate-700">✕</button>
+            </div>
+            <form id="serviceForm" class="mt-4 space-y-4 text-xs">
+                <input type="hidden" id="sv_id">
+                <input type="hidden" id="sv_trader">
+                <details id="sv_paste_box" class="sv-paste">
+                    <summary class="font-bold text-slate-700 cursor-pointer">📋 لصق جدول العمولات من رسالة التاجر</summary>
+                    <textarea id="sv_paste" rows="6" placeholder="الصق الرسالة زي ما بعتها، مثلاً: من 0 الى 100 $ عمولة 5$ …" class="w-full field mt-2 leading-relaxed"></textarea>
+                    <button type="button" data-action="service-parse" class="mt-2 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded-lg">اقرأ الجدول</button>
+                </details>
+                <div>
+                    <label for="sv_name" class="font-bold block mb-1 text-slate-700">اسم الخدمة *</label>
+                    <input type="text" id="sv_name" placeholder="مثلاً: ويسترن / ريا / موني غرام (مقابل صندوق)" class="w-full field font-bold">
+                </div>
+                <!-- شعار الخدمة (traders.js): تلقائي من الاسم، أو من الشعارات الجاهزة (service-logos.js)، أو صورة مرفوعة -->
+                <div class="sv-logo-box space-y-2.5">
+                    <div class="flex items-center gap-3">
+                        <div id="sv_logo_preview" class="shrink-0"></div>
+                        <div class="min-w-0 flex-1">
+                            <div class="font-bold text-slate-700">الشعار</div>
+                            <div id="sv_logo_status" class="text-[11px] text-slate-500"></div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button type="button" id="sv_logo_auto" data-action="service-logo-auto" class="tf-chip">تلقائي من الاسم</button>
+                        <button type="button" id="sv_logo_upload" data-action="service-logo-upload" class="tf-chip">رفع صورة</button>
+                        <button type="button" id="sv_logo_none" data-action="service-logo-none" class="tf-chip">بدون شعار</button>
+                        <input type="file" id="sv_logo_input" accept="image/*" class="hidden">
+                    </div>
+                    <p id="sv_logo_note" class="hidden text-[11px] font-bold text-amber-700">حدّث سكربت Google Sheets حتى تختار شعار أو ترفع صورة (التلقائي من الاسم شغّال)</p>
+                    <details class="sv-brands">
+                        <summary class="text-[11px] font-bold text-slate-600 cursor-pointer">اختار من الشعارات الجاهزة (لحد 3)</summary>
+                        <div id="sv_logo_grid" class="sv-brand-grid mt-2"></div>
+                    </details>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center"><span class="font-bold text-slate-700">عمولة التاجر حسب المبلغ ($)</span><button type="button" data-action="service-tier-add" class="font-bold text-blue-700">+ شريحة</button></div>
+                    <div id="sv_tiers" class="space-y-2"></div>
+                    <p id="sv_examples" class="text-[11px] text-slate-500 leading-relaxed"></p>
+                </div>
+                <div>
+                    <label for="sv_note" class="font-bold block mb-1 text-slate-700">ملاحظة</label>
+                    <input type="text" id="sv_note" placeholder="مثلاً: مقابل صندوق" class="w-full field">
+                </div>
+                <div class="pt-1 flex gap-2">
+                    <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg transition">حفظ الخدمة</button>
+                    <button type="button" id="sv_delete" data-action="delete-service" class="hidden px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-lg">حذف</button>
+                    <button type="button" data-action="close-modal" data-modal="serviceModal" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">إلغاء</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Modal: ملف الزبون (يُملأ من app.js) -->
@@ -1755,12 +1860,12 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label for="us_amount" id="us_amount_label" class="font-bold block mb-1 text-slate-700">المبلغ (USDT)</label>
-                        <input type="number" step="any" min="0" id="us_amount" inputmode="decimal" class="w-full field font-black text-base">
+                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="us_amount" class="w-full field font-black text-base">
                     </div>
                     <!-- أو المبلغ بعملة الدفع: يُحسب منه الـ USDT (بخطوات نصف، والتقريب لصالحنا) -->
                     <div id="us_money_wrap">
                         <label for="us_money" id="us_money_label" class="font-bold block mb-1 text-slate-700">أو المبلغ بالشيكل</label>
-                        <input type="number" step="any" min="0" id="us_money" inputmode="decimal" placeholder="اختياري" class="w-full field font-black text-base">
+                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="us_money" placeholder="اختياري" class="w-full field font-black text-base">
                     </div>
                     <div id="us_adjust_fields" class="hidden">
                         <label for="us_adjust_dir" class="font-bold block mb-1 text-slate-700">الاتجاه</label>
@@ -1783,7 +1888,7 @@
                     </div>
                     <div class="grid grid-cols-3 gap-3">
                         <div>
-                            <label for="us_pct" class="font-bold block mb-1 text-slate-700">النسبة %</label>
+                            <label for="us_pct" id="us_pct_label" class="font-bold block mb-1 text-slate-700">النسبة %</label>
                             <input type="number" step="any" min="0" id="us_pct" class="w-full field font-bold">
                         </div>
                         <div>
@@ -1874,7 +1979,7 @@
                     </div>
                     <div id="eg_fee_wrap" class="hidden">
                         <label for="eg_fee" class="font-bold block mb-1 text-slate-700">رسوم التحويل (جنيه)</label>
-                        <input type="number" step="any" min="0" id="eg_fee" placeholder="0" inputmode="decimal" class="w-full field font-mono">
+                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="eg_fee" placeholder="0" class="w-full field font-mono">
                     </div>
                 </div>
                 <!-- اسم ورقم المستلم/المرسل خلف زر + (ينفتح لحاله إذا فيه بيانات، أو لما ينقص رقم المستلم بالإرسال) -->
@@ -1886,22 +1991,22 @@
                     </div>
                     <div id="eg_party_number_wrap">
                         <label for="eg_party_number" id="eg_party_number_label" class="font-bold block mb-1 text-slate-700">رقم فودافون / عنوان انستا باي</label>
-                        <input type="text" id="eg_party_number" dir="ltr" autocomplete="off" placeholder="01001234567" class="w-full field font-mono text-right">
+                        <input type="text" id="eg_party_number" data-latin dir="ltr" autocomplete="off" placeholder="01001234567" class="w-full field font-mono text-right">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label for="eg_egp" id="eg_amount_label" class="font-bold block mb-1 text-slate-700">المبلغ بالجنيه</label>
-                        <input type="number" step="any" min="0" id="eg_egp" inputmode="decimal" class="w-full field font-black text-base">
+                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="eg_egp" class="w-full field font-black text-base">
                     </div>
                     <!-- أو المبلغ بعملة الدفع: يُحسب منه الجنيه (جنيه صحيح، والتقريب لصالحنا) -->
                     <div id="eg_money_wrap">
                         <label for="eg_money" id="eg_money_label" class="font-bold block mb-1 text-slate-700">أو المبلغ بالشيكل</label>
-                        <input type="number" step="any" min="0" id="eg_money" inputmode="decimal" placeholder="اختياري" class="w-full field font-black text-base">
+                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="eg_money" placeholder="اختياري" class="w-full field font-black text-base">
                     </div>
                     <div id="eg_total_wrap" class="hidden">
                         <label for="eg_total" id="eg_total_label" class="font-bold block mb-1 text-slate-700">المبلغ اللي دفعته</label>
-                        <input type="number" step="any" min="0" id="eg_total" inputmode="decimal" class="w-full field font-black text-base">
+                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="eg_total" class="w-full field font-black text-base">
                     </div>
                 </div>
                 <div id="eg_rates_row" class="grid grid-cols-3 gap-3">
@@ -1986,6 +2091,10 @@
                                     <input type="number" step="0.01" min="0" id="egp_set_receive_price" aria-label="سعر الألف جنيه للاستقبال بالشيكل" class="w-full min-w-0 field font-mono">
                                 </div>
                                 <p class="text-[10px] text-slate-400">اكتب النسبة أو سعر الألف وبتنحسب الثانية. الأسعار مشتركة لكل الأجهزة.</p>
+                                <div class="flex items-center justify-between gap-2">
+                                    <p id="egp-tiers-hint" class="text-[10px] font-bold text-slate-500"></p>
+                                    <button data-action="settings-card" data-target="egp-settings" class="shrink-0 text-[11px] font-bold text-blue-700 hover:underline">⚙️ الشرائح</button>
+                                </div>
                             </div>
                             <p id="egp-rate-readonly" class="hidden text-[11px] text-slate-400">تعديل أسعار الجنيه لصاحب صلاحية الإعدادات.</p>
                         <div id="egp-rate-info" class="text-[10px] text-slate-400"></div>
@@ -2109,7 +2218,7 @@
                 </div>
                 <div>
                     <label for="ew_number" class="font-bold block mb-1 text-slate-700">رقم فودافون / عنوان انستا باي (اختياري)</label>
-                    <input type="text" id="ew_number" dir="ltr" placeholder="01001234567" class="w-full field font-mono text-right">
+                    <input type="text" id="ew_number" data-latin dir="ltr" placeholder="01001234567" class="w-full field font-mono text-right">
                 </div>
                 <div id="ew_opening_wrap">
                     <label for="ew_opening" class="font-bold block mb-1 text-slate-700">الرصيد الحالي (جنيه)</label>
@@ -2117,7 +2226,7 @@
                 </div>
                 <div>
                     <label for="ew_alert" class="font-bold block mb-1 text-slate-700">نبّهني لما الرصيد ينزل تحت (جنيه، اختياري)</label>
-                    <input type="number" step="any" min="0" id="ew_alert" placeholder="مثلاً 2000" inputmode="decimal" class="w-full field font-mono">
+                    <input type="text" inputmode="decimal" autocomplete="off" data-commas id="ew_alert" placeholder="مثلاً 2000" class="w-full field font-mono">
                 </div>
                 <div>
                     <label for="ew_note" class="font-bold block mb-1 text-slate-700">ملاحظة</label>
@@ -2161,7 +2270,7 @@
                 <label class="flex items-center gap-2 font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="acc_usd"> فيه رصيد دولار</label>
                 <div>
                     <label for="acc_alert" class="font-bold block mb-1 text-slate-700">نبّهني لما رصيد الشيكل ينزل تحت (اختياري)</label>
-                    <input type="number" step="any" min="0" id="acc_alert" placeholder="مثلاً 500" inputmode="decimal" class="w-full field font-bold">
+                    <input type="text" inputmode="decimal" autocomplete="off" data-commas id="acc_alert" placeholder="مثلاً 500" class="w-full field font-bold">
                 </div>
                 <div id="acc_opening" class="grid grid-cols-2 gap-3">
                     <div>
@@ -2223,7 +2332,7 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label for="am_amount" class="font-bold block mb-1 text-slate-700">المبلغ *</label>
-                        <input type="number" step="any" min="0" id="am_amount" class="w-full field font-black">
+                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="am_amount" class="w-full field font-black">
                     </div>
                     <div>
                         <label for="am_date" class="font-bold block mb-1 text-slate-700">التاريخ</label>
@@ -2272,7 +2381,7 @@
                     </div>
                     <div>
                         <label for="um_password" class="font-bold block mb-1 text-slate-700">كلمة السر</label>
-                        <input type="password" id="um_password" autocomplete="new-password" class="w-full field font-bold">
+                        <input type="text" id="um_password" autocomplete="off" spellcheck="false" class="masked-input w-full field font-bold">
                     </div>
                 </div>
                 <div class="space-y-2">
@@ -2379,8 +2488,8 @@
             <div id="wa-preview-wrap" class="wa-preview-wrap"><img id="wa-preview" alt="الصورة التي ستُرسل"></div>
             <ol class="wa-steps">
                 <li><span class="wa-num">1</span><span id="wa-copy-status" class="wa-status">جاري تجهيز الصورة ونسخها...</span></li>
-                <li><span class="wa-num">2</span><span>اكبس الزر الأخضر لفتح المحادثة</span></li>
-                <li><span class="wa-num">3</span><span>بمربع الكتابة اكبس <kbd id="wa-paste-key">Ctrl + V</kbd> ثم إرسال</span></li>
+                <li><span class="wa-num">2</span><span id="wa-step-open">اكبس الزر الأخضر لفتح المحادثة</span></li>
+                <li><span class="wa-num">3</span><span id="wa-step-paste">بمربع الكتابة اكبس <kbd>Ctrl + V</kbd> ثم إرسال</span></li>
             </ol>
             <button data-action="wa-open" id="wa-open" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl text-sm transition">فتح واتساب</button>
             <div class="wa-extra flex flex-wrap gap-2 justify-center">

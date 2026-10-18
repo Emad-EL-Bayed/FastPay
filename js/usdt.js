@@ -20,7 +20,7 @@ const PAY_STATE = {
 };
 let usdtSearch = '';
 let editingUsdtId = null;
-let usdtPctTouched = false; // إذا عدّلت نسبة السحب بيدك لا نغيّرها تلقائياً حسب الشريحة
+let usdtPctTouched = false; // إذا عدّلت النسبة بيدك لا نغيّرها تلقائياً حسب الشريحة
 
 // تقريب لأقرب نصف: الإيداع لفوق (لصالحنا) والسحب لتحت
 const roundUpHalf = (v) => Math.ceil(round2(v) * 2 - 1e-9) / 2;
@@ -93,17 +93,40 @@ function usdtNetworks() {
     return list.filter(n => n && String(n.name || '').trim());
 }
 
+// شرائح السحب: قائمة كاملة usdtTiers [{min $, pct}] من 0
 function usdtTiers() {
     const list = Array.isArray(globalConfig.usdtTiers) ? globalConfig.usdtTiers : [];
     return list.map(t => ({ min: toNum(t.min, 0), pct: toNum(t.pct, 0) })).sort((a, b) => a.min - b.min);
 }
 
-// نسبة السحب حسب المبلغ: آخر شريحة حدّها الأدنى أقل من أو يساوي المبلغ
-function withdrawPctFor(amount) {
-    const tiers = usdtTiers();
+// شرائح الإيداع (بطلب عماد 2026-10-17، زي السحب والجنيه): أول شريحة (من 0) = usdtDepositPct،
+// والشرائح فوقها usdtDepositTiers [{min $, pct}]
+function usdtDepositTiers() {
+    const extra = (Array.isArray(globalConfig.usdtDepositTiers) ? globalConfig.usdtDepositTiers : [])
+        .map(t => ({ min: toNum(t?.min, 0), pct: toNum(t?.pct, NaN) }))
+        .filter(t => t.min > 0 && t.pct >= 0)
+        .sort((a, b) => a.min - b.min);
+    return [{ min: 0, pct: toNum(globalConfig.usdtDepositPct, 1) }, ...extra];
+}
+
+const usdtKindTiers = (kind) => (kind === 'deposit' ? usdtDepositTiers() : usdtTiers());
+
+// النسبة حسب كمية USDT: آخر شريحة حدّها الأدنى أقل من أو يساوي الكمية
+function usdtPctFor(kind, amount) {
+    const tiers = usdtKindTiers(kind);
     let pct = tiers[0]?.pct ?? 0;
     tiers.forEach(t => { if (amount >= t.min) pct = t.pct; });
     return pct;
+}
+
+// المبلغ اللي فيه كسور بس إذا في كسور: 400 مش 400.00
+const fmtTrim = (v) => fmt(v, Math.abs(round2(v) % 1) > 0.004 ? 2 : 0);
+
+// "أقل من 400 $" / "من 400 لـ 1000 $" / "من 1000 $ فما فوق" (للـ USDT والجنيه)
+function tierRangeText(tiers, min, unit) {
+    const next = tiers.find(t => t.min > min);
+    if (!min) return next ? `أقل من ${fmtTrim(next.min)} ${unit}` : 'كل المبالغ';
+    return next ? `من ${fmtTrim(min)} لـ ${fmtTrim(next.min)} ${unit}` : `من ${fmtTrim(min)} ${unit} فما فوق`;
 }
 
 // المبلغ المتفق عليه (شيكل أو دولار) ← كمية USDT بخطوات نصف، والتقريب دائماً لصالحنا:
@@ -113,8 +136,15 @@ function usdtForMoney(f, autoPct) {
     const money = f.fixedTotal;
     if (!(r > 0) || !(money > 0)) return { amount: 0, pct: f.pct };
     if (f.kind === 'deposit') {
-        const exact = ((money + f.discount) / r - f.networkFee) / (1 + f.pct / 100);
-        return { amount: Math.max(0, roundDownHalf(exact)), pct: f.pct };
+        const get = (pct) => Math.max(0, roundDownHalf(((money + f.discount) / r - f.networkFee) / (1 + pct / 100)));
+        const tiers = usdtDepositTiers();
+        if (!autoPct || tiers.length < 2) return { amount: get(f.pct), pct: f.pct };
+        // نسبة الإيداع تعتمد على الكمية: لكل شريحة الكمية اللي بتطلع وبتضل بنفس الشريحة، ونأخذ الأكتر (الأحسن للزبون)
+        const options = tiers
+            .map(t => ({ amount: get(t.pct), pct: t.pct }))
+            .filter(o => o.amount > 0 && usdtPctFor('deposit', o.amount) === o.pct)
+            .sort((a, b) => b.amount - a.amount);
+        return options[0] || { amount: get(tiers[0].pct), pct: tiers[0].pct };
     }
     const need = (pct) => roundUpHalf(money / (r * (1 - pct / 100)));
     const tiers = usdtTiers();
@@ -122,7 +152,7 @@ function usdtForMoney(f, autoPct) {
     // نسبة السحب تعتمد على الكمية نفسها: لكل شريحة أقل كمية تكفي وتبقى في نفس الشريحة، ونأخذ الأقل
     const options = tiers
         .map(t => ({ amount: Math.max(need(t.pct), roundUpHalf(t.min)), pct: t.pct }))
-        .filter(o => withdrawPctFor(o.amount) === o.pct)
+        .filter(o => usdtPctFor('withdraw', o.amount) === o.pct)
         .sort((a, b) => a.amount - b.amount);
     return options[0] || { amount: need(f.pct), pct: f.pct };
 }
@@ -130,6 +160,7 @@ function usdtForMoney(f, autoPct) {
 // ---------- صفحة USDT ----------
 function renderUsdtPage() {
     if (pageHidden('usdt')) return;
+    $('usdt-settings-link').classList.toggle('hidden', !hasPerm('settings'));
     $('wallets-unsupported-usdt').classList.toggle('hidden', sheetSupportsWallets || dataState !== 'ready');
     const today = localDateStr(), month = today.slice(0, 7);
     let profitToday = 0, profitMonth = 0, unpaidIls = 0, unpaidUsd = 0;
@@ -274,7 +305,7 @@ function setUsdtKind(kind, { keepValues = false } = {}) {
     if (!keepValues) {
         const { sell, buy } = sellBuyRates();
         $('us_rate').value = kind === 'deposit' ? buy : sell;
-        $('us_pct').value = kind === 'deposit' ? toNum(globalConfig.usdtDepositPct, 1) : withdrawPctFor(toNum($('us_amount').value, 0));
+        $('us_pct').value = usdtPctFor(kind, toNum($('us_amount').value, 0));
         if (kind === 'deposit' && $('us_fee').value === '') $('us_fee').value = toNum($('us_network').selectedOptions[0]?.dataset.fee, 0);
         $('us_final_adjust').value = '';
         usdtPctTouched = false;
@@ -312,12 +343,12 @@ function readUsdtForm() {
     };
 }
 
-// الفورم بعد حساب الكمية من المبلغ المتفق عليه (إن كُتب)، ونسبة السحب حسب الشريحة
+// الفورم بعد حساب الكمية من المبلغ المتفق عليه (إن كُتب)، والنسبة حسب الشريحة (الإيداع والسحب)
 function resolvedUsdtForm() {
     const f = readUsdtForm();
-    const autoPct = f.kind === 'withdraw' && !usdtPctTouched && !editingUsdtId;
+    const autoPct = f.kind !== 'adjust' && !usdtPctTouched && !editingUsdtId;
     if (f.fixedTotal > 0) Object.assign(f, usdtForMoney(f, autoPct), { finalAdjust: 0 });
-    else if (autoPct) f.pct = withdrawPctFor(f.amount);
+    else if (autoPct) f.pct = usdtPctFor(f.kind, f.amount);
     f.autoPct = autoPct;
     return f;
 }
@@ -326,6 +357,13 @@ function updateUsdtPreview() {
     const f = resolvedUsdtForm();
     if (f.kind !== 'adjust' && f.fixedTotal > 0) $('us_amount').value = f.amount || '';
     if (f.autoPct) $('us_pct').value = f.pct;
+    const tiered = f.kind !== 'adjust' && usdtKindTiers(f.kind).length > 1;
+    $('us_pct_label').textContent = 'النسبة %' + (f.autoPct && tiered ? ' · حسب الشريحة' : '');
+    // أي شريحة انطبقت (بس إذا في شرائح والنسبة تلقائية)
+    const tierMin = usdtKindTiers(f.kind).filter(t => f.amount >= t.min).pop()?.min || 0;
+    const tierLine = f.autoPct && tiered && f.amount > 0
+        ? `<div class="text-[11px] text-slate-500 profit-only">الشريحة: ${tierRangeText(usdtKindTiers(f.kind), tierMin, '$')} ← ${round2(f.pct)}%</div>`
+        : '';
     const r = computeUsdt({ ...f, amount: f.kind === 'adjust' ? f.amount : Math.max(0, f.amount) });
     const cur = f.currency;
     syncFinalAdjustField('us', f.kind === 'deposit' ? 1 : -1, f.fixedTotal > 0);
@@ -337,6 +375,7 @@ function updateUsdtPreview() {
     } else if (f.kind === 'deposit') {
         lines = `
             <div class="flex justify-between"><span>المبلغ + النسبة ${f.pct}% + الشبكة ${fmt(f.networkFee)}$</span><b>${fmt(f.amount * (1 + f.pct / 100) + f.networkFee)} $</b></div>
+            ${tierLine}
             ${cur === 'ILS' ? `<div class="flex justify-between"><span>× سعر الشراء ${f.rate}</span><b>${fmt(r.gross)} ₪</b></div>` : ''}
             ${fixedNote(f, r.total - r.gross)}
             ${adjLine}
@@ -345,6 +384,7 @@ function updateUsdtPreview() {
     } else {
         lines = `
             <div class="flex justify-between"><span>المبلغ − النسبة ${f.pct}%</span><b>${fmt(f.amount * (1 - f.pct / 100))} $</b></div>
+            ${tierLine}
             ${cur === 'ILS' ? `<div class="flex justify-between"><span>× سعر البيع ${f.rate}</span><b>${fmt(r.gross)} ₪</b></div>` : ''}
             ${fixedNote(f, r.gross - r.total)}
             ${adjLine}
@@ -497,43 +537,72 @@ function deleteUsdtPrompt(id) {
     });
 }
 
-// ---------- إعدادات USDT (الشبكات، شرائح السحب، نسبة الإيداع) ----------
+// ---------- إعدادات USDT (الشبكات، شرائح الإيداع والسحب) ----------
 function renderUsdtSettings() {
-    $('set_usdt_deposit_pct').value = toNum(globalConfig.usdtDepositPct, 1);
     $('usdt-networks-list').innerHTML = usdtNetworks().map((n, i) => `
         <div class="flex gap-2 items-center">
             <input type="text" data-net="${i}" data-field="name" value="${escapeHtml(n.name)}" class="usdt-set-input flex-1 min-w-0 border border-slate-200 rounded-lg p-2 bg-white font-bold" placeholder="اسم الشبكة">
             <input type="number" step="any" min="0" data-net="${i}" data-field="fee" value="${toNum(n.fee, 0)}" class="usdt-set-input w-24 border border-slate-200 rounded-lg p-2 bg-white font-mono" placeholder="الرسوم $">
             <button type="button" data-action="usdt-net-remove" data-index="${i}" class="text-slate-400 hover:text-red-600 px-2 font-bold">✕</button>
         </div>`).join('');
-    $('usdt-tiers-list').innerHTML = usdtTiers().map((t, i) => `
+    $('usdt-deposit-tiers-list').innerHTML = usdtTierRowsHtml('deposit');
+    $('usdt-tiers-list').innerHTML = usdtTierRowsHtml('withdraw');
+}
+
+// صف لكل شريحة: من كم USDT، والنسبة. أول صف من 0 (حدّه ما بيتغير)
+function usdtTierRowsHtml(kind) {
+    return usdtKindTiers(kind).map((t, i) => `
         <div class="flex gap-2 items-center text-xs">
-            <span class="text-slate-500 w-16">من ${i === 0 ? '0' : ''}</span>
-            <input type="number" step="any" min="0" data-tier="${i}" data-field="min" value="${t.min}" ${i === 0 ? 'disabled' : ''} class="usdt-set-input w-24 border border-slate-200 rounded-lg p-2 bg-white font-mono disabled:bg-slate-50">
+            <span class="text-slate-500">من</span>
+            <input type="text" inputmode="decimal" autocomplete="off" data-commas data-tier="${i}" data-tkind="${kind}" data-field="min" value="${formatThousands(t.min)}" ${i === 0 ? 'disabled' : ''} aria-label="من كمية USDT" class="usdt-set-input w-24 border border-slate-200 rounded-lg p-2 bg-white font-mono disabled:bg-slate-50">
             <span class="text-slate-500">$ فما فوق ←</span>
-            <input type="number" step="any" min="0" data-tier="${i}" data-field="pct" value="${t.pct}" class="usdt-set-input w-20 border border-slate-200 rounded-lg p-2 bg-white font-bold">
+            <input type="number" step="any" min="0" data-tier="${i}" data-tkind="${kind}" data-field="pct" value="${t.pct}" aria-label="النسبة %" class="usdt-set-input w-20 border border-slate-200 rounded-lg p-2 bg-white font-bold">
             <span class="text-slate-500">%</span>
-            ${i > 0 ? `<button type="button" data-action="usdt-tier-remove" data-index="${i}" class="text-slate-400 hover:text-red-600 px-2 font-bold">✕</button>` : ''}
+            ${i > 0 ? `<button type="button" data-action="usdt-tier-remove" data-kind="${kind}" data-index="${i}" class="text-slate-400 hover:text-red-600 px-2 font-bold" aria-label="حذف الشريحة">✕</button>` : ''}
         </div>`).join('');
 }
 
 function onUsdtSettingInput(el) {
-    if (el.id === 'set_usdt_deposit_pct') {
-        globalConfig.usdtDepositPct = Math.max(0, toNum(el.value, 0));
-    } else if (el.dataset.net !== undefined) {
+    if (el.dataset.net !== undefined) {
         const nets = usdtNetworks().map(n => ({ ...n }));
         const n = nets[toNum(el.dataset.net, -1)];
         if (!n) return;
         n[el.dataset.field] = el.dataset.field === 'fee' ? Math.max(0, toNum(el.value, 0)) : el.value.trim() || n.name;
         globalConfig.usdtNetworks = nets;
-    } else if (el.dataset.tier !== undefined) {
-        const tiers = usdtTiers();
-        const t = tiers[toNum(el.dataset.tier, -1)];
-        if (!t) return;
-        t[el.dataset.field] = Math.max(0, toNum(el.value, 0));
-        globalConfig.usdtTiers = tiers;
-    } else return;
+        saveAll();
+        return;
+    }
+    if (el.dataset.tier === undefined) return;
+    const kind = el.dataset.tkind === 'deposit' ? 'deposit' : 'withdraw';
+    const tiers = usdtKindTiers(kind);
+    const i = toNum(el.dataset.tier, -1);
+    const t = tiers[i];
+    if (!t) return;
+    const v = toNum(el.value, NaN);
+    const bad = (msg) => { showToast('تنبيه', msg, 'warning'); renderUsdtSettings(); };
+    if (el.dataset.field === 'min') {
+        if (i === 0) return;
+        if (!(v > 0)) return bad('حد الشريحة لازم يكون أكبر من صفر');
+        if (tiers.some((x, k) => k !== i && Math.abs(x.min - v) < 0.005)) return bad('في شريحة ثانية بنفس الكمية');
+        t.min = round2(v);
+    } else {
+        if (!(v >= 0) || v >= 100) return bad('النسبة لازم تكون من 0 لأقل من 100%');
+        t.pct = round2(v);
+    }
+    saveUsdtTiers(kind, tiers);
+}
+
+// السحب: القائمة كاملة. الإيداع: أول شريحة بالنسبة الأساسية والباقي بالشرائح (إعدادات مشتركة بالشيت)
+function saveUsdtTiers(kind, tiers) {
+    const sorted = [...tiers].sort((a, b) => a.min - b.min).map(t => ({ min: t.min, pct: t.pct }));
+    if (kind === 'deposit') {
+        globalConfig.usdtDepositPct = sorted[0].pct;
+        globalConfig.usdtDepositTiers = sorted.slice(1);
+    } else {
+        globalConfig.usdtTiers = sorted;
+    }
     saveAll();
+    renderUsdtSettings();
 }
 
 function addUsdtNetwork() {
@@ -548,16 +617,15 @@ function removeUsdtNetwork(i) {
     renderUsdtSettings();
 }
 
-function addUsdtTier() {
-    const tiers = usdtTiers();
+function addUsdtTier(kind) {
+    const tiers = usdtKindTiers(kind);
     const last = tiers[tiers.length - 1];
-    globalConfig.usdtTiers = [...tiers, { min: (last?.min || 0) + 1000, pct: Math.max(0, (last?.pct ?? 3) - 1) }];
-    saveAll();
-    renderUsdtSettings();
+    const step = kind === 'deposit' ? 400 : 1000;
+    tiers.push({ min: (last?.min || 0) + step, pct: Math.max(0, round2((last?.pct ?? 3) - (kind === 'deposit' ? 0.5 : 1))) });
+    saveUsdtTiers(kind, tiers);
 }
 
-function removeUsdtTier(i) {
-    globalConfig.usdtTiers = usdtTiers().filter((_, k) => k !== i);
-    saveAll();
-    renderUsdtSettings();
+function removeUsdtTier(kind, i) {
+    if (!(i > 0)) return;
+    saveUsdtTiers(kind, usdtKindTiers(kind).filter((_, k) => k !== i));
 }

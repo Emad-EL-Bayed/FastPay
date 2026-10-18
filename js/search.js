@@ -78,7 +78,7 @@ function searchAll(raw) {
 }
 
 function renderSearchResults() {
-    const raw = $('global-search').value.trim();
+    const raw = latinDigits($('global-search').value.trim());
     searchResults = searchAll(raw);
     searchIndex = 0;
     if (!raw) {

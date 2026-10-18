@@ -83,6 +83,7 @@ const COLLECTION_NORMALIZERS = {
     expenses: { get: () => expenses, set: (v) => { expenses = v; }, norm: (r) => normalizeExpense(r), ok: (x) => x.id },
     traders: { get: () => traders, set: (v) => { traders = v; }, norm: (r) => normalizeTrader(r), ok: (x) => x.id && x.name },
     traderMoves: { get: () => traderMoves, set: (v) => { traderMoves = v; }, norm: (r) => normalizeTmove(r), ok: (x) => x.id && x.traderId },
+    traderServices: { get: () => traderServices, set: (v) => { traderServices = v; }, norm: (r) => normalizeService(r), ok: (x) => x.id && x.name },
     countries: { get: () => countries, set: (v) => { countries = v; }, norm: (r) => normalizeCountry(r), ok: (x) => x.name },
     accounts: { get: () => accounts, set: (v) => { accounts = v; }, norm: (r) => normalizeAccount(r), ok: (x) => x.id },
     accountMoves: { get: () => accountMoves, set: (v) => { accountMoves = v; }, norm: (r) => normalizeAmove(r), ok: (x) => x.id && x.accountId },
@@ -196,6 +197,7 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
         ? Object.keys(COLLECTION_NORMALIZERS).reduce((n, k) => n + (data[k]?.length || 0), 0) + (data.deleted?.length || 0)
         : -1;
     const countriesBefore = JSON.stringify(countries);
+    const servicesBefore = JSON.stringify(traderServices);
     if (data.incremental) {
         mergeIncremental(data);
     } else {
@@ -210,6 +212,7 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
         traders = (data.traders || []).map(normalizeTrader).filter(t => t.id && t.name);
         traders.forEach(t => { if (!t.logo && previousLogos.get(t.id)) t.logo = previousLogos.get(t.id); });
         traderMoves = (data.traderMoves || []).map(normalizeTmove).filter(m => m.id && m.traderId);
+        traderServices = (data.traderServices || []).map(normalizeService).filter(x => x.id && x.name);
         sheetSupportsWallets = Array.isArray(data.accounts);
         accounts = (data.accounts || []).map(normalizeAccount).filter(a => a.id);
         accountMoves = (data.accountMoves || []).map(normalizeAmove).filter(m => m.id && m.accountId);
@@ -229,6 +232,8 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
     // السكربت القديم لا يرسل serverTime، فيبقى التحميل كاملاً في كل مرة
     syncCursor = data.serverTime || null;
     updateAuthFromServer(data);
+    // سعر السوق (زي الشاشة) من السكربت مع كل قراءة
+    if (data.market) useScriptMarket(data.market);
     // الإشعارات (notify.js): مع كل قراءة، الكاملة بتبدّل القائمة والسريعة بتضيف
     if (Array.isArray(data.team)) notifyTeam = data.team;
     if (data.serverTime) notifyCursor = data.serverTime;
@@ -243,9 +248,11 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
     if (Array.isArray(data.settings)) applySharedSettings(data.settings, !data.incremental);
     syncTraderLogos(data.traders || []);
     afterCountriesChanged(countriesBefore);
-    if (panelTraderId && !$('traderPanel').classList.contains('hidden')) renderTraderPanel();
+    if (traderViewOpen()) renderTraderPanel();
     // التغييرات التي لم تصل للشيت بعد تبقى ظاهرة
     outbox.forEach(applyOpLocally);
+    // خدمات التجار تغيّرت (من جهاز ثاني): لوحة التاجر وكروت التجار
+    if (JSON.stringify(traderServices) !== servicesBefore) afterServicesChanged();
     sortLedger();
 
     sheetReadFailed = false;
@@ -271,9 +278,10 @@ const UPSERT_OPS = {
     upsert_usdt: ['usdtMoves', 'move'],
     upsert_closing: ['closings', 'closing'],
     upsert_egp: ['egpMoves', 'move'],
-    upsert_egp_wallet: ['egpWallets', 'wallet']
+    upsert_egp_wallet: ['egpWallets', 'wallet'],
+    upsert_service: ['traderServices', 'service']
 };
-const DELETE_OPS = { delete_account: 'accounts', delete_amove: 'accountMoves', delete_usdt: 'usdtMoves', delete_egp: 'egpMoves', delete_egp_wallet: 'egpWallets' };
+const DELETE_OPS = { delete_account: 'accounts', delete_amove: 'accountMoves', delete_usdt: 'usdtMoves', delete_egp: 'egpMoves', delete_egp_wallet: 'egpWallets', delete_service: 'traderServices' };
 
 function applyOpLocally(op) {
     if (op.action === 'upsert') {

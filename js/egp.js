@@ -14,6 +14,7 @@ let editingEgpId = null;
 let editingEgpWalletId = null;
 let egpPickerIndex = -1;
 let egpQuick = { dir: 'send', unit: 'EGP' };
+let egpPctTouched = false; // إذا عدّلت النسبة بيدك لحركة وحدة، ما بتتغير حسب الشريحة
 
 const EGP_WALLET_TYPES = {
     vodafone: { label: 'فودافون كاش', color: '#e60000', soft: '#fee2e2', ink: '#991b1b' },
@@ -212,6 +213,85 @@ function egpRates(screen = egpScreen()) {
 // سعر الألف جنيه بعملة الدفع
 const egpPerThousand = (rate, usdRate, cur) => (rate > 0 ? round2(1000 / rate * (cur === 'USD' ? 1 : usdRate)) : 0);
 
+// ---------- شرائح النسبة حسب المبلغ (بطلب عماد 2026-10-17، زي شرائح سحب USDT) ----------
+// المبلغ بالشيكل اللي بيدفعه الزبون (إرسال) أو بياخده (استقبال)، والدولار بيتحول بسعر دولار الحركة.
+// أول شريحة (من 0) = النسبة الأساسية egpSendPct/egpReceivePct، والشرائح فوقها egpSendTiers/egpReceiveTiers [{min ₪, pct}]
+const EGP_TIER_KEYS = { send: ['egpSendPct', 'egpSendTiers'], receive: ['egpReceivePct', 'egpReceiveTiers'] };
+
+function egpTiers(kind) {
+    const [pctKey, tiersKey] = EGP_TIER_KEYS[kind];
+    const extra = (Array.isArray(globalConfig[tiersKey]) ? globalConfig[tiersKey] : [])
+        .map(t => ({ min: round2(toNum(t?.min, 0)), pct: round2(toNum(t?.pct, NaN)) }))
+        .filter(t => t.min > 0 && t.pct >= 0 && t.pct <= EGP_MAX_PCT)
+        .sort((a, b) => a.min - b.min);
+    return [{ min: 0, pct: toNum(globalConfig[pctKey], 0) }, ...extra];
+}
+
+function egpTierFor(kind, ils) {
+    let tier = null;
+    egpTiers(kind).forEach(t => { if (!tier || ils >= t.min - 0.004) tier = t; });
+    return tier;
+}
+
+// "أقل من 400 ₪" / "من 400 لـ 1000 ₪" / "من 1000 ₪ فما فوق"
+const egpTierRange = (kind, min) => tierRangeText(egpTiers(kind), min, '₪');
+
+// النسبة اللي بتنطبق على الحركة f ({kind, egp, fixedTotal, currency, usdRate, screen}):
+// - المبلغ المتفق عليه: الشريحة من المبلغ نفسه.
+// - الجنيه: لكل شريحة بنحسب المبلغ وبناخد الشريحة اللي المبلغ بيقع فيها (إذا أكتر من وحدة: الأحسن للزبون).
+// - بالإرسال لما الجنيه على حد شريحة (بنسبتها المبلغ تحت حدها، وبالنسبة اللي قبلها فوقه): الزبون بيدفع حد
+//   الشريحة بالضبط (400 ₪) بنسبة بيناتهم، فالمبلغ ما بينزل لما الجنيه يزيد. edge = حد الشريحة
+function egpTierPct(f) {
+    const tiers = egpTiers(f.kind);
+    const base = { pct: tiers[0].pct, min: 0, edge: 0 };
+    const toIls = f.currency === 'USD' ? f.usdRate : 1;
+    if (tiers.length < 2 || !(f.screen > 0) || !(f.usdRate > 0)) return base;
+    if (f.fixedTotal > 0) {
+        const t = egpTierFor(f.kind, f.fixedTotal * toIls);
+        return { pct: t.pct, min: t.min, edge: 0 };
+    }
+    if (!(f.egp > 0)) return base;
+    const send = f.kind === 'send';
+    const totalAt = (pct) => computeEgp({ ...f, rate: egpRateFromPct(f.kind, f.screen, pct), fixedTotal: 0, finalAdjust: 0 }).total;
+    const options = [];
+    tiers.forEach(t => {
+        const total = totalAt(t.pct);
+        if (egpTierFor(f.kind, total * toIls).min === t.min) return options.push({ pct: t.pct, min: t.min, edge: 0, total });
+        if (!send || !t.min || total * toIls >= t.min) return;
+        // حد الشريحة بعملة الحركة، والنسبة لتحت بخانتين حتى المبلغ قبل التقريب ما يعدّي الحد
+        const edge = roundUpHalf(t.min / toIls);
+        const rate = f.egp * (f.currency === 'USD' ? 1 : f.usdRate) / edge;
+        const pct = Math.floor(((1 - rate / f.screen) * 100 + 1e-9) * 100) / 100;
+        if (!(pct >= 0) || pct > EGP_MAX_PCT) return;
+        const edgeTotal = totalAt(pct);
+        if (egpTierFor(f.kind, edgeTotal * toIls).min === t.min) options.push({ pct, min: t.min, edge: t.min, total: edgeTotal });
+    });
+    if (!options.length) {
+        const t = egpTierFor(f.kind, totalAt(base.pct) * toIls);
+        return { pct: t.pct, min: t.min, edge: 0 };
+    }
+    options.sort((a, b) => (send ? a.total - b.total : b.total - a.total));
+    return options[0];
+}
+
+// الحركة بنسبة شريحتها وسعرها
+function withEgpTier(f) {
+    const t = egpTierPct(f);
+    return { ...f, pct: t.pct, rate: egpRateFromPct(f.kind, f.screen, t.pct), tierMin: t.min, tierEdge: t.edge };
+}
+
+// سطر صغير تحت الحساب: أي شريحة انطبقت (بس إذا في شرائح)
+function egpTierNote(f) {
+    if (egpTiers(f.kind).length < 2) return '';
+    const text = f.tierEdge
+        ? `على حد شريحة ${fmtEgp(f.tierEdge)} ₪، فبيدفع ${f.currency === 'USD' ? 'حدها بالدولار' : `${fmtEgp(f.tierEdge)} ₪ بالضبط`} (نسبة ${round2(f.pct)}%)`
+        : `الشريحة: ${egpTierRange(f.kind, f.tierMin)} ← ${round2(f.pct)}%`;
+    return `<div class="text-[11px] text-slate-500 profit-only">${text}</div>`;
+}
+
+// "13%" أو "13% · من 400 ₪: 10%"
+const egpTierSummary = (kind) => egpTiers(kind).map((t, i) => (i ? `من ${fmtEgp(t.min)} ₪: ${round2(t.pct)}%` : `${round2(t.pct)}%`)).join(' · ');
+
 async function fetchEgpRate({ manual = false } = {}) {
     // في الوضع اليدوي لا يتغير السعر إلا بطلب صريح
     if (globalConfig.egpRateMode === 'manual' && !manual) {
@@ -234,14 +314,12 @@ async function fetchEgpRate({ manual = false } = {}) {
             renderEgpRates();
             return;
         }
-        globalConfig.egpMarketRate = round2(market);
-        globalConfig.egpScreenRate = round2(market);
-        globalConfig.egpRateMode = 'auto';
-        globalConfig.egpRateUpdated = nowTimeLabel();
-        egpRateStatus = 'ok';
-        saveAll();
-        renderEgpRates();
-        renderEgpQuick();
+        applyEgpMarket(data, { force: manual });
+        // الرد انتجاهل (سعر السكربت أحدث): بس نشيل "جاري"
+        if (egpRateStatus === 'loading') {
+            egpRateStatus = 'ok';
+            renderEgpRates();
+        }
         if (manual) showToast('تم تحديث شاشة الجنيه', `${fmt(globalConfig.egpScreenRate)} جنيه للدولار من السوق (التحديث التلقائي مفعّل)`);
     } catch (err) {
         console.warn('Could not fetch EGP rate:', err);
@@ -249,6 +327,23 @@ async function fetchEgpRate({ manual = false } = {}) {
         renderEgpRates();
         if (manual) showToast('تنبيه الاتصال', 'تعذر جلب سعر الجنيه حالياً، بقي السعر المعتمد', 'warning');
     }
+}
+
+// شاشة الجنيه من رد السوق (من طلب سعر الدولار، أو مع قراءة الشيت)، إذا الوضع تلقائي
+function applyEgpMarket(data, { force = false } = {}) {
+    const market = toNum(data?.rates?.EGP, NaN);
+    if (!(market > 0) || (!force && globalConfig.egpRateMode === 'manual')) return;
+    // الاحتياط ما بيكتب فوق سعر السكربت الحديث (إلا بطلب يدوي)
+    if (!force && data.source !== 'market' && scriptMarketFresh()) return;
+    globalConfig.egpMarketRate = round2(market);
+    globalConfig.egpScreenRate = round2(market);
+    globalConfig.egpRateMode = 'auto';
+    globalConfig.egpRateUpdated = nowTimeLabel();
+    egpRateStatus = 'ok';
+    lastEgpRateFetchMs = Date.now();
+    saveAll();
+    renderEgpRates();
+    renderEgpQuick();
 }
 
 function pinEgpRate() {
@@ -300,13 +395,22 @@ function renderEgpRates() {
     $('egp-screen').textContent = r.screen ? fmt(r.screen) : '—';
     $('egp-rate-badge').textContent = manual ? '🔒 يدوي' : egpRateStatus === 'error' ? 'غير متصل' : egpRateStatus === 'loading' ? 'جاري التحديث' : 'تلقائي';
     $('egp-rate-badge').className = 'badge ' + (manual ? 'bg-amber-50 text-amber-700' : egpRateStatus === 'error' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700');
+    // مع الشرائح: سعر الألف لكل شريحة
+    const tierLine = (kind, usd) => egpTiers(kind).slice(1).map(t => `من ${fmtEgp(t.min)} ₪ <b class="text-slate-800">${fmt(egpPerThousand(egpRateFromPct(kind, r.screen, t.pct), usd, 'ILS'))} ₪</b>`).join(' · ');
+    const sendTiers = ready ? tierLine('send', r.usdSend) : '', receiveTiers = ready ? tierLine('receive', r.usdReceive) : '';
     $('egp-rates-line').innerHTML = ready
         ? `الألف: إرسال <b class="text-slate-800">${fmt(thousand.send)} ₪</b> · استقبال <b class="text-slate-800">${fmt(thousand.receive)} ₪</b>`
+            + (sendTiers ? `<div class="font-medium">إرسال ${sendTiers}</div>` : '')
+            + (receiveTiers ? `<div class="font-medium">استقبال ${receiveTiers}</div>` : '')
         : 'ما في سعر للجنيه بعد';
     $('egp-thousand-line').innerHTML = ready
         ? `الألف جنيه بالسوق: إرسال <b class="text-slate-900">${fmt(thousand.marketSend)} ₪</b> · استقبال <b class="text-slate-900">${fmt(thousand.marketReceive)} ₪</b><div class="font-medium text-slate-400">شاشة ${fmt(r.screen)} · شراء الدولار ${fmt(r.usdSend, 3)} · صرف ${fmt(r.usdReceive, 3)}</div>`
         : '';
-    $('egp-pct-line').textContent = `نسبتنا: إرسال ${fmt(r.sendPct)}% · استقبال ${fmt(r.receivePct)}%`;
+    $('egp-pct-line').textContent = `نسبتنا: إرسال ${egpTierSummary('send')} — استقبال ${egpTierSummary('receive')}`;
+    const hasTiers = egpTiers('send').length > 1 || egpTiers('receive').length > 1;
+    $('egp-tiers-hint').textContent = hasTiers
+        ? `هاي أول شريحة (${egpTierRange('send', 0)})، والشرائح الأكبر من الإعدادات.`
+        : 'بدك نسبة حسب المبلغ (100 ₪ بسعر و 400 ₪ بسعر)؟ من الشرائح.';
     // تعديل الأسعار لمن عنده صلاحية الإعدادات (تُحفظ في الشيت لكل الأجهزة)
     const canEdit = hasPerm('settings');
     $('egp-rate-form').classList.toggle('hidden', !canEdit);
@@ -459,19 +563,21 @@ function setEgpQuick(patch) {
     renderEgpQuick();
 }
 
-// نفس دوال الحركة: كم بيدفع/بياخد الزبون، أو كم جنيه
+// نفس دوال الحركة: كم بيدفع/بياخد الزبون، أو كم جنيه (بنسبة الشريحة، لكل عملة لحالها)
 function egpQuote() {
     const amount = toNum($('egpq_amount').value, 0);
     const r = egpRates();
     const send = egpQuick.dir === 'send';
-    const base = { kind: egpQuick.dir, rate: send ? r.send : r.receive, pct: send ? r.sendPct : r.receivePct, screen: r.screen, usdRate: send ? r.usdSend : r.usdReceive, fee: 0, settle: 0 };
+    const base = { kind: egpQuick.dir, rate: send ? r.send : r.receive, pct: send ? r.sendPct : r.receivePct, screen: r.screen, usdRate: send ? r.usdSend : r.usdReceive, fee: 0, settle: 0, fixedTotal: 0 };
     if (!(amount > 0) || !(base.rate > 0)) return { base, amount: 0 };
     if (egpQuick.unit === 'EGP') {
-        return { base, amount, egp: amount, ils: computeEgp({ ...base, egp: amount, currency: 'ILS' }), usd: computeEgp({ ...base, egp: amount, currency: 'USD' }) };
+        const fi = withEgpTier({ ...base, egp: amount, currency: 'ILS' });
+        const fu = withEgpTier({ ...base, egp: amount, currency: 'USD' });
+        return { base, amount, egp: amount, fi, fu, ils: computeEgp(fi), usd: computeEgp(fu) };
     }
-    const f = { ...base, currency: egpQuick.unit, fixedTotal: amount };
+    const f = withEgpTier({ ...base, currency: egpQuick.unit, fixedTotal: amount });
     const egp = egpForMoney(f);
-    return { base, amount, egp, money: computeEgp({ ...f, egp }), cur: egpQuick.unit };
+    return { base, amount, egp, f, money: computeEgp({ ...f, egp }), cur: egpQuick.unit };
 }
 
 function renderEgpQuick() {
@@ -485,10 +591,18 @@ function renderEgpQuick() {
         $('egpq-result').innerHTML = '<div class="tm-preview text-amber-700 font-bold">ما في سعر للجنيه بعد — ثبّت شاشة الجنيه من "⚙️ الأسعار"</div>';
         return;
     }
+    // السعر والنسبة حسب شريحة المبلغ المكتوب (بالجنيه: الشيكل والدولار ممكن كل واحد بشريحة)
+    const fIls = q.fi || q.f, fUsd = q.fu || q.f;
+    const pcts = [...new Set([fIls?.pct ?? pct, fUsd?.pct ?? pct])].map(p => fmt(p) + '%').join(' / ');
+    const tiers = egpTiers(egpQuick.dir);
+    const tierPrices = tiers.length > 1
+        ? `<span class="basis-full">الشرائح (الألف للزبون): ${tiers.map(t => `${egpTierRange(egpQuick.dir, t.min)} <b class="text-slate-800">${fmt(egpPerThousand(egpRateFromPct(egpQuick.dir, screen, t.pct), usdRate, 'ILS'))} ₪</b>`).join(' · ')}</span>`
+        : '';
     const prices = `
         <div class="flex flex-wrap justify-between gap-x-3 gap-y-1 text-[11px] text-slate-500 border-t border-slate-100 pt-2">
-            <span>سعر الألف جنيه للزبون: <b class="text-slate-800">${fmt(egpPerThousand(rate, usdRate, 'ILS'))} ₪</b> · <b class="text-slate-800">${fmt(egpPerThousand(rate, 0, 'USD'))} $</b></span>
-            <span class="profit-only">نسبتنا ${fmt(pct)}% · الألف بالسوق ${fmt(egpPerThousand(screen, usdRate, 'ILS'))} ₪</span>
+            <span>سعر الألف جنيه للزبون: <b class="text-slate-800">${fmt(egpPerThousand(fIls?.rate || rate, usdRate, 'ILS'))} ₪</b> · <b class="text-slate-800">${fmt(egpPerThousand(fUsd?.rate || rate, 0, 'USD'))} $</b></span>
+            <span class="profit-only">نسبتنا ${pcts} · الألف بالسوق ${fmt(egpPerThousand(screen, usdRate, 'ILS'))} ₪</span>
+            ${tierPrices}
         </div>`;
     if (!q.amount) {
         $('egpq-result').innerHTML = `<div class="text-sm text-slate-400 py-2">اكتب المبلغ لتشوف السعر</div>${prices}`;
@@ -500,26 +614,27 @@ function renderEgpQuick() {
         const rounded = (r, cur) => (Math.abs(r.gross - r.total) > 0.004 ? `قبل التقريب ${moneyCur(r.gross, cur)}` : '');
         body = head(send ? `عشان يوصل <b class="text-slate-900">${fmtEgp(q.egp)} جنيه</b>، الزبون بيدفع:` : `لما يوصلنا <b class="text-slate-900">${fmtEgp(q.egp)} جنيه</b>، بنعطي الزبون:`)
             + `<div class="grid grid-cols-2 gap-2">
-                ${egpQuickTile(send, 'بالشيكل', moneyCur(q.ils.total, 'ILS'), rounded(q.ils, 'ILS'), q.ils.profitIls)}
-                ${egpQuickTile(send, 'أو بالدولار', moneyCur(q.usd.total, 'USD'), rounded(q.usd, 'USD'), q.usd.profitIls)}
+                ${egpQuickTile(send, 'بالشيكل', moneyCur(q.ils.total, 'ILS'), rounded(q.ils, 'ILS'), q.ils.profitIls, egpTierNote(q.fi))}
+                ${egpQuickTile(send, 'أو بالدولار', moneyCur(q.usd.total, 'USD'), rounded(q.usd, 'USD'), q.usd.profitIls, egpTierNote(q.fu))}
             </div>`;
     } else if (!(q.egp > 0)) {
         body = '<div class="tm-preview text-amber-700 font-bold">المبلغ قليل، ما بيكفي لأي جنيه</div>';
     } else {
         body = head(send ? `الزبون بيدفع <b class="text-slate-900">${moneyCur(q.amount, q.cur)}</b>، فبيوصله:` : `عشان ياخذ <b class="text-slate-900">${moneyCur(q.amount, q.cur)}</b>، لازم يبعتلنا:`)
-            + egpQuickTile(send, send ? 'الجنيه اللي بيوصل' : 'الجنيه اللي لازم يوصلنا', `${fmtEgp(q.egp)} جنيه`, 'مقرّب لجنيه صحيح لصالحنا', q.money.profitIls);
+            + egpQuickTile(send, send ? 'الجنيه اللي بيوصل' : 'الجنيه اللي لازم يوصلنا', `${fmtEgp(q.egp)} جنيه`, 'مقرّب لجنيه صحيح لصالحنا', q.money.profitIls, egpTierNote(q.f));
     }
     $('egpq-result').innerHTML = body + prices;
 }
 
 // بلاطة نتيجة: العنوان، المبلغ كبير، وتحته التقريب والربح. الإرسال بلون الإرسال والاستقبال بلونه
-function egpQuickTile(send, label, value, sub, profit) {
+function egpQuickTile(send, label, value, sub, profit, note = '') {
     return `
         <div class="rounded-xl border p-3 ${send ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'}">
             <span class="block text-[11px] font-bold ${send ? 'text-rose-700' : 'text-emerald-700'}">${label}</span>
             <b class="block text-2xl font-black text-slate-900 num leading-tight mt-0.5">${value}</b>
             ${sub ? `<span class="block text-[11px] text-slate-500 mt-1">${sub}</span>` : ''}
             <span class="block text-[11px] font-bold text-slate-600 mt-0.5 profit-only">ربحنا ${fmt(profit)} ₪</span>
+            ${note}
         </div>`;
 }
 
@@ -586,6 +701,7 @@ function openEgpModal(kind = 'send', m = null) {
         return false;
     }
     editingEgpId = m ? m.id : null;
+    egpPctTouched = false;
     $('egpModalTitle').textContent = m ? `تعديل حركة جنيه ${receiptNo(m)}` : 'حركة جنيه جديدة';
     setHistoryButton('eg_history', m?.id);
     const firstWallet = sortedEgpWallets()[0].id;
@@ -663,6 +779,7 @@ function setEgpKind(kind, { keepValues = false, dir = $('eg_dir').value } = {}) 
         $('eg_pct').value = kind === 'send' ? r.sendPct : r.receivePct;
         $('eg_usd_rate').value = kind === 'send' ? r.usdSend : r.usdReceive;
         $('eg_final_adjust').value = '';
+        egpPctTouched = false;
     }
     updateEgpCustomerStatus();
     syncEgpDirFields();
@@ -741,9 +858,13 @@ function readEgpForm() {
     };
 }
 
-// الفورم بعد حساب الجنيه من المبلغ المتفق عليه (إن كُتب)
+// الفورم بنسبة الشريحة (حركة جديدة وما انكتبت النسبة بإيد)، وبعدها الجنيه من المبلغ المتفق عليه (إن كُتب)
 function resolvedEgpForm() {
-    const f = readEgpForm();
+    let f = readEgpForm();
+    const trade = f.kind === 'send' || f.kind === 'receive';
+    const autoPct = trade && !egpPctTouched && !editingEgpId;
+    if (autoPct) f = withEgpTier(f);
+    f.autoPct = autoPct;
     if (f.fixedTotal > 0) f.egp = egpForMoney(f);
     return f;
 }
@@ -759,6 +880,10 @@ function egpFixedNote(f, r) {
 function updateEgpPreview() {
     const f = resolvedEgpForm();
     if (f.fixedTotal > 0) $('eg_egp').value = f.egp || '';
+    if (f.autoPct) $('eg_pct').value = f.pct;
+    if (f.kind === 'send' || f.kind === 'receive') {
+        $('eg_pct_label').textContent = (f.kind === 'send' ? 'نسبة الإرسال %' : 'نسبة الاستقبال %') + (f.autoPct && egpTiers(f.kind).length > 1 ? ' · حسب الشريحة' : '');
+    }
     const r = computeEgp(f);
     const cur = f.currency;
     const bal = egpWalletBalances();
@@ -781,6 +906,7 @@ function updateEgpPreview() {
         lines = `
             <div class="flex justify-between profit-only"><span>${fmtEgp(f.egp)} جنيه بسعر السوق</span><b>${moneyCur(market, cur)}</b></div>
             <div class="flex justify-between"><span>${send ? `بسعرنا (جنيه أقل من السوق بـ ${fmt(f.pct)}%)` : `بسعرنا (ناقص ${fmt(f.pct)}%)`}</span><b>${moneyCur(r.gross, cur)}</b></div>
+            ${f.autoPct ? egpTierNote(f) : ''}
             ${egpFixedNote(f, r)}
             ${finalAdjustLine(f.finalAdjust, cur, send ? 1 : -1, cur === 'USD' ? f.usdRate : 1)}
             <div class="flex justify-between text-base mt-1 pt-1 border-t border-slate-200"><span class="font-bold">${send ? 'المطلوب من الزبون' : 'ندفع للزبون'}</span><b class="text-slate-900">${moneyCur(r.total, cur)}</b></div>
@@ -1002,4 +1128,81 @@ async function createDefaultEgpWallets() {
     renderEgpPage();
     const status = await flushOutbox();
     showToast('تمت إضافة المحافظ', `فودافون كاش وانستا باي — اكبس "تعديل" لتكتب اسم صاحبها ورقمها. ${syncResultMessage(status)}`, syncToastType(status));
+}
+
+// ================= الإعدادات: شرائح النسبة حسب المبلغ =================
+// صف لكل شريحة: من كم شيكل، النسبة، أو سعر الألف جنيه للزبون (بتنحسب منه النسبة زي نافذة الأسعار).
+// أول صف (من 0) هو النسبة الأساسية، وبيتعدّل من هون أو من "⚙️ الأسعار"
+function renderEgpTierSettings() {
+    const r = egpRates();
+    const ready = r.screen > 0 && r.usdSend > 0 && r.usdReceive > 0;
+    ['send', 'receive'].forEach(kind => {
+        const usd = kind === 'send' ? r.usdSend : r.usdReceive;
+        $(`egp-${kind}-tiers`).innerHTML = egpTiers(kind).map((t, i) => `
+            <div class="flex flex-wrap gap-2 items-center text-xs">
+                <span class="text-slate-500">من</span>
+                <input type="text" inputmode="decimal" autocomplete="off" data-commas data-egp-tier="${kind}" data-index="${i}" data-field="min" value="${formatThousands(t.min)}" ${i === 0 ? 'disabled' : ''} aria-label="من مبلغ بالشيكل" class="w-24 border border-slate-200 rounded-lg p-2 bg-white font-mono disabled:bg-slate-50">
+                <span class="text-slate-500">₪ فما فوق ←</span>
+                <input type="number" step="0.01" min="0" max="${EGP_MAX_PCT}" data-egp-tier="${kind}" data-index="${i}" data-field="pct" value="${t.pct}" aria-label="النسبة %" class="w-20 border border-slate-200 rounded-lg p-2 bg-white font-bold">
+                <span class="text-slate-500">% أو الألف</span>
+                <input type="number" step="0.01" min="0" data-egp-tier="${kind}" data-index="${i}" data-field="price" value="${ready ? egpPerThousand(egpRateFromPct(kind, r.screen, t.pct), usd, 'ILS') : ''}" ${ready ? '' : 'disabled'} aria-label="سعر الألف جنيه للزبون بالشيكل" class="w-24 border border-slate-200 rounded-lg p-2 bg-white font-mono disabled:bg-slate-50">
+                <span class="text-slate-500">₪</span>
+                ${i > 0 ? `<button type="button" data-action="egp-tier-remove" data-kind="${kind}" data-index="${i}" class="text-slate-400 hover:text-red-600 px-2 font-bold" aria-label="حذف الشريحة">✕</button>` : ''}
+            </div>`).join('');
+    });
+    $('egp-tiers-market').textContent = ready
+        ? `سعر الألف محسوب على الأسعار هلّق (شاشة الجنيه ${fmt(r.screen)} · شراء الدولار ${fmt(r.usdSend, 3)} · صرف ${fmt(r.usdReceive, 3)}). النسبة هي اللي بتنحفظ، فسعر الألف بيتغير مع الشاشة.`
+        : 'ما في شاشة للجنيه بعد، فسعر الألف ما بينحسب (النسبة بتشتغل عادي).';
+}
+
+function onEgpTierInput(el) {
+    const kind = el.dataset.egpTier;
+    if (!EGP_TIER_KEYS[kind]) return;
+    const i = toNum(el.dataset.index, -1);
+    const tiers = egpTiers(kind);
+    const t = tiers[i];
+    if (!t) return;
+    const v = toNum(el.value, NaN);
+    const bad = (msg) => { showToast('تنبيه', msg, 'warning'); renderEgpTierSettings(); };
+    if (el.dataset.field === 'min') {
+        if (!(v > 0)) return bad('حد الشريحة لازم يكون أكبر من صفر');
+        if (tiers.some((x, k) => k !== i && Math.abs(x.min - v) < 0.005)) return bad('في شريحة ثانية بنفس المبلغ');
+        t.min = round2(v);
+    } else {
+        let pct = v;
+        if (el.dataset.field === 'price') {
+            const r = egpRates();
+            const usd = kind === 'send' ? r.usdSend : r.usdReceive;
+            if (!(r.screen > 0) || !(usd > 0) || !(v > 0)) return renderEgpTierSettings();
+            const market = 1000 / r.screen * usd;
+            pct = kind === 'send' ? (1 - market / v) * 100 : (1 - v / market) * 100;
+        }
+        if (!Number.isFinite(pct) || pct < 0 || pct > EGP_MAX_PCT) return bad(`النسبة لازم تكون بين 0 و ${EGP_MAX_PCT}% (السعر ما بيكون أحسن من السوق)`);
+        t.pct = round2(pct);
+    }
+    saveEgpTiers(kind, tiers);
+}
+
+// أول شريحة بتنحفظ بالنسبة الأساسية، والباقي مرتّب بالشرائح (إعدادات مشتركة بالشيت)
+function saveEgpTiers(kind, tiers) {
+    const [pctKey, tiersKey] = EGP_TIER_KEYS[kind];
+    globalConfig[pctKey] = round2(tiers[0].pct);
+    globalConfig[tiersKey] = tiers.slice(1).sort((a, b) => a.min - b.min).map(t => ({ min: t.min, pct: t.pct }));
+    saveAll();
+    renderEgpTierSettings();
+    renderEgpRates();
+    renderEgpQuick();
+}
+
+function addEgpTier(kind) {
+    if (!EGP_TIER_KEYS[kind]) return;
+    const tiers = egpTiers(kind);
+    const last = tiers[tiers.length - 1];
+    tiers.push({ min: last.min ? last.min + 400 : 400, pct: Math.max(0, round2(last.pct - 1)) });
+    saveEgpTiers(kind, tiers);
+}
+
+function removeEgpTier(kind, i) {
+    if (!EGP_TIER_KEYS[kind] || !(i > 0)) return;
+    saveEgpTiers(kind, egpTiers(kind).filter((_, k) => k !== i));
 }

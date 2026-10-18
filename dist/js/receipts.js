@@ -308,9 +308,11 @@ async function exportReceipt(format) {
 }
 
 // ================= مشاركة الفاتورة والكشف على واتساب =================
-// واتساب لا يسمح بإرفاق صورة عبر رابط، فـ:
-// - الجوال: نافذة المشاركة (تختار واتساب والصورة جاهزة).
-// - الكمبيوتر: ننسخ الصورة لحظة الضغط (سفاري يرفض النسخ بعد أي انتظار)، ثم نافذة بخطوات واضحة: فتح واتساب ← لصق.
+// واتساب لا يسمح بإرفاق صورة عبر رابط، ونافذة المشاركة ما بتقدر تختار محادثة معيّنة، فـ:
+// - الكمبيوتر، والجوال لما للزبون رقم واتساب: ننسخ الصورة لحظة الضغط (سفاري يرفض النسخ بعد أي انتظار)،
+//   ثم نافذة بخطوات: فتح محادثة الزبون ← لصق. بالجوال المحادثة بتنفتح والرسالة مكتوبة فيها
+//   (بطلب عماد 2026-10-17: المشاركة كانت تخليه يدوّر على الزبون، ورقمه ممكن مش محفوظ عنده).
+// - الجوال بدون رقم: نافذة المشاركة (تختار واتساب والمحادثة، والصورة جاهزة).
 // الصورة تُجهَّز مسبقاً عند فتح الفاتورة حتى تكون جاهزة لحظة الضغط.
 let shareCache = null; // { key, promise, blob } — blob بيتعبّى لما تجهز الصورة
 
@@ -341,7 +343,7 @@ function shareToWhatsapp({ key, el, filename, phone, text }) {
     });
     const safe = filename.replace(/[\\/:*?"<>|]/g, '');
     const target = { blobPromise, filename: safe, phone, text };
-    if (isTouchDevice()) return shareOnPhone(target);
+    if (isTouchDevice() && !phone) return shareOnPhone(target);
     openWaShareModal({ ...target, copy: copyImageNow(blobPromise) });
 }
 
@@ -381,7 +383,7 @@ function phoneShareData(file, text) {
     return { files: [file] };
 }
 
-// ---------- نافذة "إرسال على واتساب" (الكمبيوتر) ----------
+// ---------- نافذة "إرسال على واتساب" (الكمبيوتر، والجوال لمحادثة الزبون) ----------
 let waShare = null; // { blob, url, filename, phone, text }
 
 async function openWaShareModal({ blobPromise, copy, filename, phone, text }) {
@@ -392,13 +394,21 @@ async function openWaShareModal({ blobPromise, copy, filename, phone, text }) {
     $('wa-copy-status').textContent = 'جاري تجهيز الصورة ونسخها...';
     $('wa-copy-status').className = 'wa-status';
     setWaCopyBtn('idle');
-    $('wa-paste-key').textContent = isMac() ? '⌘ + V' : 'Ctrl + V';
+    // الجوال مع رقم الزبون: الرسالة بتنكتب بالمحادثة من الرابط، فبنبعتها وبعدين بنلصق الصورة بالمربع الفاضي
+    const touchChat = isTouchDevice() && !!phone;
+    $('wa-step-open').textContent = touchChat && text
+        ? 'اكبس الزر الأخضر: بتفتح محادثة الزبون والرسالة مكتوبة، ابعتها'
+        : phone ? 'اكبس الزر الأخضر لفتح محادثة الزبون' : 'اكبس الزر الأخضر لفتح المحادثة';
+    $('wa-step-paste').innerHTML = touchChat
+        ? 'بعدين كبسة مطوّلة بمربع الكتابة ← <b>لصق</b> ← إرسال الصورة'
+        : `بمربع الكتابة اكبس <kbd>${isMac() ? '⌘ + V' : 'Ctrl + V'}</kbd> ثم إرسال`;
     $('wa-open').textContent = phone ? 'فتح محادثة الزبون على واتساب' : 'فتح واتساب';
     $('wa-share-native').classList.add('hidden');
-    // الجوال: زر "مشاركة على واتساب" هو الأساسي، وخطوات النسخ واللصق للكمبيوتر
-    $('waShareModal').classList.toggle('wa-phone', isTouchDevice());
+    // الجوال بدون رقم: زر "مشاركة على واتساب" هو الأساسي، وخطوات النسخ واللصق للكمبيوتر ولمحادثة الزبون
+    $('waShareModal').classList.toggle('wa-phone', isTouchDevice() && !phone);
     $('waShareModal').classList.remove('wa-can-share');
-    $('wa-msg-box').classList.toggle('hidden', !text);
+    // زر "نسخ الرسالة" بيمسح الصورة المنسوخة، وبالجوال الرسالة أصلاً بالرابط
+    $('wa-msg-box').classList.toggle('hidden', !text || touchChat);
     $('wa-msg-text').textContent = text || '';
     setCopyMsgBtn(false);
     openModal('waShareModal');
@@ -416,7 +426,7 @@ async function openWaShareModal({ blobPromise, copy, filename, phone, text }) {
     const file = new File([blob], filename + '.png', { type: 'image/png' });
     const canShare = !!navigator.canShare?.({ files: [file] });
     $('wa-share-native').classList.toggle('hidden', !canShare);
-    $('wa-share-native').textContent = isTouchDevice() ? 'مشاركة على واتساب' : 'مشاركة من الجهاز';
+    $('wa-share-native').textContent = !isTouchDevice() ? 'مشاركة من الجهاز' : phone ? 'مشاركة (تختار المحادثة)' : 'مشاركة على واتساب';
     $('waShareModal').classList.toggle('wa-can-share', canShare);
 }
 
@@ -447,8 +457,10 @@ async function waCopyAgain() {
 }
 
 function waOpenChat() {
-    // محادثة الزبون مباشرة (بدون نص حتى لا يُرسل الرقم لوحده)، وبدون رقم: واتساب يطلب اختيار المحادثة
-    window.open(waUrl(waShare?.phone, waShare?.phone ? '' : waShare?.text), '_blank', 'noopener');
+    // الكمبيوتر: محادثة الزبون فاضية (الرسالة بزر "نسخ الرسالة")، وبدون رقم: واتساب يطلب اختيار المحادثة.
+    // الجوال: محادثة الزبون والرسالة مكتوبة فيها، والصورة منسوخة للصق
+    const withText = !waShare?.phone || isTouchDevice();
+    window.open(waUrl(waShare?.phone, withText ? waShare?.text : ''), '_blank', 'noopener');
 }
 
 function waDownload() {
@@ -574,7 +586,7 @@ function shareStatement() {
     const t = traders.find(x => x.id === panelTraderId);
     if (!t) return;
     shareToWhatsapp({
-        key: `st:${t.id}:${panelCurrency}:${panelPeriod}:${traderMoves.length}`,
+        key: statementKey(),
         el: $('trader-statement'),
         filename: `كشف_${t.name}_${panelCurrency}_${localDateStr()}`,
         phone: hasWhatsapp(t) ? t.phone : '',

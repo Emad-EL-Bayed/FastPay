@@ -48,13 +48,27 @@ const CLICK_ACTIONS = {
     'remove-trader-logo': () => setTraderLogo(''),
     'edit-trader': (el) => openTraderModal(traders.find(t => t.id === el.dataset.id)),
     'delete-trader': (el) => deleteTraderPrompt(el.dataset.id),
-    'new-tmove': (el) => openTmoveModal({ traderId: el.dataset.id, currency: el.dataset.cur }),
+    'new-tmove': (el) => openTmoveModal({ traderId: el.dataset.id, currency: el.dataset.cur, kind: el.dataset.kind || 'for_us' }),
     'edit-tmove': (el) => openTmoveModal({ move: traderMoves.find(m => m.id === toNum(el.dataset.id, NaN)) }),
     'delete-tmove': (el) => deleteTmovePrompt(toNum(el.dataset.id, NaN)),
     'settle-trader': (el) => settleTrader(el.dataset.id, el.dataset.cur),
     'tmove-kind': (el) => setTmoveKind(el.dataset.kind),
+    'service-new': (el) => openServiceModal(el.dataset.id),
+    'service-edit': (el) => openServiceModal(null, traderServices.find(x => x.id === el.dataset.id)),
+    'service-tier-add': addServiceTier,
+    'service-tier-remove': (el) => removeServiceTier(toNum(el.dataset.index, -1)),
+    'service-parse': parseServicePaste,
+    'delete-service': deleteServicePrompt,
+    'service-logo-auto': () => setServiceLogoMode('auto'),
+    'service-logo-none': () => setServiceLogoMode('none'),
+    'service-logo-brand': (el) => toggleServiceBrand(el.dataset.key),
+    'service-logo-upload': () => $('sv_logo_input').click(),
+    'tmove-service': (el) => pickTmoveService(el.dataset.id),
     'trader-currency': (el) => { panelCurrency = el.dataset.cur; renderTraderPanel(); },
     'trader-period': (el) => { panelPeriod = el.dataset.period; renderTraderPanel(); },
+    'trader-tab': (el) => { panelTab = el.dataset.tab; renderTraderPanel(); },
+    'trader-back': closeTraderView,
+    'trader-filter': (el) => { traderFilter = el.dataset.filter; renderTraders(); },
     'statement-png': () => exportStatement('png'),
     'statement-pdf': () => exportStatement('pdf'),
     'open-wa-trader': (el) => {
@@ -143,8 +157,11 @@ const CLICK_ACTIONS = {
     'delete-usdt': (el) => deleteUsdtPrompt(toNum(el.dataset.id, NaN)),
     'usdt-net-add': addUsdtNetwork,
     'usdt-net-remove': (el) => removeUsdtNetwork(toNum(el.dataset.index, -1)),
-    'usdt-tier-add': addUsdtTier,
-    'usdt-tier-remove': (el) => removeUsdtTier(toNum(el.dataset.index, -1)),
+    'settings-card': (el) => openSettingsCard(el.dataset.target),
+    'usdt-tier-add': (el) => addUsdtTier(el.dataset.kind === 'deposit' ? 'deposit' : 'withdraw'),
+    'usdt-tier-remove': (el) => removeUsdtTier(el.dataset.kind === 'deposit' ? 'deposit' : 'withdraw', toNum(el.dataset.index, -1)),
+    'egp-tier-add': (el) => addEgpTier(el.dataset.kind),
+    'egp-tier-remove': (el) => removeEgpTier(el.dataset.kind, toNum(el.dataset.index, -1)),
     // الجنيه المصري
     'egp-new': (el) => openEgpModal(el.dataset.kind),
     'egp-kind': (el) => { if (!editingEgpId) setEgpKind(el.dataset.kind); updateEgpPreview(); },
@@ -215,6 +232,10 @@ function bindEvents() {
 
 // على مستوى الصفحة: الأزرار (data-action)، إغلاق القوائم والنوافذ، Escape، عجلة الماوس
 function bindGlobalEvents() {
+    document.addEventListener('beforeinput', onArabicDigitsInput, true);
+    document.addEventListener('beforeinput', onCommasDelete, true);
+    // قبل مستمعات الخانة نفسها، فبتقرا القيمة مرتبة
+    document.addEventListener('input', onCommasInput, true);
     // عجلة الماوس فوق حقل رقم مفعّل كانت تغيّر المبلغ بدل تحريك الصفحة: نلغي تفعيل الحقل فتتحرك الصفحة
     document.addEventListener('wheel', (e) => {
         const el = e.target;
@@ -253,9 +274,11 @@ function bindGlobalEvents() {
         // قائمة النسخ مفتوحة: Esc بيسكّرها هي بس
         if (!$('copy-menu').classList.contains('hidden')) return closeCopyMenu();
         // نغلق النافذة العليا فقط (مثلاً الفاتورة فوق ملف الزبون، أو الحركة فوق حساب التاجر)
-        const top = ['searchModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'accountModal', 'amoveModal', 'tmoveModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal', 'traderPanel']
+        const top = ['searchModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'accountModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal']
             .find(id => !$(id).classList.contains('hidden'));
         if (top) closeModal(top);
+        // حساب التاجر (صفحة مش نافذة): Esc برّا الخانات بيرجع لقائمة التجار
+        else if (traderViewOpen() && !e.target.closest?.('input, textarea, select')) closeTraderView();
         $('customer-search-dropdown').classList.add('hidden');
     });
 }
@@ -315,8 +338,23 @@ function bindTraderEvents() {
     $('traderForm').addEventListener('submit', saveTrader);
     $('tmoveForm').addEventListener('submit', saveTmove);
     $('trader_search').addEventListener('input', renderTraders);
-    ['tm_amount', 'tm_commission'].forEach(id => $(id).addEventListener('input', updateTmovePreview));
-    $('tm_currency').addEventListener('change', updateTmovePreview);
+    $('tm_amount').addEventListener('input', updateTmovePreview);
+    $('tm_buy_pct').addEventListener('input', updateTmovePreview);
+    // كتابة العمولة بإيدك بتوقف تعبئتها من جدول الخدمة
+    ['tm_commission', 'tm_commission_fixed'].forEach(id => $(id).addEventListener('input', () => { tmoveFeeTouched = true; updateTmovePreview(); }));
+    $('tm_service').addEventListener('change', onTmoveServiceChange);
+    $('tm_currency').addEventListener('change', onTmoveCurrencyChange);
+    $('trader_sort').addEventListener('change', () => { traderSort = $('trader_sort').value; renderTraders(); });
+    // حساب التاجر: البحث بالكشف، "جرّب مبلغ"، التواريخ، وإضافة عملة
+    $('trader-profile').addEventListener('input', onTraderViewInput);
+    $('trader-profile').addEventListener('change', onTraderViewChange);
+    $('serviceForm').addEventListener('submit', saveService);
+    $('sv_name').addEventListener('input', () => { if (!svLogo) renderServiceLogoPicker(); });
+    $('sv_logo_input').addEventListener('change', (e) => {
+        onServiceLogoFile(e.target.files[0]);
+        e.target.value = '';
+    });
+    $('sv_tiers').addEventListener('input', (e) => { if (e.target.dataset?.svTier !== undefined) onServiceTierInput(e.target); });
 }
 
 // الحسابات، الدفع، والجرد
@@ -355,7 +393,8 @@ function bindEgpEvents() {
     $('egpWalletForm').addEventListener('submit', saveEgpWallet);
     // كتابة الجنيه بيدك تلغي المبلغ المتفق عليه
     $('eg_egp').addEventListener('input', () => { $('eg_money').value = ''; updateEgpPreview(); });
-    ['eg_money', 'eg_pct', 'eg_usd_rate', 'eg_fee', 'eg_total', 'eg_final_adjust'].forEach(id => $(id).addEventListener('input', updateEgpPreview));
+    ['eg_money', 'eg_usd_rate', 'eg_fee', 'eg_total', 'eg_final_adjust'].forEach(id => $(id).addEventListener('input', updateEgpPreview));
+    $('eg_pct').addEventListener('input', () => { egpPctTouched = true; updateEgpPreview(); });
     ['eg_wallet', 'eg_to_wallet', 'eg_dir'].forEach(id => $(id).addEventListener('change', () => { syncEgpDirFields(); updateEgpPreview(); }));
     ['input', 'focus', 'click'].forEach(ev => $('eg_customer').addEventListener(ev, onEgpCustomerInput));
     $('eg_customer').addEventListener('keydown', onEgpCustomerKey);
@@ -364,6 +403,7 @@ function bindEgpEvents() {
     $('egpq_amount').addEventListener('input', renderEgpQuick);
     ['egp_set_send_pct', 'egp_set_receive_pct', 'egp_set_send_price', 'egp_set_receive_price'].forEach(id => $(id).addEventListener('change', (e) => onEgpPctChange(e.target)));
     $('egp_set_screen').addEventListener('keydown', (e) => { if (e.key === 'Enter') pinEgpRate(); });
+    $('egp-settings').addEventListener('change', (e) => onEgpTierInput(e.target));
 }
 
 // الدخول والمستخدمين وملفي

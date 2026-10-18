@@ -24,9 +24,11 @@ const LEGACY_DATA_KEYS = ['fastpay_v8_customers', 'fastpay_v8_ledger', 'fastpay_
 const DEFAULT_WEBHOOK = 'https://script.google.com/macros/s/AKfycbwzexyVRnAVWFHHzlzwR5BFiCZOFZ0bvUCkEVClSJtVS_77Wj65N3pLrRpPp6EK23q37Q/exec';
 // مصادر سعر السوق بالترتيب (الدولار بالشيكل والجنيه من نفس الطلب):
 // Coinbase سعر مباشر بيتحدث كل كم دقيقة. open.er-api احتياط بس: بيتحدث مرة باليوم (00:00 UTC)، فخلال النهار بيكون سعر إمبارح
+// الأول قبلهم: السكربت بيجيب سوق العملات (Yahoo، زي الشاشة) من سيرفرات جوجل (ميزة market، shell.js loadMarketRates).
+// Coinbase طلع بيتأخر ساعات عن الشاشة (السبت 2026-10-17: 3.097 والشاشة 3.111)، فصار احتياط بس
 const RATE_SOURCES = [
-    { url: 'https://api.coinbase.com/v2/exchange-rates?currency=USD', live: true, rates: (d) => d?.data?.rates },
-    { url: 'https://open.er-api.com/v6/latest/USD', live: false, rates: (d) => d?.rates }
+    { url: 'https://api.coinbase.com/v2/exchange-rates?currency=USD', live: true, source: 'coinbase', rates: (d) => d?.data?.rates },
+    { url: 'https://open.er-api.com/v6/latest/USD', live: false, source: 'daily', rates: (d) => d?.rates }
 ];
 const RATE_REFRESH_MS = 10 * 60 * 1000;
 
@@ -61,8 +63,9 @@ const DEFAULT_CONFIG = {
     hiddenStatuses: [],
     // إظهار سعر صرف الدولار في الفاتورة (يبقى الاختيار محفوظاً)
     receiptShowRate: true,
-    // USDT: نسبة الإيداع الافتراضية، الشبكات ورسومها، وشرائح نسبة السحب حسب المبلغ ($)
+    // USDT: نسبة الإيداع (أول شريحة) وشرائحها فوقها، الشبكات ورسومها، وشرائح نسبة السحب حسب المبلغ ($)
     usdtDepositPct: 1,
+    usdtDepositTiers: [],
     usdtNetworks: [{ name: 'TRC20', fee: 1.3 }, { name: 'BEP20', fee: 0.15 }],
     usdtTiers: [{ min: 0, pct: 5 }, { min: 400, pct: 4 }, { min: 1000, pct: 3 }],
     // الجنيه المصري: شاشة الجنيه (جنيه للدولار) تلقائية أو مثبّتة، ونسبتنا من السوق للإرسال والاستقبال
@@ -72,6 +75,9 @@ const DEFAULT_CONFIG = {
     egpRateUpdated: '',
     egpSendPct: 13,
     egpReceivePct: 13,
+    // شرائح النسبة حسب المبلغ بالشيكل فوق أول شريحة (أول شريحة = egpSendPct/egpReceivePct)
+    egpSendTiers: [],
+    egpReceiveTiers: [],
     // قفل الأيام: آخر يوم مجرود (الحركات لحد هاليوم ما بتتعدل إلا بصلاحية "تعديل الأيام المقفلة")
     lockedThrough: '',
     // رسالة الفاتورة على واتساب حسب الحالة: بس الجمل اللي تعدّلت (الباقي من WA_MESSAGE_DEFAULTS بـ receipts.js)
@@ -115,9 +121,10 @@ const TYPE_LABEL = { div: 'تقسيم', mul: 'ضرب', direct_percent: 'نسبة
 // ================= أدوات مساعدة =================
 const $ = (id) => document.getElementById(id);
 
-// يحوّل لرقم، ويستخدم البديل فقط إذا لم يكن رقماً صالحاً (الصفر قيمة مقبولة)
+// يحوّل لرقم، ويستخدم البديل فقط إذا لم يكن رقماً صالحاً (الصفر قيمة مقبولة).
+// فاصلة الآلاف (1,000 من خانات المبالغ data-commas) بتنشال
 function toNum(value, fallback = 0) {
-    const n = typeof value === 'number' ? value : parseFloat(value);
+    const n = typeof value === 'number' ? value : parseFloat(typeof value === 'string' ? value.replace(/,/g, '') : value);
     return Number.isFinite(n) ? n : fallback;
 }
 
@@ -158,12 +165,85 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
-const normPhone = (p) => String(p ?? '').replace(/[\s-]/g, '');
+// الأرقام العربية والفارسية (٥٠٠ / ۵۰۰) ← 500، والفاصلة العشرية العربية ٫ ← نقطة
+const latinDigits = (v) => String(v ?? '')
+    .replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/٫/g, '.').replace(/٬/g, '');
+
+// كيبورد الجوال العربي بيكتب ٥٠٠، والخانة الرقمية كانت ترفضها بصمت (المبلغ يضل صفر)، ورقم الجوال
+// بالأرقام العربية ما كان ينفع لواتساب. بالخانات الرقمية والجوال والحسابات ([data-latin]) بنكتبها 500 بدالها
+function onArabicDigitsInput(e) {
+    const el = e.target;
+    if (!(el instanceof HTMLInputElement) || !(el.type === 'number' || el.type === 'tel' || el.hasAttribute('data-latin') || el.hasAttribute('data-commas'))) return;
+    const text = e.data ?? e.dataTransfer?.getData('text/plain');
+    if (!text || !/[٠-٩۰-۹٫٬]/.test(text)) return;
+    e.preventDefault();
+    if (document.execCommand('insertText', false, latinDigits(text))) return;
+    // متصفح قديم ما بيدعمها: بنضيفها آخر الخانة
+    el.value += latinDigits(text);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+// ================= المبالغ بفاصلة الآلاف: 100,000 (بطلب عماد 2026-10-17) =================
+// خانات المبالغ عليها data-commas: نص مش رقم (الخانة الرقمية ما بتقبل فاصلة) بكيبورد أرقام (inputmode=decimal).
+// الفاصلة بتنحط وإنت بتكتب (onCommasInput)، و toNum بيشيلها، وأي قيمة بيحطها الكود (.value = 1234.5) بتنكتب 1,234.5.
+// الخانات اللي بتقبل سالب (التعديل ±، الرصيد الافتتاحي، الجرد) ضلّت رقمية: كيبورد الأرقام بالآيفون ما فيه ناقص
+function formatThousands(v) {
+    let s = latinDigits(v).replace(/[^\d.]/g, '');
+    const dot = s.indexOf('.');
+    if (dot >= 0) s = s.slice(0, dot + 1) + s.slice(dot + 1).replace(/\./g, '');
+    const [int, dec] = s.split('.');
+    // الأصفار بأول الرقم بتضل: مسح أول رقم من 1,000,000 ثم كتابة 2 لازم تعطي 2,000,000
+    const head = int.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return dec === undefined ? head : `${head || '0'}.${dec}`;
+}
+
+const INPUT_VALUE = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+Object.defineProperty(HTMLInputElement.prototype, 'value', {
+    ...INPUT_VALUE,
+    set(v) { INPUT_VALUE.set.call(this, this.hasAttribute('data-commas') ? formatThousands(v) : v); }
+});
+
+// يكتب القيمة مرتبة، والمؤشر بيضل بعد نفس الرقم (keep = كم رقم/نقطة قبله)
+function setCommasValue(el, raw, keep) {
+    const out = formatThousands(raw);
+    INPUT_VALUE.set.call(el, out);
+    let pos = 0;
+    for (let seen = 0; pos < out.length && seen < keep; pos++) if (out[pos] !== ',') seen++;
+    if (document.activeElement === el) el.setSelectionRange(pos, pos);
+}
+
+const digitsBefore = (text) => latinDigits(text).replace(/[^\d.]/g, '').length;
+
+function onCommasInput(e) {
+    const el = e.target;
+    if (!(el instanceof HTMLInputElement) || !el.hasAttribute('data-commas')) return;
+    const raw = INPUT_VALUE.get.call(el);
+    if (formatThousands(raw) === raw) return;
+    setCommasValue(el, raw, digitsBefore(raw.slice(0, el.selectionStart ?? raw.length)));
+}
+
+// المسح فوق الفاصلة: بيمسح الرقم اللي جنبها (وإلا الفاصلة بترجع والمسح كأنه ما صار)
+function onCommasDelete(e) {
+    const el = e.target;
+    if (!(el instanceof HTMLInputElement) || !el.hasAttribute('data-commas') || el.selectionStart !== el.selectionEnd) return;
+    const v = INPUT_VALUE.get.call(el), i = el.selectionStart;
+    let raw;
+    if (e.inputType === 'deleteContentBackward' && v[i - 1] === ',' && i >= 2) raw = v.slice(0, i - 2) + v.slice(i);
+    else if (e.inputType === 'deleteContentForward' && v[i] === ',') raw = v.slice(0, i) + v.slice(i + 2);
+    else return;
+    e.preventDefault();
+    setCommasValue(el, raw, digitsBefore(v.slice(0, e.inputType === 'deleteContentBackward' ? i - 2 : i)));
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+const normPhone = (p) => latinDigits(p).replace(/[\s-]/g, '');
 const normName = (n) => String(n ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
 
 // رقم الواتساب بصيغة دولية (أرقام فقط بدون + أو 00)
 function whatsappDigits(phone) {
-    let d = String(phone ?? '').replace(/\D/g, '');
+    let d = latinDigits(phone).replace(/\D/g, '');
     if (d.startsWith('00')) d = d.slice(2);
     return d;
 }
@@ -171,7 +251,7 @@ const hasWhatsapp = (c) => whatsappDigits(c?.phone).length >= 10 && !whatsappDig
 
 // ---------- البنك: رقم الجوال للتحويل و IBAN ----------
 // IBAN بينحفظ بدون مسافات وبحروف كبيرة، وبينعرض كل 4 حروف لحال. الأرقام العربية (٠-٩) بتتحول
-const cleanIban = (v) => String(v ?? '').replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/[\s-]/g, '').toUpperCase();
+const cleanIban = (v) => latinDigits(v).replace(/[\s-]/g, '').toUpperCase();
 const formatIban = (v) => cleanIban(v).replace(/(.{4})(?=.)/g, '$1 ');
 
 // صحيح = شكله صح ورقم الفحص (mod 97) صح. الفلسطيني (PS) طوله 29
