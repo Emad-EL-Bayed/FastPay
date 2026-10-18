@@ -455,7 +455,16 @@ function doPost(e) {
         return json(withPendingLock(applyBatch(data.ops, auth)));
       case 'logout':
         if (auth.token) deleteSession(auth.token);
+        if (data.pushToken) pushUnregister(auth, data.pushToken);
         return json({ ok: true });
+      case 'push_register':
+        return json(pushRegister(auth, data));
+      case 'push_unregister':
+        return json(pushUnregister(auth, data.pushToken));
+      case 'push_setup':
+        return json(pushSetup(auth, data));
+      case 'push_test':
+        return json(pushTest(auth));
       case 'change_password':
         return json(changePassword(auth, data.oldPassword, data.newPassword));
       case 'my_avatar':
@@ -1652,7 +1661,9 @@ function listData(since, auth) {
   }
   out.authEnabled = !!auth.authEnabled;
   // ميزات هالنسخة من السكربت: البرنامج يفعّل الخانات اللي بتحتاج أعمدة جديدة بس إذا السكربت بيدعمها
-  out.features = ['finalAdjust', 'serial', 'editLog', 'dayLock', 'resetData', 'alerts', 'restore', 'iban', 'notify', 'txAdjust', 'notifyDelete', 'market', 'traderServices', 'serviceLogo'];
+  out.features = ['finalAdjust', 'serial', 'editLog', 'dayLock', 'resetData', 'alerts', 'restore', 'iban', 'notify', 'txAdjust', 'notifyDelete', 'market', 'traderServices', 'serviceLogo', 'push'];
+  // إشعارات الجوال: إعداد فاير بيز للمتصفح (مش سري) وهل حساب الخدمة موجود. حساب الخدمة نفسه ما بيطلع أبداً
+  if (auth.authEnabled) out.push = pushPublicState(auth);
   // سعر السوق (زي الشاشة) مع كل قراءة: من الذاكرة المؤقتة، فما بيبطّئ
   out.market = marketRates(false);
   const sinceOrEmpty = incremental ? since : '';
@@ -1852,7 +1863,8 @@ function sendNotify(auth, data) {
     to = (Array.isArray(data.to) ? data.to : []).map(String).filter((u, i, all) => team.indexOf(u) >= 0 && all.indexOf(u) === i);
     if (!to.length) return { ok: false, error: 'no_recipients' };
   }
-  return { ok: true, item: appendNotify({ from: auth.username, to: to, text: text, important: !!data.important }) };
+  const item = appendNotify({ from: auth.username, to: to, text: text, important: !!data.important });
+  return { ok: true, item: item, pushed: pushNotification(item) };
 }
 
 function replyNotify(auth, data) {
@@ -1869,7 +1881,8 @@ function replyNotify(auth, data) {
     if (!target || target === auth.username || recipients.indexOf(target) < 0) return { ok: false, error: 'bad_target' };
     to = [target];
   }
-  return { ok: true, item: appendNotify({ from: auth.username, to: to, text: text, replyTo: root.id }) };
+  const item = appendNotify({ from: auth.username, to: to, text: text, replyTo: root.id });
+  return { ok: true, item: item, pushed: pushNotification(item) };
 }
 
 // قرأها: بيتسجل وقتها، و"آخر تحديث" بيتغير حتى يشوفها اللي بعت بالتحديث السريع
@@ -1889,7 +1902,206 @@ function readNotify(auth, ids) {
   return { ok: true, count: count, at: now };
 }
 
-// بصمة الشعار: طوله + آخر حروفه (تتغير عند تغيّر الصورة)
+// ================= إشعارات الجوال (Firebase Cloud Messaging، بطلب عماد 2026-10-18) =================
+// الإشعار بيوصل على شاشة الجوال والبرنامج مسكّر. الشيت بيضل المصدر الوحيد، وفاير بيز بس بيوصّل الإشعار:
+// - كل جهاز فعّل الإشعارات بيبعت رمزه (push_register) وبينحفظ بورقة مخفية "_أجهزة الإشعارات" (مستخدم، جهاز، رمز، رابط البرنامج).
+// - إشعار أو رد جديد (notify_send / notify_reply) ← السكربت بيبعته لأجهزة اللي وصلهم عبر FCM HTTP v1، بمفتاح حساب الخدمة.
+// - الإعداد من البرنامج (الإعدادات ← إشعارات الجوال، صلاحية الإعدادات والمستخدمين): إعداد الويب ومفتاح VAPID (مش سريين)
+//   وملف حساب الخدمة (سري: بينحفظ بخصائص السكربت وما بيرجع للبرنامج أبداً).
+// أي فشل بالإرسال ما بيوقف الإشعار نفسه (بيضل بالقائمة زي قبل)، والرمز الميت (UNREGISTERED) بينشال.
+const PUSH_SHEET = '_أجهزة الإشعارات';
+const PUSH_HEADERS = ['المستخدم', 'الجهاز', 'الرمز', 'الرابط', 'انضاف', 'آخر استعمال'];
+const PUSH_MAX_DEVICES = 10;
+
+function pushSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(PUSH_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(PUSH_SHEET);
+    sheet.getRange(1, 1, 1, PUSH_HEADERS.length).setValues([PUSH_HEADERS]);
+    sheet.setFrozenRows(1);
+    sheet.hideSheet();
+  }
+  return sheet;
+}
+
+function pushRows() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PUSH_SHEET);
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  return sheet.getRange(2, 1, sheet.getLastRow() - 1, PUSH_HEADERS.length).getValues().map((r, i) => ({
+    row: i + 2, user: String(r[0] || ''), device: String(r[1] || ''), token: String(r[2] || ''), link: String(r[3] || ''),
+    added: String(r[4] || ''), seen: String(r[5] || '')
+  })).filter(d => d.token);
+}
+
+function pushProps() {
+  const props = PropertiesService.getScriptProperties();
+  let web = null, account = null;
+  try { web = JSON.parse(props.getProperty('PUSH_WEB') || 'null'); } catch (e) { web = null; }
+  try { account = JSON.parse(props.getProperty('PUSH_ACCOUNT') || 'null'); } catch (e) { account = null; }
+  return { web: web, account: account };
+}
+
+function pushPublicState(auth) {
+  const p = pushProps();
+  const out = { web: p.web, ready: !!(p.web && p.account) };
+  if (hasPerm(auth, 'settings') && hasPerm(auth, 'users')) {
+    out.projectId = p.account ? p.account.project_id : '';
+    out.devices = pushRows().length;
+  }
+  return out;
+}
+
+// الإعداد: web = {apiKey, projectId, messagingSenderId, appId, vapidKey}، account = ملف حساب الخدمة JSON، clear = مسح الكل
+function pushSetup(auth, data) {
+  if (!(hasPerm(auth, 'settings') && hasPerm(auth, 'users'))) return { ok: false, error: 'forbidden' };
+  const props = PropertiesService.getScriptProperties();
+  if (data.clear) {
+    props.deleteProperty('PUSH_WEB');
+    props.deleteProperty('PUSH_ACCOUNT');
+    CacheService.getScriptCache().remove('push_access');
+    return { ok: true, push: pushPublicState(auth) };
+  }
+  // بنفحص الاثنين قبل ما نحفظ إشي (حتى إعداد غلط ما يخرّب الموجود)
+  const cur = pushProps();
+  let web = cur.web, account = cur.account;
+  if (data.web) {
+    const w = data.web || {};
+    web = {};
+    ['apiKey', 'authDomain', 'projectId', 'messagingSenderId', 'appId', 'vapidKey'].forEach(k => { if (w[k]) web[k] = String(w[k]).trim().slice(0, 300); });
+    if (!web.apiKey || !web.projectId || !web.messagingSenderId || !web.appId) return { ok: false, error: 'bad_web_config' };
+    if (!web.vapidKey || web.vapidKey.length < 40) return { ok: false, error: 'bad_vapid' };
+  }
+  if (data.account) {
+    let a = data.account;
+    try { if (typeof a === 'string') a = JSON.parse(a); } catch (e) { return { ok: false, error: 'bad_account' }; }
+    if (!a || a.type !== 'service_account' || !a.project_id || !a.client_email || !/BEGIN PRIVATE KEY/.test(String(a.private_key || ''))) return { ok: false, error: 'bad_account' };
+    account = { project_id: a.project_id, client_email: a.client_email, private_key: a.private_key };
+  }
+  if (web && account && web.projectId !== account.project_id) return { ok: false, error: 'project_mismatch', push: pushPublicState(auth) };
+  if (data.web) props.setProperty('PUSH_WEB', JSON.stringify(web));
+  if (data.account) {
+    props.setProperty('PUSH_ACCOUNT', JSON.stringify(account));
+    CacheService.getScriptCache().remove('push_access');
+  }
+  return { ok: true, push: pushPublicState(auth) };
+}
+
+// جهاز جديد أو رمز متجدد: سطر لكل رمز (نفس الرمز لمستخدم ثاني = نفس الجوال بحساب ثاني، بيتنقل له)
+function pushRegister(auth, data) {
+  if (!auth.authEnabled || !auth.username) return { ok: false, error: 'no_users' };
+  const token = String(data.pushToken || '').trim();
+  if (token.length < 20 || token.length > 4096) return { ok: false, error: 'bad_token' };
+  const device = String(data.device || '').trim().slice(0, 60);
+  const link = /^https:\/\//.test(String(data.link || '')) ? String(data.link).slice(0, 500) : '';
+  const now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), TIME_FORMAT);
+  const sheet = pushSheet();
+  const rows = pushRows();
+  const old = rows.filter(d => d.token === token)[0] || (data.oldToken ? rows.filter(d => d.token === String(data.oldToken))[0] : null);
+  if (old) {
+    sheet.getRange(old.row, 1, 1, PUSH_HEADERS.length).setNumberFormat('@')
+      .setValues([[auth.username, device || old.device, token, link || old.link, old.added || now, now]]);
+  } else {
+    // حد للأجهزة لكل مستخدم: الأقدم استعمالاً بينشال
+    const mine = rows.filter(d => d.user === auth.username).sort((a, b) => (a.seen < b.seen ? -1 : 1));
+    if (mine.length >= PUSH_MAX_DEVICES) sheet.deleteRow(mine[0].row);
+    const n = sheet.getLastRow() + 1;
+    sheet.getRange(n, 1, 1, PUSH_HEADERS.length).setNumberFormat('@').setValues([[auth.username, device, token, link, now, now]]);
+  }
+  return { ok: true, devices: pushRows().filter(d => d.user === auth.username).length };
+}
+
+function pushUnregister(auth, token) {
+  const t = String(token || '');
+  if (!t) return { ok: true, removed: 0 };
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PUSH_SHEET);
+  if (!sheet) return { ok: true, removed: 0 };
+  // من تحت لفوق حتى ما تتغير أرقام الأسطر
+  const hits = pushRows().filter(d => d.token === t && (!auth.username || d.user === auth.username)).map(d => d.row).sort((a, b) => b - a);
+  hits.forEach(r => sheet.deleteRow(r));
+  return { ok: true, removed: hits.length };
+}
+
+// مفتاح دخول لـ FCM من حساب الخدمة (JWT موقّع RS256)، مخبّى 50 دقيقة
+function pushAccessToken(account) {
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('push_access');
+  if (hit) return hit;
+  const enc = (o) => Utilities.base64EncodeWebSafe(typeof o === 'string' ? o : JSON.stringify(o)).replace(/=+$/, '');
+  const now = Math.floor(Date.now() / 1000);
+  const head = enc({ alg: 'RS256', typ: 'JWT' });
+  const claim = enc({ iss: account.client_email, scope: 'https://www.googleapis.com/auth/firebase.messaging', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 });
+  const sig = Utilities.base64EncodeWebSafe(Utilities.computeRsaSha256Signature(head + '.' + claim, account.private_key)).replace(/=+$/, '');
+  const res = UrlFetchApp.fetch('https://oauth2.googleapis.com/token', {
+    method: 'post', muteHttpExceptions: true,
+    payload: { grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: head + '.' + claim + '.' + sig }
+  });
+  if (res.getResponseCode() !== 200) throw new Error('push_auth ' + res.getResponseCode());
+  const token = JSON.parse(res.getContentText()).access_token;
+  cache.put('push_access', token, 3000);
+  return token;
+}
+
+// بيبعت لكل أجهزة المستخدمين (users = قائمة أو "الكل")، إلا except. بيرجّع كم جهاز وصله
+function pushToUsers(users, msg, except) {
+  const p = pushProps();
+  if (!p.web || !p.account) return 0;
+  const devices = pushRows().filter(d => d.user !== except && (users === NOTIFY_ALL || users.indexOf(d.user) >= 0));
+  if (!devices.length) return 0;
+  try {
+    const access = pushAccessToken(p.account);
+    const url = 'https://fcm.googleapis.com/v1/projects/' + encodeURIComponent(p.account.project_id) + '/messages:send';
+    const reqs = devices.map(d => ({
+      url: url, method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+      headers: { Authorization: 'Bearer ' + access },
+      payload: JSON.stringify({ message: {
+        token: d.token,
+        data: { id: String(msg.id || ''), kind: 'notify' },
+        webpush: {
+          headers: { Urgency: 'high', TTL: '86400' },
+          notification: { title: msg.title, body: msg.body, icon: d.link ? d.link.replace(/[?#].*$/, '').replace(/[^/]*$/, '') + 'assets/icon-192.png' : undefined, tag: msg.tag, renotify: true, requireInteraction: !!msg.important, dir: 'rtl', lang: 'ar' },
+          fcm_options: d.link ? { link: d.link } : undefined
+        }
+      } })
+    }));
+    const res = UrlFetchApp.fetchAll(reqs);
+    let sent = 0;
+    const dead = [];
+    res.forEach((r, i) => {
+      const code = r.getResponseCode();
+      if (code === 200) { sent++; return; }
+      const text = String(r.getContentText() || '');
+      // الرمز ما عاد صالح (المستخدم شال الإذن أو مسح البرنامج): بينشال
+      if (code === 404 || /UNREGISTERED|registration-token-not-registered/.test(text) || (code === 400 && /INVALID_ARGUMENT/.test(text) && /token/i.test(text))) dead.push(devices[i].token);
+    });
+    if (dead.length) dead.forEach(t => pushUnregister({}, t));
+    return sent;
+  } catch (err) {
+    return 0;
+  }
+}
+
+// الإشعار والرد: نفس عنوان الإشعار بالبرنامج ("إشعار مهم من عماد")، والنص لحد 180 حرف
+function pushNotification(item) {
+  const names = {};
+  readUsers().forEach(u => { names[u.username] = u.displayName || u.username; });
+  const from = names[item.from] || item.from;
+  const title = (item.replyTo ? 'رد من ' : item.important ? 'إشعار مهم من ' : 'إشعار من ') + from;
+  const body = item.text.length > 180 ? item.text.slice(0, 180) + '…' : item.text;
+  return pushToUsers(item.to, { id: item.id, title: title, body: body, tag: 'fastpay-' + (item.replyTo || item.id), important: item.important }, item.from);
+}
+
+// زر "جرّب": إشعار لأجهزتي أنا
+function pushTest(auth) {
+  if (!auth.authEnabled) return { ok: false, error: 'no_users' };
+  const p = pushProps();
+  if (!p.web || !p.account) return { ok: false, error: 'not_configured' };
+  const mine = pushRows().filter(d => d.user === auth.username).length;
+  if (!mine) return { ok: false, error: 'no_devices' };
+  const sent = pushToUsers([auth.username], { id: 'test', title: 'فاست باي', body: 'الإشعارات شغّالة على هالجهاز ✓', tag: 'fastpay-test' }, '');
+  return { ok: sent > 0, sent: sent, devices: mine, error: sent ? undefined : 'send_failed' };
+}
+
 // شعار الخدمة: شعار جاهز (brand:…)، بدون (none)، أو صورة صغيرة. غير هيك بينشال حتى ما تكبر قراءة list
 function cleanServiceLogo(sv) {
   if (!sv || typeof sv !== 'object') return sv;
@@ -1898,6 +2110,7 @@ function cleanServiceLogo(sv) {
   return ok ? sv : Object.assign({}, sv, { logo: '' });
 }
 
+// بصمة الشعار: طوله + آخر حروفه (تتغير عند تغيّر الصورة)
 function logoSig(logo) {
   const v = String(logo || '');
   return v ? v.length + ':' + v.slice(-16) : '';
