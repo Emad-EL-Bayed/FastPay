@@ -28,35 +28,36 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=77">
+    <link rel="stylesheet" href="styles.css?v=78">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=77">
+    <link rel="stylesheet" href="tailwind.css?v=78">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/core.js?v=77" defer></script>
-    <script src="js/theme.js?v=77" defer></script>
-    <script src="js/logo-data.js?v=77" defer></script>
-    <script src="js/shell.js?v=77" defer></script>
-    <script src="js/calculator.js?v=77" defer></script>
-    <script src="js/reports.js?v=77" defer></script>
-    <script src="js/sync.js?v=77" defer></script>
-    <script src="js/transactions.js?v=77" defer></script>
-    <script src="js/receipts.js?v=77" defer></script>
-    <script src="js/customers.js?v=77" defer></script>
-    <script src="js/countries.js?v=77" defer></script>
-    <script src="js/service-logos.js?v=77" defer></script>
-    <script src="js/traders.js?v=77" defer></script>
-    <script src="js/expenses.js?v=77" defer></script>
-    <script src="js/settings.js?v=77" defer></script>
-    <script src="js/accounts.js?v=77" defer></script>
-    <script src="js/usdt.js?v=77" defer></script>
-    <script src="js/egp.js?v=77" defer></script>
-    <script src="js/closing.js?v=77" defer></script>
-    <script src="js/admin.js?v=77" defer></script>
-    <script src="js/position.js?v=77" defer></script>
-    <script src="js/search.js?v=77" defer></script>
-    <script src="js/notify.js?v=77" defer></script>
-    <script src="js/auth.js?v=77" defer></script>
-    <script src="js/main.js?v=77" defer></script>
+    <script src="js/core.js?v=78" defer></script>
+    <script src="js/theme.js?v=78" defer></script>
+    <script src="js/logo-data.js?v=78" defer></script>
+    <script src="js/shell.js?v=78" defer></script>
+    <script src="js/calculator.js?v=78" defer></script>
+    <script src="js/reports.js?v=78" defer></script>
+    <script src="js/sync.js?v=78" defer></script>
+    <script src="js/transactions.js?v=78" defer></script>
+    <script src="js/receipts.js?v=78" defer></script>
+    <script src="js/customers.js?v=78" defer></script>
+    <script src="js/countries.js?v=78" defer></script>
+    <script src="js/service-logos.js?v=78" defer></script>
+    <script src="js/traders.js?v=78" defer></script>
+    <script src="js/expenses.js?v=78" defer></script>
+    <script src="js/settings.js?v=78" defer></script>
+    <script src="js/accounts.js?v=78" defer></script>
+    <script src="js/usdt.js?v=78" defer></script>
+    <script src="js/egp.js?v=78" defer></script>
+    <script src="js/closing.js?v=78" defer></script>
+    <script src="js/admin.js?v=78" defer></script>
+    <script src="js/position.js?v=78" defer></script>
+    <script src="js/search.js?v=78" defer></script>
+    <script src="js/notify.js?v=78" defer></script>
+    <script src="js/push.js?v=78" defer></script>
+    <script src="js/auth.js?v=78" defer></script>
+    <script src="js/main.js?v=78" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -1208,6 +1209,44 @@
                     </div>
                 </div>
 
+                <!-- إشعارات الجوال (push.js، Firebase): للمدير (الإعدادات + المستخدمين). خطوات فاير بيز والإعداد -->
+                <div id="push-settings" class="hidden section-card p-6 max-w-2xl space-y-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">📲 إشعارات الجوال (Firebase)</h3>
+                        <p class="text-xs text-slate-400">الإشعار بيوصل على شاشة جوال الموظف والبرنامج مسكّر. الإعداد مرة وحدة هون، وبعدين كل موظف بيفعّلها على جواله من قائمة الإشعارات 🔔</p>
+                    </div>
+                    <div id="push-status" class="text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                    <p id="push-script-note" class="hidden text-[11px] font-bold text-amber-700">انشر سكربت Google Sheets الجديد أول</p>
+                    <ol class="push-steps">
+                        <li>
+                            <b>اعمل مشروع بفاير بيز</b>
+                            <span>افتح <a href="https://console.firebase.google.com" target="_blank" rel="noopener" class="font-bold text-blue-700">console.firebase.google.com</a> بإيميلك ← Add project (أو Create a project) ← اسم مثل fastpay ← Google Analytics مش ضروري (سكّره) ← Create.</span>
+                        </li>
+                        <li>
+                            <b>إعداد الويب ومفتاح VAPID</b>
+                            <span>بالمشروع: ⚙️ Project settings ← General ← تحت "Your apps" اكبس أيقونة الويب &lt;/&gt; ← اسم مثل fastpay ← Register app. انسخ كل اللي بين <code>const firebaseConfig = {</code> و <code>};</code> والصقه هون:</span>
+                            <textarea id="push_web_config" rows="5" dir="ltr" placeholder="apiKey: &quot;AIza...&quot;, authDomain: ..., projectId: ..., messagingSenderId: ..., appId: ..." class="w-full field font-mono text-[11px] leading-relaxed"></textarea>
+                            <span>بعدها: Project settings ← Cloud Messaging ← تحت "Web Push certificates" اكبس Generate key pair، وانسخ المفتاح الطويل:</span>
+                            <input type="text" id="push_vapid" dir="ltr" autocomplete="off" placeholder="BKx...(مفتاح VAPID)" class="w-full field font-mono text-[11px]">
+                        </li>
+                        <li>
+                            <b>ملف حساب الخدمة (سري)</b>
+                            <span>Project settings ← Service accounts ← Generate new private key ← Generate key. بينزل ملف JSON، اختاره هون. بيروح للسكربت بس (عشان هو اللي بيبعت الإشعارات) وما بيرجع للبرنامج أبداً، وما تبعته لحدا.</span>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button type="button" data-action="push-account-pick" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 rounded-lg">اختار الملف</button>
+                                <span id="push_account_name" class="text-[11px] text-slate-500"></span>
+                                <input type="file" id="push_account_input" accept=".json,application/json" class="hidden">
+                            </div>
+                        </li>
+                    </ol>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="push-save-btn" data-action="push-save" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg">حفظ</button>
+                        <button id="push-test-btn" data-action="push-test" class="hidden text-xs font-bold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg">إشعار تجربة لأجهزتي</button>
+                        <button id="push-clear-btn" data-action="push-clear" class="hidden text-xs font-bold bg-rose-50 hover:bg-rose-100 disabled:opacity-50 text-rose-700 px-4 py-2.5 rounded-lg">إيقاف ومسح الإعداد</button>
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-5">على الآيفون: لازم البرنامج يكون مضاف للشاشة الرئيسية من سفاري (iOS 16.4 أو أحدث) ويتفعّل من الأيقونة. على الأندرويد: من كروم أو من البرنامج المضاف. ومن الملف على الماك ما بتشتغل (بدها رابط https).</p>
+                </div>
+
                 <!-- إعدادات USDT: تُحفظ مباشرة عند التعديل -->
                 <div id="usdt-settings" class="section-card p-6 max-w-2xl space-y-5">
                     <div>
@@ -1452,6 +1491,7 @@
             <div class="notify-foot">
                 <button id="notify-sound-btn" data-action="notify-sound"></button>
                 <button id="notify-perm-btn" data-action="notify-permission"></button>
+                <button id="notify-push-off" data-action="notify-push-off" class="hidden">إيقاف على هالجهاز</button>
             </div>
         </div>
     </div>

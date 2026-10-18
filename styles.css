@@ -1202,6 +1202,13 @@ tr:hover .cust-count-pill { background: rgb(var(--b-blue-100, 219 234 254)); }
 .tm-svc:hover { border-color: rgb(var(--c-slate-400, 148 163 184)); }
 .tm-svc.active { border-color: rgb(var(--c-slate-900, 15 23 42)); box-shadow: 0 0 0 1px rgb(var(--c-slate-900, 15 23 42)); color: rgb(var(--t-slate-900, 15 23 42)); }
 
+/* الإعدادات ← إشعارات الجوال: خطوات مرقّمة */
+.push-steps { counter-reset: pstep; display: flex; flex-direction: column; gap: 0.9rem; }
+.push-steps li { counter-increment: pstep; position: relative; padding-inline-start: 2.1rem; display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.75rem; color: rgb(var(--t-slate-600, 71 85 105)); line-height: 1.6; }
+.push-steps li::before { content: counter(pstep); position: absolute; inset-inline-start: 0; top: 0; width: 1.5rem; height: 1.5rem; border-radius: 9999px; background: rgb(var(--b-slate-900, 15 23 42)); color: rgb(var(--t-inv, 255 255 255)); font-size: 0.72rem; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+.push-steps b { color: rgb(var(--t-slate-900, 15 23 42)); font-size: 0.82rem; }
+.push-steps code { direction: ltr; unicode-bidi: isolate; font-size: 0.7rem; padding: 0 0.25rem; border-radius: 0.3rem; background: rgb(var(--b-slate-100, 241 245 249)); }
+
 /* فلتر الحالات في السجل: زر تشغيل/إيقاف لكل حالة */
 .status-toggle { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.4rem 0.7rem; border-radius: 9999px; border: 1px solid rgb(var(--c-slate-200, 226 232 240)); background: rgb(var(--b-white, 255 255 255)); font-size: 0.75rem; font-weight: 800; color: rgb(var(--t-slate-400, 148 163 184)); transition: all 0.15s ease; }
 .status-toggle .sw { position: relative; width: 1.75rem; height: 1rem; border-radius: 9999px; background: rgb(var(--b-slate-300, 203 213 225)); flex-shrink: 0; transition: background-color 0.15s ease; }
