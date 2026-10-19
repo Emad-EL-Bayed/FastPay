@@ -21,6 +21,11 @@ function holdConflict(op, res) {
     if (!op) return;
     const group = op._grp || 'k:' + (opRowKey(op) || op.action + Date.now());
     let entry = conflictQueue.find(e => e.group === group);
+    // عملية ورا المتعارضة على نفس السطر (السكربت رجّعها conflict_group): بتستنى مع التعارض نفسه
+    if (!entry && res?.error === 'conflict_group') {
+        const key = opRowKey(op);
+        entry = key ? conflictQueue.find(e => e.ops.some(o => opRowKey(o) === key)) : null;
+    }
     if (!entry) {
         entry = { group, ops: [], info: null, at: Date.now() };
         conflictQueue.push(entry);

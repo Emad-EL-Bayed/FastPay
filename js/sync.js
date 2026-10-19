@@ -42,13 +42,15 @@ function setDataStatus(state, message = '', { offline = false } = {}) {
     document.body.classList.toggle('data-loading', state === 'loading');
     document.body.classList.toggle('data-stale', state === 'stale');
     document.body.classList.toggle('data-offline', state === 'stale' && offline);
-    $('data-status-bar').classList.toggle('hidden', state === 'ready');
+    // بدون نت: الشريط المتحرك (offline-banner) بدل هاد
+    $('data-status-bar').classList.toggle('hidden', state === 'ready' || (state === 'stale' && offline) || (state === 'error' && navigator.onLine === false));
     $('data-status-bar').classList.toggle('!border-rose-200', state === 'error');
     $('data-status-text').textContent = message;
     $('data-status-text').className = 'font-bold ' + (state === 'error' ? 'text-rose-700' : 'text-slate-600');
     $('data-status-retry').classList.toggle('hidden', !(state === 'error' || (state === 'stale' && offline)));
     // أثناء التحميل نمنع الحفظ حتى لا تختلط البيانات القديمة بالجديدة
     $('save-tx-btn').disabled = state === 'loading';
+    renderOfflineBanner();
 }
 
 function renderDataViews() {
@@ -329,6 +331,8 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
     if (changedCount !== 0 || !silent || stale) renderDataViews();
     if (stampsBefore) flashChangedRows(stampsBefore);
     scheduleSnapshot();
+    // ملفات البرنامج على الجهاز حتى ينفتح بدون نت (مرة بكل فتحة)
+    cacheAppShell();
     if (manual) showToast('تم التحديث من الشيت', `${ledger.length} حوالة، ${customers.length} زبون، ${expenses.length} مصروف`, 'info');
     // من النسخة المحفوظة بالسريع، وآخر تحميل كامل قديم: تحميل كامل بالخلفية (بيلقط اللي السريع ما بيشوفه، زي حذف سطر بإيد بالشيت)
     if (stale && quick && Date.now() - lastFullLoadMs >= FULL_RELOAD_MS) setTimeout(() => loadFromSheets({ silent: true }), 300);
@@ -436,7 +440,9 @@ function flushOutbox() {
     // إن كان إرسال سابق جارياً ننتظره ثم نرسل ما أُضيف بعده
     if (flushing) return flushing.then(() => flushOutbox());
 
-    flushing = (async () => {
+    // نفس قفل عامل الخلفية (bgsync.js): ما بنبعت مع بعض، واللي بعته هو بنشيله أول
+    flushing = withOutboxLock(async () => {
+        await absorbBackgroundSyncLocked();
         let status = outbox.length ? 'ok' : 'idle';
         renderLedgerTable();
         updateLiveCard();
@@ -510,8 +516,10 @@ function flushOutbox() {
         }
         lastFlushFailed = status === 'failed' || status === 'disabled';
         if (status === 'ok') lastUpdateAt = nowTimeLabel();
+        // ما وصلت (النت مقطوع): الأندرويد بيبعتها بالخلفية أول ما يرجع النت حتى لو سكّرت البرنامج
+        if (status === 'failed') setTimeout(requestBackgroundSync, 0);
         return status;
-    })().finally(() => {
+    }).finally(() => {
         flushing = null;
         saveAll();
         renderLedgerTable();
@@ -553,7 +561,9 @@ function syncToastType(status) {
 }
 
 function updateSyncPendingBar() {
-    const show = outbox.length > 0 && lastFlushFailed && !flushing;
+    renderOfflineBanner();
+    // بدون نت الشريط المتحرك بيحكي عن المعلّق
+    const show = outbox.length > 0 && lastFlushFailed && !flushing && !offlineBannerShown();
     $('sync-pending-bar').classList.toggle('hidden', !show);
     $('sync-pending-count').textContent = outbox.length;
     updateLiveCard();

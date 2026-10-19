@@ -506,11 +506,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // إعادة إرسال العمليات المعلقة تلقائياً كل دقيقة وعند عودة الإنترنت
     setInterval(() => { if (outbox.length) flushOutbox(); }, 60 * 1000);
     window.addEventListener('online', () => {
-        if (dataState === 'stale') loadFromSheets();
+        renderOfflineBanner();
+        if (dataState === 'stale' || dataState === 'error') loadFromSheets();
         else if (outbox.length) flushOutbox();
     });
+    window.addEventListener('offline', () => { renderOfflineBanner(); updateSyncPendingBar(); });
 
     // تحديث حيّ واحد كل دقيقتين (سعر الشاشة + الشيت معاً)، وعند الرجوع للصفحة
     setInterval(liveCycle, LIVE_REFRESH_MS);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) liveCycle(); });
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            // اللي انبعت بالخلفية وإحنا مسكّرين (الأندرويد)
+            absorbBackgroundSync();
+            liveCycle();
+        } else if (outbox.length) {
+            // رايح للخلفية وفي إشي معلّق: الأندرويد بيكمّل لحاله لما يرجع النت
+            scheduleOutboxMirror();
+            requestBackgroundSync();
+        }
+    });
 });

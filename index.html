@@ -28,38 +28,39 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=80">
+    <link rel="stylesheet" href="styles.css?v=82">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=80">
+    <link rel="stylesheet" href="tailwind.css?v=82">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/core.js?v=80" defer></script>
-    <script src="js/theme.js?v=80" defer></script>
-    <script src="js/logo-data.js?v=80" defer></script>
-    <script src="js/shell.js?v=80" defer></script>
-    <script src="js/calculator.js?v=80" defer></script>
-    <script src="js/reports.js?v=80" defer></script>
-    <script src="js/sync.js?v=80" defer></script>
-    <script src="js/conflicts.js?v=80" defer></script>
-    <script src="js/cache.js?v=80" defer></script>
-    <script src="js/transactions.js?v=80" defer></script>
-    <script src="js/receipts.js?v=80" defer></script>
-    <script src="js/customers.js?v=80" defer></script>
-    <script src="js/countries.js?v=80" defer></script>
-    <script src="js/service-logos.js?v=80" defer></script>
-    <script src="js/traders.js?v=80" defer></script>
-    <script src="js/expenses.js?v=80" defer></script>
-    <script src="js/settings.js?v=80" defer></script>
-    <script src="js/accounts.js?v=80" defer></script>
-    <script src="js/usdt.js?v=80" defer></script>
-    <script src="js/egp.js?v=80" defer></script>
-    <script src="js/closing.js?v=80" defer></script>
-    <script src="js/admin.js?v=80" defer></script>
-    <script src="js/position.js?v=80" defer></script>
-    <script src="js/search.js?v=80" defer></script>
-    <script src="js/notify.js?v=80" defer></script>
-    <script src="js/push.js?v=80" defer></script>
-    <script src="js/auth.js?v=80" defer></script>
-    <script src="js/main.js?v=80" defer></script>
+    <script src="js/core.js?v=82" defer></script>
+    <script src="js/theme.js?v=82" defer></script>
+    <script src="js/logo-data.js?v=82" defer></script>
+    <script src="js/shell.js?v=82" defer></script>
+    <script src="js/calculator.js?v=82" defer></script>
+    <script src="js/reports.js?v=82" defer></script>
+    <script src="js/sync.js?v=82" defer></script>
+    <script src="js/conflicts.js?v=82" defer></script>
+    <script src="js/cache.js?v=82" defer></script>
+    <script src="js/bgsync.js?v=82" defer></script>
+    <script src="js/transactions.js?v=82" defer></script>
+    <script src="js/receipts.js?v=82" defer></script>
+    <script src="js/customers.js?v=82" defer></script>
+    <script src="js/countries.js?v=82" defer></script>
+    <script src="js/service-logos.js?v=82" defer></script>
+    <script src="js/traders.js?v=82" defer></script>
+    <script src="js/expenses.js?v=82" defer></script>
+    <script src="js/settings.js?v=82" defer></script>
+    <script src="js/accounts.js?v=82" defer></script>
+    <script src="js/usdt.js?v=82" defer></script>
+    <script src="js/egp.js?v=82" defer></script>
+    <script src="js/closing.js?v=82" defer></script>
+    <script src="js/admin.js?v=82" defer></script>
+    <script src="js/position.js?v=82" defer></script>
+    <script src="js/search.js?v=82" defer></script>
+    <script src="js/notify.js?v=82" defer></script>
+    <script src="js/push.js?v=82" defer></script>
+    <script src="js/auth.js?v=82" defer></script>
+    <script src="js/main.js?v=82" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -221,6 +222,23 @@
         <main class="max-w-6xl w-full mx-auto px-4 sm:px-6 pt-6 pb-28 md:pb-6">
 
             <!-- حالة تحميل البيانات من Google Sheets -->
+            <!-- ما في إنترنت (cache.js renderOfflineBanner): أيقونة واي فاي متحركة فوق كل الصفحات -->
+            <div id="offline-banner" class="hidden offline-banner mb-6" role="status" aria-live="polite">
+                <span class="offline-icon" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round">
+                        <path class="ow ow3" d="M6 19.5a26 26 0 0 1 36 0" />
+                        <path class="ow ow2" d="M12.5 26a17 17 0 0 1 23 0" />
+                        <path class="ow ow1" d="M18.5 32.2a8.5 8.5 0 0 1 11 0" />
+                        <circle class="ow-dot" cx="24" cy="38" r="2.6" />
+                        <path class="ow-slash" d="M9 9l30 30" />
+                    </svg>
+                </span>
+                <div class="min-w-0 flex-1">
+                    <b id="offline-title" class="block text-sm font-black text-slate-900">ما في إنترنت</b>
+                    <span id="offline-text" class="block text-xs text-slate-600 leading-5 mt-0.5"></span>
+                </div>
+                <button data-action="reload-sheets" class="shrink-0 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-3 py-2 rounded-lg transition">جرّب</button>
+            </div>
             <div id="data-status-bar" class="section-card p-3 mb-6 flex flex-wrap items-center justify-between gap-2 text-xs">
                 <span id="data-status-text" class="font-bold text-slate-600">جاري تحميل البيانات من Google Sheets...</span>
                 <button data-action="reload-sheets" id="data-status-retry" class="hidden bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-lg transition">إعادة المحاولة</button>

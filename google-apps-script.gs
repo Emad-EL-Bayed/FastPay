@@ -526,6 +526,9 @@ function doPost(e) {
 function applyBatch(ops, auth) {
   const results = [];
   const list = ops || [];
+  // سطور عليها تعارض بهالطلب: أي عملية بعدها على نفس السطر (تعديل ثاني ورا الأول '@prev') بتستنى معها
+  const blocked = {};
+  const rowKey = (op) => { const t = opTarget(op || {}); return t ? t.name + ':' + String(t.id) : ''; };
   for (let i = 0; i < list.length;) {
     const grp = list[i] && list[i]._grp;
     let j = i + 1;
@@ -533,6 +536,10 @@ function applyBatch(ops, auth) {
     const group = list.slice(i, j).map(op => op || {});
     i = j;
     let conflict = null, at = -1;
+    if (group.some(op => blocked[rowKey(op)])) {
+      group.forEach(op => { const k = rowKey(op); if (k) blocked[k] = true; results.push({ ok: false, error: 'conflict_group' }); });
+      continue;
+    }
     group.forEach((op, k) => {
       if (conflict || !op._base || op._force) return;
       let c = null;
@@ -540,7 +547,11 @@ function applyBatch(ops, auth) {
       if (c) { conflict = c; at = k; }
     });
     if (conflict) {
-      group.forEach((op, k) => results.push(k === at ? conflict : { ok: false, error: 'conflict_group' }));
+      group.forEach((op, k) => {
+        const key = rowKey(op);
+        if (key) blocked[key] = true;
+        results.push(k === at ? conflict : { ok: false, error: 'conflict_group' });
+      });
       continue;
     }
     for (let k = 0; k < group.length; k++) {
@@ -649,6 +660,8 @@ function opConflict(data) {
       if (t.obj[k] !== undefined && t.obj[k] !== null) mine[i] = toSheetValue(k, t.obj[k]);
     });
     out.diff = rowChanges(keys, c.fields, old, mine).slice(0, 25).map(x => [x[1], x[2], x[3]]);
+    // نفس اللي بالشيت بالضبط: إعادة إرسال لتعديل وصل قبل وضاع رده (النت قطع)، أو نفس التعديل من مكانين. مش تعارض
+    if (!out.diff.length) return null;
   }
   return out;
 }

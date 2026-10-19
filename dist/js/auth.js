@@ -201,6 +201,7 @@ async function logout() {
     savePushLocal(null);
     // النسخة المحفوظة إلك بس: بتنمسح من الجهاز
     clearSnapshot();
+    clearBackgroundOutbox();
     try { localStorage.removeItem(STORAGE.conflicts); } catch (e) { /* محظور */ }
     session = { username: session?.username || '', auth: true };
     saveSession();

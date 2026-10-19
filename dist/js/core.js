@@ -528,6 +528,8 @@ function saveAll() {
         localStorage.setItem(STORAGE.config, JSON.stringify(globalConfig));
         localStorage.setItem(STORAGE.countries, JSON.stringify(countries));
         localStorage.setItem(STORAGE.outbox, JSON.stringify(outbox));
+        // نسخة للمزامنة بالخلفية على الأندرويد (bgsync.js)
+        scheduleOutboxMirror();
     } catch (e) {
         console.error('Storage error:', e);
         showToast('تعذر الحفظ في المتصفح', 'التخزين محظور، والعمليات غير المُرسلة قد تضيع عند إغلاق الصفحة', 'error');

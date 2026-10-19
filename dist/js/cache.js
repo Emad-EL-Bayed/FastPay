@@ -167,6 +167,30 @@ function flashChangedRows(before) {
     });
 }
 
+// ---------- شريط "ما في إنترنت" (أيقونة متحركة، فوق كل الصفحات) ----------
+// بيطلع لما الجهاز بدون نت، أو النسخة المحفوظة معروضة والشيت مش متصل. بيحكي شو اللي قدامك وشو صاير بالمعلّق
+const offlineBannerShown = () => !$('offline-banner').classList.contains('hidden');
+
+function renderOfflineBanner() {
+    const banner = $('offline-banner');
+    if (!banner) return;
+    const noNet = navigator.onLine === false;
+    const staleOffline = document.body.classList.contains('data-offline');
+    const noData = (dataState === 'error' || dataState === 'loading') && noNet;
+    const show = noNet || staleOffline;
+    banner.classList.toggle('hidden', !show);
+    if (!show) return;
+    $('offline-title').textContent = noNet ? 'ما في إنترنت' : 'الشيت مش متصل';
+    const pending = outbox.length;
+    $('offline-text').textContent = [
+        noData ? 'أول فتحة على هالجهاز بدها نت حتى تنزل البيانات، بعدها البرنامج بينفتح حتى بدونه.'
+            : staleOffline ? `اللي قدامك آخر نسخة محفوظة${snapshotAt ? ' (' + agoText(snapshotAt) + ')' : ''}.`
+            : 'اللي قدامك آخر إشي وصل من الشيت.',
+        pending ? `${pending === 1 ? 'عملية وحدة محفوظة' : pending + ' عمليات محفوظة'} عندك وبتنبعت لحالها لما يرجع النت.`
+            : noData ? '' : 'اللي بتسجّله بينحفظ عندك وبينبعت لحاله لما يرجع النت.'
+    ].filter(Boolean).join(' ');
+}
+
 // ---------- لما ما في نسخة: أسطر فاضية بتلمع بمكان البيانات ----------
 function skeletonLines(n = 4) {
     return `<span class="skel-list" aria-label="جاري التحميل">${Array.from({ length: n }, (_, i) => `<span class="skel-line" style="width:${[92, 78, 86, 64, 88][i % 5]}%"></span>`).join('')}</span>`;

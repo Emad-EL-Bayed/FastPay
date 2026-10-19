@@ -55,7 +55,11 @@ function applyPushState(state, full) {
         renderPushControls();
         if (!pageHidden('settings')) renderPushSettings();
     }
-    if (full) refreshPushToken();
+    if (full) {
+        // عامل الخلفية (المزامنة بالخلفية على الأندرويد + الإشعارات): بعد ما نعرف إعداد فاير بيز، حتى ما ينسجّل بدونه
+        ensureServiceWorker();
+        refreshPushToken();
+    }
 }
 
 // ---------- فاير بيز (بيتحمّل بس لما نحتاجه) ----------
@@ -79,7 +83,8 @@ async function pushMessaging() {
     const { vapidKey, ...cfg } = web;
     const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(cfg);
     // الإعداد بيوصل لعامل الخلفية بالرابط (ما بيقدر يقرا ذاكرة الصفحة)
-    const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js?cfg=' + encodeURIComponent(JSON.stringify(cfg)), { scope: './' });
+    // نفس عامل الخلفية تبع المزامنة بالخلفية (bgsync.js serviceWorkerUrl)
+    const reg = await navigator.serviceWorker.register(serviceWorkerUrl(), { scope: './' });
     await navigator.serviceWorker.ready;
     return { messaging: firebase.messaging(app), reg, vapidKey };
 }

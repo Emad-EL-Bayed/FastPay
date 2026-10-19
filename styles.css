@@ -1236,6 +1236,23 @@ html.motion-off body :is(#page-transactions, #page-usdt, #page-egp, #page-accoun
 @keyframes row-changed { 0% { background-color: rgba(250, 204, 21, 0.35); } 100% { background-color: transparent; } }
 .row-changed { animation: row-changed 1.8s ease-out; }
 
+/* ما في إنترنت (cache.js): شريط بأيقونة واي فاي، الأقواس بتنور وحدة ورا وحدة كأنها بتدوّر على شبكة، والخط فوقها ثابت */
+.offline-banner { display: flex; align-items: center; gap: 0.85rem; padding: 0.85rem 1rem; border-radius: 1.1rem; border: 1px solid rgb(var(--c-amber-200, 253 230 138)); background: rgb(var(--b-amber-50, 255 251 235)); animation: offline-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.offline-banner.hidden { display: none; }
+@keyframes offline-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.offline-icon { width: 3rem; height: 3rem; flex-shrink: 0; border-radius: 1rem; display: flex; align-items: center; justify-content: center; background: rgb(var(--b-white, 255 255 255)); border: 1px solid rgb(var(--c-amber-200, 253 230 138)); animation: offline-float 3.2s ease-in-out infinite; }
+.offline-icon svg { width: 1.9rem; height: 1.9rem; }
+.offline-icon .ow { stroke: rgb(var(--t-slate-500, 100 116 139)); stroke-width: 3.2; opacity: 0.18; animation: offline-wave 2.4s ease-in-out infinite; }
+.offline-icon .ow2 { animation-delay: 0.3s; }
+.offline-icon .ow3 { animation-delay: 0.6s; }
+.offline-icon .ow-dot { fill: rgb(var(--t-slate-500, 100 116 139)); }
+.offline-icon .ow-slash { stroke: rgb(var(--t-rose-500, 244 63 94)); stroke-width: 3.4; }
+@keyframes offline-wave { 0%, 100% { opacity: 0.18; } 30%, 55% { opacity: 0.95; } }
+@keyframes offline-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+html.motion-off .offline-icon, html.motion-off .offline-icon .ow { animation: none; }
+html.motion-off .offline-icon .ow { opacity: 0.6; }
+@media (prefers-reduced-motion: reduce) { .offline-icon, .offline-icon .ow { animation: none; } .offline-icon .ow { opacity: 0.6; } }
+
 /* "مين عدّل قبلي" (conflicts.js) */
 .conflict-icon { width: 2.5rem; height: 2.5rem; flex-shrink: 0; border-radius: 0.9rem; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgb(var(--b-amber-50, 255 251 235)); border: 1px solid rgb(var(--c-amber-200, 253 230 138)); }
 .conflict-diff { border: 1px solid rgb(var(--c-slate-200, 226 232 240)); border-radius: 0.8rem; overflow: hidden; }
