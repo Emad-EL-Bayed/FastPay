@@ -343,7 +343,11 @@ function prepareShareImage(key, el) {
     shareCache = entry;
 }
 
-const waUrl = (phone, text) => `https://wa.me/${phone ? whatsappDigits(phone) : ''}${text ? '?text=' + encodeURIComponent(text) : ''}`;
+// api.whatsapp.com مش wa.me: تحويلة wa.me كانت تخرّب الإيموجي والأعلام (بتطلع ؟ أو �) — 2026-10-19
+const waUrl = (phone, text) => {
+    const q = [phone ? 'phone=' + whatsappDigits(phone) : '', text ? 'text=' + encodeURIComponent(text) : ''].filter(Boolean).join('&');
+    return 'https://api.whatsapp.com/send' + (q ? '?' + q : '');
+};
 // الآيباد الجديد بيقول عن حاله Mac، بس فيه لمس
 const isIPadOS = () => navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
 const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent) || isIPadOS();
