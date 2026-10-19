@@ -225,6 +225,42 @@ function parseFirebaseConfig(text) {
     return obj && obj.apiKey ? obj : null;
 }
 
+// ---------- الإشعارات اليومية (تذكير الديون الصبح، وملخص آخر اليوم) ----------
+// السكربت بيبعتها من trigger كل ساعة (hourlyPushJobs)، والساعة إعداد مشترك. dailyPushState من list: {trigger}
+let dailyPushState = null;
+const hourLabel = (h) => (h === 0 ? '12 بالليل' : h < 12 ? `${h} الصبح` : h === 12 ? '12 الظهر' : h < 18 ? `${h - 12} العصر` : `${h - 12} المسا`);
+
+function renderDailyPushSettings() {
+    const box = $('daily-push-box');
+    const show = sheetHas('dailyPush') && !!pushState?.ready;
+    box.classList.toggle('hidden', !show);
+    if (!show) return;
+    const fill = (id, key, hours) => {
+        const cur = String(globalConfig[key] ?? '');
+        $(id).innerHTML = '<option value="off">مسكّر</option>' + hours.map(h => `<option value="${h}">${hourLabel(h)}</option>`).join('');
+        $(id).value = cur === 'off' || hours.includes(toNum(cur, -1)) ? cur : 'off';
+    };
+    fill('push_debts_hour', 'pushDebtsHour', [6, 7, 8, 9, 10, 11, 12]);
+    fill('push_summary_hour', 'pushSummaryHour', [17, 18, 19, 20, 21, 22, 23]);
+    $('daily-push-note').innerHTML = dailyPushState && dailyPushState.trigger === false
+        ? '<span class="text-amber-700 font-bold">مش شغّالة لسا:</span> افتح محرر السكربت، اختار الدالة <b>فعّل_الإشعارات_اليومية</b> واكبس Run مرة وحدة.'
+        : 'بتوصل لكل اللي معه صلاحية التقارير (الملخص كمان رؤية الأرباح) وفاعل الإشعارات على جواله. بتنحسب من الشيت، فبتوصل والبرنامج مسكّر.';
+}
+
+function saveDailyPushHour(key, value) {
+    globalConfig[key] = value === 'off' ? 'off' : String(toNum(value, 0));
+    saveAll();
+    showToast('انحفظ', value === 'off' ? 'الإشعار مسكّر' : `بيوصل كل يوم الساعة ${hourLabel(toNum(value, 0))}`, 'success');
+}
+
+async function testDailyPush(job) {
+    const r = await postToSheets({ action: 'daily_test', job });
+    if (r.status !== 'ok') return showToast('ما زبط', r.error === 'unknown_action' ? 'انشر السكربت الجديد أول' : 'تأكد من الاتصال', 'error');
+    const d = r.data || {};
+    if (d.empty) return showToast(job === 'debts' ? 'ما في ديون هلّق ✓' : 'فاضي', 'ما في إشي ينبعت', 'info');
+    showToast(d.sent ? 'انبعت لجوالك' : 'ما في جهاز مفعّل عندك', d.body ? d.body.replace(/\n/g, ' · ') : '', d.sent ? 'success' : 'warning');
+}
+
 function renderPushSettings() {
     const card = $('push-settings');
     if (!card) return;
@@ -250,6 +286,7 @@ function renderPushSettings() {
     ['push-save-btn', 'push-test-btn', 'push-clear-btn'].forEach(id => { $(id).disabled = !scriptOk; });
     $('push-test-btn').classList.toggle('hidden', !st.ready);
     $('push-clear-btn').classList.toggle('hidden', !st.web && !st.projectId);
+    renderDailyPushSettings();
 }
 
 function pushAccountProject() {

@@ -1608,6 +1608,36 @@ html.motion-off .copy-menu { animation: none; }
 .ready-preview-label { display: block; font-size: 0.66rem; font-weight: 800; color: rgb(var(--t-slate-400, 148 163 184)); margin-bottom: 0.25rem; }
 .ready-preview pre { margin: 0; font-family: 'IBM Plex Sans Arabic', sans-serif; font-size: 0.76rem; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; unicode-bidi: plaintext; text-align: start; max-height: 10rem; overflow-y: auto; color: rgb(var(--t-slate-700, 51 65 85)); }
 
+/* ================= الدفعة الثانية (2026-10-19): الكلمات والانتهاء بالحسابات الجاهزة، حد الحوالة، الإشعارات اليومية ================= */
+.ready-token { background: rgb(var(--b-blue-50, 239 246 255)); color: rgb(var(--t-blue-700, 29 78 216)); border-radius: 0.35rem; padding: 0 0.3rem; font-size: 0.85em; font-weight: 700; }
+.ready-tokens { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
+.ready-token-chip { padding: 0.25rem 0.55rem; border-radius: 9999px; border: 1px solid rgb(var(--c-slate-200, 226 232 240)); background: rgb(var(--b-white, 255 255 255)); font-size: 0.7rem; font-weight: 700; color: rgb(var(--t-slate-600, 71 85 105)); transition: border-color 0.15s ease, color 0.15s ease; }
+.ready-token-chip:hover { border-color: rgb(var(--c-blue-300, 147 197 253)); color: rgb(var(--t-blue-700, 29 78 216)); }
+.ready-expired, .ready-expiry { font-size: 0.68rem; font-weight: 800; padding: 0.1rem 0.55rem; border-radius: 9999px; }
+.ready-expired { background: rgb(var(--b-rose-100, 255 228 230)); color: rgb(var(--t-rose-700, 190 18 60)); }
+.ready-expiry { background: rgb(var(--b-slate-100, 241 245 249)); color: rgb(var(--t-slate-600, 71 85 105)); }
+.ready-card.is-paused > .ready-renew { opacity: 1; }
+.ready-renew { width: 100%; padding: 0.65rem; border-radius: 0.8rem; font-size: 0.8rem; font-weight: 800; background: rgb(var(--b-rose-50, 255 241 242)); color: rgb(var(--t-rose-700, 190 18 60)); border: 1px dashed rgb(var(--c-rose-300, 253 164 175)); }
+.ready-renew:hover { background: rgb(var(--b-rose-100, 255 228 230)); }
+
+.calc-limit-note { margin-top: 0.45rem; font-size: 0.72rem; font-weight: 700; color: #fcd34d; }
+.approval-chip { display: inline-flex; align-items: center; gap: 0.2rem; margin-top: 0.3rem; padding: 0.15rem 0.55rem; border-radius: 9999px; font-size: 0.66rem; font-weight: 800; background: rgb(var(--b-amber-100, 254 243 199)); color: rgb(var(--t-amber-800, 146 64 14)); }
+.approval-chip.manager { background: rgb(var(--b-emerald-600, 5 150 105)); color: #fff; cursor: pointer; }
+.approval-chip.manager:hover { filter: brightness(1.08); }
+.approval-box { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.6rem; padding: 0.5rem 0.7rem; border-radius: 0.7rem; font-size: 0.72rem; font-weight: 700; background: rgb(var(--b-amber-50, 255 251 235)); color: rgb(var(--t-amber-800, 146 64 14)); border: 1px solid rgb(var(--c-amber-200, 253 230 138)); }
+.approval-box .approval-chip { margin-top: 0; }
+.approval-banner { border-radius: 1rem; border: 1px solid rgb(var(--c-amber-200, 253 230 138)); background: rgb(var(--b-amber-50, 255 251 235)); padding: 0.75rem 1rem; }
+.approval-banner-head { font-size: 0.8rem; font-weight: 800; color: rgb(var(--t-amber-800, 146 64 14)); margin-bottom: 0.35rem; }
+.approval-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.4rem 0; border-top: 1px solid rgb(var(--c-amber-200, 253 230 138)); font-size: 0.78rem; color: rgb(var(--t-slate-700, 51 65 85)); }
+.approval-row .approval-chip { margin-top: 0; flex-shrink: 0; }
+
+.daily-push { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.9rem 1rem; border-radius: 0.9rem; border: 1px solid rgb(var(--c-slate-200, 226 232 240)); background: rgb(var(--b-slate-50, 248 250 252)); }
+.daily-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; font-size: 0.78rem; }
+.daily-row b { display: block; color: rgb(var(--t-slate-800, 30 41 59)); }
+.daily-row small { display: block; font-size: 0.68rem; color: rgb(var(--t-slate-400, 148 163 184)); }
+.daily-test-btn { padding: 0.45rem 0.7rem; border-radius: 0.6rem; font-size: 0.7rem; font-weight: 800; background: rgb(var(--b-white, 255 255 255)); border: 1px solid rgb(var(--c-slate-200, 226 232 240)); color: rgb(var(--t-slate-700, 51 65 85)); }
+.daily-test-btn:hover { border-color: rgb(var(--c-slate-400, 148 163 184)); }
+
 /* ================= الوضع الداكن ================= */
 /* الألوان نفسها متغيرات (build/tailwind.config.js) وبتتحول لحالها، وهون بس اللي إله شكل خاص بالداكن.
    <html data-theme="dark"> بيتحط من js/theme.js (ومن سكربت صغير بأول index.html قبل أول رسم) */

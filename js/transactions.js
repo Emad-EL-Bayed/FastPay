@@ -47,6 +47,8 @@ async function commitNewTransaction(form) {
     try {
         const customer = upsertTxCustomer(form);
         tx = buildNewTx(form, customer);
+        // فوق حد الموظف: بتنحفظ وبتستنى موافقة المدير
+        const held = applyTxLimit(tx, null);
         ledger.unshift(tx);
         highlightTxId = tx.id;
         lastSavedTxId = tx.id;
@@ -58,7 +60,8 @@ async function commitNewTransaction(form) {
         renderRecentTx();
         $('last-receipt-btn').classList.remove('hidden');
         flashTxSaved();
-        showToast('تم حفظ الحوالة', `${form.recipient} — ${txAmountText(tx)} بسعر شاشة ${tx.screenRate}`, 'success');
+        if (held) showToast('انحفظت، وبتستنى موافقة المدير', `${form.recipient} — ${txAmountText(tx)} فوق ${fmt(txLimitIls(), 0)} ₪، فما بتصير مكتملة لحد ما المدير يوافق (وصله إشعار)`, 'warning');
+        else showToast('تم حفظ الحوالة', `${form.recipient} — ${txAmountText(tx)} بسعر شاشة ${tx.screenRate}`, 'success');
     } finally {
         txSaving = false;
     }
@@ -230,7 +233,7 @@ function renderLedgerTable() {
     const filtered = ledger.filter(t => {
         const matchSearch = !search ||
             t.recipient.toLowerCase().includes(search) ||
-            (searchPhone && (normPhone(t.account).includes(searchPhone) || (t.iban && t.iban.toLowerCase().includes(searchPhone)))) ||
+            (searchPhone && (normPhone(t.account).includes(searchPhone) || (t.bankAccount && normPhone(t.bankAccount).includes(searchPhone)) || (t.iban && t.iban.toLowerCase().includes(searchPhone)))) ||
             (searchId && (serialHit ? String(t.serial) === searchId : String(t.id).includes(searchId)));
         // البحث برقم الحوالة أو الإيصال كاملاً يُظهرها حتى لو كانت حالتها مخفية
         const matchStatus = !hidden.includes(t.status) || (searchId && (String(t.id) === searchId || String(t.serial) === searchId));
@@ -239,6 +242,7 @@ function renderLedgerTable() {
         return matchSearch && matchStatus && matchMonth && matchDate;
     });
 
+    renderApprovalBanner();
     if (filtered.length === 0) {
         $('ledger-body').innerHTML = `<tr><td colspan="7" class="p-6 text-center text-xs text-slate-400">${emptyMessage(ledger.length, 'لا توجد نتائج مطابقة للفلترة', 'لا توجد حوالات في الشيت بعد')}</td></tr>`;
         refreshTxDetails();
@@ -272,6 +276,7 @@ function renderLedgerTable() {
                         ${whatsappButton(customerOfTx(t), { compact: true })}
                     </span>
                     ${t.status === 'جزئي' ? `<div class="text-[10px] text-sky-700 mt-1">مدفوع ${fmt(txPaid(t))} من ${fmt(txDue(t))} ${CUR_SYM[t.currency]} <button data-action="tx-pay" data-id="${t.id}" class="font-bold underline mr-1">+ دفعة</button></div>` : ''}
+                    ${approvalChip(t)}
                 </td>
                 <td class="p-3.5 text-center whitespace-nowrap">
                     <button data-action="open-receipt" data-id="${t.id}" class="text-slate-700 hover:text-slate-900 font-bold text-xs px-2.5 py-1 bg-slate-100 rounded-lg">فاتورة</button>
@@ -435,6 +440,7 @@ function renderTxDetails() {
                 </div>
                 <span class="badge border ${statusSelectClass(t.status)}">${escapeHtml(t.status)}</span>
             </div>
+            ${approvalDetailsHtml(t)}
             ${t.status === 'جزئي' ? `<div class="text-[11px] text-sky-700 mt-2">مدفوع ${fmt(paid)} من ${fmt(txDue(t))} ${CUR_SYM[t.currency]} <button data-action="tx-pay" data-id="${t.id}" class="font-bold underline mr-1">+ دفعة</button></div>` : ''}
         </div>
         <div class="txd-body">
@@ -480,6 +486,11 @@ function clearTxFilters() {
 async function changeOrderStatus(id, newStatus) {
     const tx = ledger.find(x => x.id === id);
     if (!tx || !STATUSES.includes(newStatus)) return;
+    // بتستنى موافقة المدير: ما بتصير جزئي/مكتملة لحد ما يوافق
+    if (PAID_STATUSES.includes(newStatus) && txHeld(tx)) {
+        renderLedgerTable();
+        return approvalWarn(tx);
+    }
     // يوم مقفل: الحالة بتتغير عادي، إلا الإلغاء أو إرجاع دفعات مقفلة
     if ((newStatus === CANCELLED && dayLocked(tx.date)) || (!PAID_STATUSES.includes(newStatus) && refMoves('tx', tx.id).some(m => dayLocked(m.date)))) {
         renderLedgerTable();
@@ -514,6 +525,73 @@ function deleteTxPrompt(id) {
         const syncStatus = await flushOutbox();
         showToast('تم الحذف', `المعاملة ${tx ? receiptNo(tx) : '#' + id} — ${syncResultMessage(syncStatus)}`, syncToastType(syncStatus));
     });
+}
+
+// ================= حد الحوالة للموظف وموافقة المدير (بطلب عماد 2026-10-19) =================
+// حوالة الموظف فوق الحد (الإعدادات ← الرقابة والأمان: سويتش + المبلغ، افتراضي 5000 ₪) بتنحفظ "بانتظار الموافقة"، وما بتصير
+// جزئي/مكتملة لحد ما المدير (صلاحية إدارة المستخدمين) يوافق، وبيوصله إشعار. السكربت هو اللي بيقرر (txApprovalGate)،
+// وهون بنعرض ونمنع قبل. بس الجديدة أو اللي مبلغها زاد: الحوالات القديمة الكبيرة ما بتتأثر
+const isManager = () => hasPerm('users');
+const txLimitIls = () => (globalConfig.txLimitOn === 'no' ? 0 : Math.max(0, toNum(globalConfig.txLimit, 5000)) || 5000);
+const txValueIls = (t) => (t.currency === 'USD' ? toNum(t.clientUsd, 0) * toNum(t.screenRate, 0) : toNum(t.clientIls, 0));
+const txLimitActive = () => sheetHas('txApproval') && txLimitIls() > 0 && !isManager();
+// محجوزة: بتستنى الموافقة والحد شغّال (إذا انسكّر السويتش ما بتوقف إشي)
+const txHeld = (t) => t?.approval === 'pending' && txLimitIls() > 0 && !isManager();
+
+// قبل الحفظ (نفس قاعدة السكربت): next = الحوالة الجديدة أو التعديل، old = قبل التعديل. بترجع true إذا صارت بتستنى
+function applyTxLimit(next, old) {
+    if (!txLimitActive()) return false;
+    const value = txValueIls({ ...(old || {}), ...next });
+    const increased = !old || value > txValueIls(old) + 0.004;
+    if (!(value > txLimitIls() + 0.004 && increased)) return false;
+    next.approval = 'pending';
+    next.approvedBy = '';
+    if (PAID_STATUSES.includes(next.status) && !(old && PAID_STATUSES.includes(old.status))) next.status = old ? old.status : STATUSES[0];
+    return true;
+}
+
+function approvalWarn(t) {
+    showToast('بتستنى موافقة المدير', `${t.recipient} — ${txAmountText(t)} فوق ${fmt(txLimitIls(), 0)} ₪. أول ما يوافق بتقدر تكمّلها`, 'warning');
+}
+
+function approvalChip(t) {
+    if (t.approval !== 'pending' || t.status === CANCELLED) return '';
+    return isManager()
+        ? `<button data-action="tx-approve" data-id="${t.id}" class="approval-chip manager" title="${escapeHtml(personName(t.createdBy || ''))} سجّلها، فوق حد الموظف">✓ وافق</button>`
+        : '<span class="approval-chip" title="فوق حد الموظف، المدير لازم يوافق">⏳ بانتظار الموافقة</span>';
+}
+
+function approvalDetailsHtml(t) {
+    if (t.approval === 'pending' && t.status !== CANCELLED) {
+        return `<div class="approval-box"><span>⏳ بتستنى موافقة المدير (فوق ${fmt(txLimitIls(), 0)} ₪)${t.createdBy ? ' · سجّلها ' + escapeHtml(personName(t.createdBy)) : ''}</span>${isManager() ? `<button data-action="tx-approve" data-id="${t.id}" class="approval-chip manager">✓ وافق</button>` : ''}</div>`;
+    }
+    if (t.approval === 'approved' && t.approvedBy) return `<div class="text-[11px] text-emerald-700 mt-2">✓ وافق عليها ${escapeHtml(personName(t.approvedBy))}</div>`;
+    return '';
+}
+
+// شريط للمدير فوق السجل: الحوالات اللي بتستنى موافقته
+function renderApprovalBanner() {
+    const box = $('approval-banner');
+    const list = isManager() ? ledger.filter(t => t.approval === 'pending' && t.status !== CANCELLED) : [];
+    box.classList.toggle('hidden', !list.length);
+    if (!list.length) return;
+    box.innerHTML = `<div class="approval-banner-head">⏳ ${list.length === 1 ? 'حوالة بتستنى موافقتك' : list.length + ' حوالات بتستنى موافقتك'}</div>`
+        + list.slice(0, 8).map(t => `<div class="approval-row">
+            <button data-action="tx-details" data-id="${t.id}" class="min-w-0 text-right"><b>${escapeHtml(t.recipient)}</b> <span class="num">${deliveredHtml(t)}</span> <span class="text-[11px] text-slate-500">${t.createdBy ? escapeHtml(personName(t.createdBy)) + ' · ' : ''}${escapeHtml(t.date)}</span></button>
+            <button data-action="tx-approve" data-id="${t.id}" class="approval-chip manager">✓ وافق</button>
+        </div>`).join('');
+}
+
+async function approveTx(id) {
+    const tx = ledger.find(x => x.id === id);
+    if (!tx || !isManager() || tx.approval !== 'pending') return;
+    tx.approval = 'approved';
+    tx.approvedBy = session?.username || '';
+    queueOps({ action: 'upsert', ...tx });
+    renderLedgerTable();
+    refreshTxDetails();
+    const status = await flushOutbox();
+    showToast('تمت الموافقة ✓', `${tx.recipient} — ${txAmountText(tx)}: الموظف بيقدر يكمّلها هلّق`, syncToastType(status));
 }
 
 // ================= تعديل الحوالة =================
@@ -674,6 +752,8 @@ async function saveEditedTransaction(e) {
         costIls: round2(r.costIls),
         profitIls: round2(r.profitIls)
     };
+    // المبلغ زاد فوق حد الموظف: بترجع تستنى الموافقة
+    const held = applyTxLimit(next, tx);
     const willRefund = !PAID_STATUSES.includes(next.status) && txPaid(tx) > 0.004;
     if (editLocked('ledger', before, { ...tx, ...next }) || (willRefund && refMoves('tx', tx.id).some(m => dayLocked(m.date)))) return lockWarn();
     Object.assign(tx, next);
@@ -687,7 +767,7 @@ async function saveEditedTransaction(e) {
     renderLedgerTable();
     renderAccountsPage();
     const syncStatus = await flushOutbox();
-    showToast('تم تحديث المعاملة', `المعاملة ${receiptNo(tx)}${refund.length ? ' · أُرجع المدفوع للحسابات' : ''} — ${syncResultMessage(syncStatus)}`, syncToastType(syncStatus));
+    showToast('تم تحديث المعاملة', `المعاملة ${receiptNo(tx)}${refund.length ? ' · أُرجع المدفوع للحسابات' : ''}${held ? ' · بتستنى موافقة المدير' : ''} — ${syncResultMessage(syncStatus)}`, held ? 'warning' : syncToastType(syncStatus));
     if (PAID_STATUSES.includes(tx.status) && !PAID_STATUSES.includes(oldStatus) && sheetSupportsWallets && accounts.length && txDue(tx) - txPaid(tx) > 0.004) {
         openTxPayModal(tx, tx.status, { afterCreate: true });
     }

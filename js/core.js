@@ -59,6 +59,12 @@ const DEFAULT_CONFIG = {
     // سعر البيع والشراء: فرق شبه ثابت عن سعر الشاشة (للعرض فقط)
     sellOffset: -0.01,
     buyOffset: 0.03,
+    // حد الحوالة للموظف (بطلب عماد 2026-10-19): فوقه بتستنى موافقة المدير
+    txLimitOn: 'yes',
+    txLimit: 5000,
+    // الإشعارات اليومية على الجوال: الساعة، أو 'off'
+    pushDebtsHour: '9',
+    pushSummaryHour: '22',
     // بيانات الشركة للفاتورة (الشعار ملف ثابت assets/logo.png)
     companyName: 'فاست باي',
     companySubtitle: 'FAST PAY SYSTEM',
@@ -520,6 +526,9 @@ function normalizeTx(t) {
         costIls: toNum(t?.costIls, 0),
         profitIls: toNum(t?.profitIls, 0),
         status: STATUSES.includes(t?.status) ? t.status : STATUSES[0],
+        // حد الحوالة للموظف: '' | pending (بتستنى المدير) | approved
+        approval: t?.approval === 'pending' || t?.approval === 'approved' ? t.approval : '',
+        approvedBy: String(t?.approvedBy ?? '').trim(),
         createdBy: String(t?.createdBy ?? '').trim(),
         updatedBy: String(t?.updatedBy ?? '').trim()
     };

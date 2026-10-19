@@ -99,7 +99,8 @@ const COLLECTION_NORMALIZERS = {
     egpWallets: { get: () => egpWallets, set: (v) => { egpWallets = v; }, norm: (r) => normalizeEgpWallet(r), ok: (x) => x.id },
     egpMoves: { get: () => egpMoves, set: (v) => { egpMoves = v; }, norm: (r) => normalizeEgp(r), ok: (x) => x.id },
     closings: { get: () => closings, set: (v) => { closings = v; }, norm: (r) => normalizeClosing(r), ok: (x) => x.id },
-    readyAccounts: { get: () => readyAccounts, set: (v) => { readyAccounts = v; }, norm: (r) => normalizeReady(r), ok: (x) => x.id && x.name }
+    readyAccounts: { get: () => readyAccounts, set: (v) => { readyAccounts = v; }, norm: (r) => normalizeReady(r), ok: (x) => x.id && x.name },
+    readySends: { get: () => readySends, set: (v) => { readySends = v; }, norm: (r) => normalizeReadySend(r), ok: (x) => x.id }
 };
 
 // ---------- تسعير الدول من الشيت ----------
@@ -301,6 +302,7 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
         egpMoves = (data.egpMoves || []).map(normalizeEgp).filter(m => m.id);
         closings = (data.closings || []).map(normalizeClosing).filter(c => c.id);
         readyAccounts = (data.readyAccounts || []).map(normalizeReady).filter(x => x.id && x.name);
+        readySends = (data.readySends || []).map(normalizeReadySend).filter(x => x.id);
         lastFullLoadMs = Date.now();
     }
     // السكربت القديم لا يرسل serverTime، فيبقى التحميل كاملاً في كل مرة
@@ -312,6 +314,7 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
     if (Array.isArray(data.team)) notifyTeam = data.team;
     if (data.serverTime) notifyCursor = data.serverTime;
     if ('notifications' in data) applyNotifications(data.notifications, { full: !data.incremental });
+    if ('dailyPush' in data) dailyPushState = data.dailyPush;
     if ('push' in data) applyPushState(data.push, !data.incremental);
     else renderNotifyBadge();
     if ('lastBackup' in data) { lastBackupAt = data.lastBackup || ''; renderBackupStatus(); }
@@ -416,7 +419,7 @@ function applyOpLocally(op) {
         // المحتوى بس: العدادات من الشيت
         const x = normalizeReady(op.ready);
         const old = readyAccounts.find(y => y.id === x.id);
-        if (old) Object.assign(old, { name: x.name, category: x.category, details: x.details, terms: x.terms, paused: x.paused });
+        if (old) Object.assign(old, { name: x.name, category: x.category, details: x.details, terms: x.terms, paused: x.paused, expiresAt: x.expiresAt });
         else if (x.id && x.name) readyAccounts.push(x);
     } else if (op.action === 'use_ready') {
         // نسخ/إرسال لسا ما وصل الشيت: فوق العداد اللي إجا منه
@@ -424,6 +427,10 @@ function applyOpLocally(op) {
         if (x) {
             x[op.kind === 'send' ? 'sends' : 'copies'] += 1;
             if (op.at && op.at > x.lastUsedAt) { x.lastUsedAt = op.at; x.lastUsedBy = session?.username || ''; }
+        }
+        // الإرسال لزبون: بملفه
+        if (op.log?.id && !readySends.some(s => s.id === op.log.id)) {
+            readySends.push(normalizeReadySend({ ...op.log, at: op.at, readyId: op.id, readyName: x?.name || '', createdBy: session?.username || '' }));
         }
     }
 }
@@ -556,6 +563,15 @@ function applyWriteResult(op, res) {
     if (key) {
         if (opIsDelete(op)) rowStamps.delete(key);
         else if (res.updatedAt) rowStamps.set(key, String(res.updatedAt));
+    }
+    // الحوالة: الموافقة والحالة زي ما قرر السكربت (حد الموظف)
+    if (op.action === 'upsert' && 'approval' in res) {
+        const t = ledger.find(x => x.id === toNum(op.id, NaN));
+        if (t) {
+            t.approval = res.approval === 'pending' || res.approval === 'approved' ? res.approval : '';
+            if (res.status && STATUSES.includes(res.status)) t.status = res.status;
+            setTimeout(renderLedgerTable, 0);
+        }
     }
     // النسخ والإرسال: العداد زي ما بالشيت (مع اللي عملوه غيري)
     if (op.action === 'use_ready' && 'copies' in res) {

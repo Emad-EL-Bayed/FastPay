@@ -349,6 +349,10 @@ function runLiveCalc() {
             ? 'يُسلَّم بالدولار، شامل خصم التكلفة وربحك'
             : 'شامل خصم التكلفة وربحك';
     renderCalcAdjust(input, r);
+    // الموظف فوق حد الحوالة
+    const over = input.orig > 0 && txLimitActive() && (isUsd ? r.clientUsd * input.screenRate : r.clientIls) > txLimitIls() + 0.004;
+    $('calc-limit-note').classList.toggle('hidden', !over);
+    if (over) $('calc-limit-note').textContent = `⏳ فوق ${fmt(txLimitIls(), 0)} ₪: بتنحفظ وبتستنى موافقة المدير`;
 
     animateNumber($('res_profit_ils'), r.profitIls, (v) => '+' + fmt(v), 350);
     $('res_profit_usd').textContent = fmt(r.profitUsd) + ' $';

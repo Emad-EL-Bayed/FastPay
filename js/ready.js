@@ -7,9 +7,14 @@
 // الملفات تُحمَّل بالترتيب في index.html وتتشارك نفس المتغيرات العامة.
 
 let readyAccounts = [];
-let readyFilter = 'all'; // all | paused | cat:<التصنيف>
+// مين انبعتله أي حساب (ورقة "إرسال الحسابات"، بيكتبها السكربت مع use_ready)، بتبين بالكرت وبملف الزبون
+let readySends = [];
+let readyFilter = 'all'; // all | paused (الموقوفة والمنتهية) | cat:<التصنيف>
 let readySendId = null;
 let readyPickerIndex = -1;
+let readySendTouched = false; // عدّل الرسالة بإيده: اختيار الزبون ما بيكتب فوقها
+let readyLastField = 'rd_details'; // وين بتنزل الكلمات ({الاسم}...) بنافذة الإضافة
+let readyExpiryTimer = null;
 
 const READY_SORTS = ['used', 'recent', 'newest', 'name'];
 
@@ -21,6 +26,7 @@ function normalizeReady(r) {
         details: String(r?.details ?? '').replace(/\r\n?/g, '\n').trim(),
         terms: String(r?.terms ?? '').replace(/\r\n?/g, '\n').trim(),
         paused: r?.paused === 'yes' || r?.paused === true,
+        expiresAt: String(r?.expiresAt ?? '').trim(),
         copies: Math.max(0, Math.round(toNum(r?.copies, 0))),
         sends: Math.max(0, Math.round(toNum(r?.sends, 0))),
         lastUsedAt: String(r?.lastUsedAt ?? '').trim(),
@@ -30,11 +36,89 @@ function normalizeReady(r) {
     };
 }
 
+function normalizeReadySend(r) {
+    return {
+        id: String(r?.id ?? '').trim(),
+        at: String(r?.at ?? '').trim(),
+        readyId: String(r?.readyId ?? '').trim(),
+        readyName: String(r?.readyName ?? '').trim(),
+        customerId: String(r?.customerId ?? '').trim(),
+        customerName: String(r?.customerName ?? '').trim(),
+        createdBy: String(r?.createdBy ?? '').trim()
+    };
+}
+
 // للشيت: المحتوى بس (العدادات للسكربت)
-const readyPayload = (x) => ({ id: x.id, name: x.name, category: x.category, details: x.details, terms: x.terms, paused: x.paused ? 'yes' : 'no', createdAt: x.createdAt });
+const readyPayload = (x) => ({ id: x.id, name: x.name, category: x.category, details: x.details, terms: x.terms, paused: x.paused ? 'yes' : 'no', expiresAt: x.expiresAt || '', createdAt: x.createdAt });
+
+// ---------- كلمات بتتعبّى لحالها بالرسالة (بطلب عماد 2026-10-19) ----------
+// {الاسم} = اسم الزبون (بالنسخ بدون زبون بتنشال)، والأسعار من البرنامج نفسه، فما بتعدّلها بإيدك كل ما تتغير
+const READY_TOKENS = [
+    ['الاسم', 'اسم الزبون'],
+    ['التاريخ', 'تاريخ اليوم'],
+    ['الدولار', 'سعر البيع'],
+    ['استقبال_الجنيه', 'الألف جنيه استقبال ₪'],
+    ['إرسال_الجنيه', 'الألف جنيه إرسال ₪']
+];
+
+function readyTokenValues() {
+    const price = (v) => (v > 0 ? fmtTrim(v) : '؟');
+    const r = egpRates();
+    const d = localDateStr().split('-');
+    return {
+        'التاريخ': `${d[2]}/${d[1]}/${d[0]}`,
+        'الدولار': price(round3(sellBuyRates().sell)),
+        'استقبال_الجنيه': price(egpPerThousand(r.receive, r.usdReceive, 'ILS')),
+        'إرسال_الجنيه': price(egpPerThousand(r.send, r.usdSend, 'ILS'))
+    };
+}
+
+// name: اسم الزبون، أو '' (بتنشال)، أو null (بتضل علامة، للعرض بالكرت)
+function fillReady(text, name) {
+    const vals = readyTokenValues();
+    let out = String(text || '').replace(/\{([^{}\n]{2,20})\}/g, (m, key) => {
+        if (key === 'الاسم') return name === null ? '\u0001' : name;
+        return key in vals ? vals[key] : m;
+    });
+    // اسم فاضي: بدون مسافات زيادة ("مرحبا ،" ← "مرحبا،")
+    if (!name) out = out.replace(/[ \t]{2,}/g, ' ').replace(/ +([،,.!؟?:])/g, '$1').replace(/[ \t]+$/gm, '');
+    return out;
+}
 
 // اللي بيوصل للزبون: الحساب، وتحته الشروط
-const readyMessage = (x) => [x.details, x.terms ? 'الشروط:\n' + x.terms : ''].filter(Boolean).join('\n\n');
+const readyMessage = (x, name = '') => [fillReady(x.details, name), x.terms ? 'الشروط:\n' + fillReady(x.terms, name) : ''].filter(Boolean).join('\n\n');
+
+// للكرت: القيم معبّاية، ومكان الاسم علامة صغيرة
+const readyShownHtml = (text) => escapeHtml(fillReady(text, null)).replace(/\u0001/g, '<mark class="ready-token">اسم الزبون</mark>');
+
+// ---------- الانتهاء (حساب فعّال 24 ساعة مثلاً): بعده بيتوقف لحاله ----------
+const readyExpiryMs = (x) => { const t = x.expiresAt ? Date.parse(x.expiresAt) : NaN; return Number.isFinite(t) ? t : 0; };
+const readyExpired = (x) => { const t = readyExpiryMs(x); return !!t && t <= Date.now(); };
+const readyStopped = (x) => x.paused || readyExpired(x);
+
+// "بعد 5 ساعات" / "بعد يومين"
+function untilText(ms) {
+    const min = Math.max(1, Math.round((ms - Date.now()) / 60000));
+    if (min < 60) return `بعد ${min === 1 ? 'دقيقة' : min === 2 ? 'دقيقتين' : min + ' دقيقة'}`;
+    const h = Math.round(min / 60);
+    if (h < 24) return `بعد ${h === 1 ? 'ساعة' : h === 2 ? 'ساعتين' : h + ' ساعات'}`;
+    const days = Math.round(h / 24);
+    return `بعد ${days === 1 ? 'يوم' : days === 2 ? 'يومين' : days + ' أيام'}`;
+}
+
+// "yyyy-MM-ddTHH:mm" بوقت الجهاز (قيمة خانة datetime-local)
+function localStampAfter(hours) {
+    const d = new Date(Date.now() + hours * 3600000);
+    const p = (n) => String(n).padStart(2, '0');
+    return `${localDateStr(d)}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// لما حساب يخلص والصفحة مفتوحة: بترجع تنرسم لحالها
+function scheduleReadyExpiry() {
+    clearTimeout(readyExpiryTimer);
+    const next = readyAccounts.map(readyExpiryMs).filter(t => t > Date.now()).sort((a, b) => a - b)[0];
+    if (next) readyExpiryTimer = setTimeout(renderReadyPage, Math.min(next - Date.now() + 500, 3600000));
+}
 
 // "2026-10-19 15:42:07" بوقت الجهاز (زي اللي بيكتبه السكربت)
 function readyStamp(d = new Date()) {
@@ -87,8 +171,8 @@ function sortedReady(list) {
         newest: (a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id),
         name: (a, b) => a.name.localeCompare(b.name, 'ar')
     }[sort];
-    // الموقوفة آخر إشي
-    return [...list].sort((a, b) => (a.paused - b.paused) || cmp(a, b) || a.name.localeCompare(b.name, 'ar'));
+    // الموقوفة والمنتهية آخر إشي
+    return [...list].sort((a, b) => (readyStopped(a) - readyStopped(b)) || cmp(a, b) || a.name.localeCompare(b.name, 'ar'));
 }
 
 function renderReadyPage() {
@@ -100,19 +184,20 @@ function renderReadyPage() {
 
     // الفلاتر: الكل، كل تصنيف، والموقوفة
     const cats = readyCategories();
-    const pausedCount = readyAccounts.filter(x => x.paused).length;
+    const pausedCount = readyAccounts.filter(readyStopped).length;
+    scheduleReadyExpiry();
     if (readyFilter.startsWith('cat:') && !cats.some(([c]) => 'cat:' + c === readyFilter)) readyFilter = 'all';
     if (readyFilter === 'paused' && !pausedCount) readyFilter = 'all';
     const chip = (key, label, n) => `<button type="button" data-action="ready-filter" data-filter="${escapeHtml(key)}" class="tf-chip${readyFilter === key ? ' active' : ''}">${escapeHtml(label)} <b class="num">${n}</b></button>`;
     $('ready-filters').innerHTML = (readyAccounts.length ? chip('all', 'الكل', readyAccounts.length) : '')
         + cats.map(([c, n]) => chip('cat:' + c, c, n)).join('')
-        + (pausedCount ? chip('paused', 'موقوفة', pausedCount) : '');
+        + (pausedCount ? chip('paused', 'موقوفة ومنتهية', pausedCount) : '');
     $('ready-filters').classList.toggle('hidden', readyAccounts.length < 2 && !cats.length);
 
     const q = normName(latinDigits($('ready_search').value));
     const qDigits = normPhone($('ready_search').value).replace(/\D/g, '');
     const list = sortedReady(readyAccounts.filter(x =>
-        (readyFilter === 'all' || (readyFilter === 'paused' ? x.paused : 'cat:' + x.category === readyFilter)) && readyMatches(x, q, qDigits)));
+        (readyFilter === 'all' || (readyFilter === 'paused' ? readyStopped(x) : 'cat:' + x.category === readyFilter)) && readyMatches(x, q, qDigits)));
 
     const n = readyAccounts.length;
     $('ready-count').textContent = !n ? '' : n === 1 ? 'حساب واحد' : n === 2 ? 'حسابين' : `${n} ${n <= 10 ? 'حسابات' : 'حساب'}`;
@@ -132,14 +217,20 @@ function readyUsageHtml(x) {
     if (x.sends) parts.push(`<span title="مرات الإرسال على واتساب">${WA_ICON}<b class="num">${x.sends}</b> إرسال</span>`);
     const ms = readyStampMs(x.lastUsedAt);
     if (ms) parts.push(`<span title="${escapeHtml(x.lastUsedAt)}">آخر استعمال ${escapeHtml(agoText(ms))}${x.lastUsedBy ? ' · ' + escapeHtml(personName(x.lastUsedBy)) : ''}</span>`);
+    const last = readySends.filter(s => s.readyId === x.id).sort((a, b) => b.at.localeCompare(a.at))[0];
+    if (last) parts.push(`<span title="${escapeHtml(last.at)}">آخر إرسال لـ ${escapeHtml(last.customerName)}</span>`);
     return parts.length ? parts.join('<i aria-hidden="true">·</i>') : '<span>لسا ما انستعمل</span>';
 }
 
 function readyCardHtml(x) {
     const id = escapeHtml(x.id);
     const added = x.createdAt ? x.createdAt.split('-').reverse().join('/') : '';
+    const expired = readyExpired(x);
+    const stopped = readyStopped(x);
+    const exp = readyExpiryMs(x);
+    const stopTitle = expired ? ' disabled title="الحساب انتهى"' : x.paused ? ' disabled title="الحساب موقوف"' : '';
     return `
-        <article class="ready-card${x.paused ? ' is-paused' : ''}" data-id="${id}">
+        <article class="ready-card${stopped ? ' is-paused' : ''}" data-id="${id}">
             <header class="ready-head">
                 ${readyIcon(x)}
                 <div class="min-w-0 flex-1">
@@ -147,6 +238,7 @@ function readyCardHtml(x) {
                     <div class="ready-meta">
                         ${x.category ? `<span class="ready-cat">${escapeHtml(x.category)}</span>` : ''}
                         ${x.paused ? '<span class="ready-paused">⏸ موقوف</span>' : ''}
+                        ${expired ? '<span class="ready-expired">⌛ انتهى</span>' : exp ? `<span class="ready-expiry" title="${escapeHtml(x.expiresAt.replace('T', ' '))}">⏳ بينتهي ${escapeHtml(untilText(exp))}</span>` : ''}
                     </div>
                 </div>
                 <div class="ready-tools">
@@ -158,14 +250,15 @@ function readyCardHtml(x) {
                 </div>
             </header>
             <div class="ready-details">
-                <pre class="ready-text" dir="auto">${escapeHtml(x.details)}</pre>
+                <pre class="ready-text" dir="auto">${readyShownHtml(x.details)}</pre>
                 <button type="button" data-action="ready-copy" data-id="${id}" data-part="details" class="copy-btn ready-copy-mini" title="نسخ الحساب بس (بدون الشروط)" aria-label="نسخ الحساب بس">${COPY_ICON}</button>
             </div>
-            ${x.terms ? `<div class="ready-terms"><span class="ready-terms-label">الشروط</span><p dir="auto">${escapeHtml(x.terms)}</p></div>` : ''}
+            ${x.terms ? `<div class="ready-terms"><span class="ready-terms-label">الشروط</span><p dir="auto">${readyShownHtml(x.terms)}</p></div>` : ''}
+            ${expired && !x.paused ? `<button type="button" data-action="edit-ready-renew" data-id="${id}" class="ready-renew">⌛ انتهى · جدّده 24 ساعة</button>` : `
             <div class="ready-actions">
-                <button type="button" data-action="ready-copy" data-id="${id}" class="ready-btn ready-btn-copy"${x.paused ? ' disabled title="الحساب موقوف"' : ''}>${COPY_ICON}<span>نسخ${x.terms ? ' مع الشروط' : ''}</span></button>
-                <button type="button" data-action="ready-send" data-id="${id}" class="ready-btn ready-btn-wa"${x.paused ? ' disabled title="الحساب موقوف"' : ''}>${WA_ICON}<span>إرسال لزبون</span></button>
-            </div>
+                <button type="button" data-action="ready-copy" data-id="${id}" class="ready-btn ready-btn-copy"${stopTitle}>${COPY_ICON}<span>نسخ${x.terms ? ' مع الشروط' : ''}</span></button>
+                <button type="button" data-action="ready-send" data-id="${id}" class="ready-btn ready-btn-wa"${stopTitle}>${WA_ICON}<span>إرسال لزبون</span></button>
+            </div>`}
             <footer class="ready-foot">
                 <div class="ready-usage">${readyUsageHtml(x)}</div>
                 ${added ? `<span class="ready-added">أُضيف <bdi class="num">${added}</bdi>${x.createdBy ? ' · ' + escapeHtml(personName(x.createdBy)) : ''}</span>` : ''}
@@ -174,12 +267,18 @@ function readyCardHtml(x) {
 }
 
 // ---------- النسخ والإرسال (بيتعدّوا بالشيت) ----------
-function recordReadyUse(x, kind) {
+// log: {customerId, customerName, phone} للإرسال لزبون (بينكتب بملفه)
+function recordReadyUse(x, kind, log = null) {
     x[kind === 'send' ? 'sends' : 'copies'] += 1;
     x.lastUsedAt = readyStamp();
     x.lastUsedBy = session?.username || '';
     if (sheetHas('ready')) {
-        queueOps({ action: 'use_ready', id: x.id, kind, at: x.lastUsedAt });
+        const op = { action: 'use_ready', id: x.id, kind, at: x.lastUsedAt };
+        if (log && sheetHas('readyExtra')) {
+            op.log = { id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ...log };
+            readySends.push(normalizeReadySend({ ...op.log, at: x.lastUsedAt, readyId: x.id, readyName: x.name, createdBy: x.lastUsedBy }));
+        }
+        queueOps(op);
         flushOutbox();
     }
     renderReadyPage();
@@ -188,8 +287,9 @@ function recordReadyUse(x, kind) {
 async function copyReady(btn) {
     const x = readyAccounts.find(y => y.id === btn.dataset.id);
     if (!x) return;
+    if (readyStopped(x)) return showToast(readyExpired(x) ? 'الحساب انتهى' : 'الحساب موقوف', 'جدّده أو رجّعه يشتغل أول', 'warning');
     const onlyDetails = btn.dataset.part === 'details';
-    const ok = await copyText(onlyDetails ? x.details : readyMessage(x));
+    const ok = await copyText(onlyDetails ? fillReady(x.details, '') : readyMessage(x));
     if (!ok) return showToast('ما زبط النسخ', 'المتصفح منع النسخ، انسخه بإيدك', 'warning');
     showToast('تم النسخ', onlyDetails || !x.terms ? `${x.name}: الحساب` : `${x.name}: الحساب مع الشروط`, 'success');
     recordReadyUse(x, 'copy');
@@ -204,7 +304,9 @@ async function copyReady(btn) {
 function openReadySend(id) {
     const x = readyAccounts.find(y => y.id === id);
     if (!x) return;
+    if (readyStopped(x)) return showToast(readyExpired(x) ? 'الحساب انتهى' : 'الحساب موقوف', 'جدّده أو رجّعه يشتغل أول', 'warning');
     readySendId = id;
+    readySendTouched = false;
     $('rs_title').textContent = x.name;
     $('rs_customer').value = '';
     $('rs_customer_id').value = '';
@@ -228,6 +330,13 @@ function onReadyCustomerInput() {
         : '<div class="p-3 text-xs text-slate-400 text-center">ما في زبائن بهالحساب. اكتب رقم الواتساب تحت</div>';
     $('rs-customer-dropdown').classList.remove('hidden');
     syncReadyPhoneHint();
+    refillReadyMessage();
+}
+
+// الرسالة بالاسم ({الاسم}) لحد ما يعدّلها بإيده
+function refillReadyMessage() {
+    const x = readyAccounts.find(y => y.id === readySendId);
+    if (x && !readySendTouched) $('rs_message').value = readyMessage(x, $('rs_customer').value.trim());
 }
 
 function closeReadyCustomerPicker() {
@@ -246,6 +355,7 @@ function selectReadyCustomer(id) {
     $('rs_phone').value = hasWhatsapp(c) ? '+' + whatsappDigits(c.phone) : '';
     closeReadyCustomerPicker();
     syncReadyPhoneHint();
+    refillReadyMessage();
     if (!hasWhatsapp(c)) $('rs_phone').focus();
 }
 
@@ -271,8 +381,10 @@ function sendReady(toAnyone = false) {
     // لازم بنفس الكبسة (المتصفح بيمنع النوافذ بعد انتظار)
     window.open(waUrl(phone, text), '_blank', 'noopener');
     closeModal('readySendModal');
-    recordReadyUse(x, 'send');
     const who = $('rs_customer').value.trim();
+    const customerId = $('rs_customer_id').value;
+    // بملف الزبون: مين انبعتله شو (بس لما في زبون)
+    recordReadyUse(x, 'send', !toAnyone && (who || customerId) ? { customerId, customerName: who, phone: whatsappDigits(phone) } : null);
     showToast('انفتح واتساب', toAnyone ? 'اختار المحادثة واكبس إرسال' : `الرسالة جاهزة${who ? ' لـ ' + who : ''}، اكبس إرسال بواتساب`, 'success');
 }
 
@@ -286,14 +398,33 @@ function openReadyModal(x = null) {
     $('rd_details').value = x ? x.details : '';
     $('rd_terms').value = x ? x.terms : '';
     $('rd_paused').checked = !!x?.paused;
+    $('rd_expires').value = x?.expiresAt ? x.expiresAt.slice(0, 16) : '';
+    $('rd_expires_wrap').classList.toggle('hidden', !sheetHas('readyExtra'));
+    readyLastField = 'rd_details';
     $('rd_categories').innerHTML = readyCategories().map(([c]) => `<option value="${escapeHtml(c)}"></option>`).join('');
     renderReadyPreview();
     openModal('readyModal');
     $('rd_name').focus();
 }
 
+// الكلمة ({الاسم}...) بتنزل بمكان المؤشر بآخر خانة كنت فيها (الحساب أو الشروط)
+function insertReadyToken(token) {
+    const el = $(readyLastField) || $('rd_details');
+    const t = '{' + token + '}';
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? el.value.length;
+    el.value = el.value.slice(0, start) + t + el.value.slice(end);
+    el.focus();
+    el.setSelectionRange(start + t.length, start + t.length);
+    renderReadyPreview();
+}
+
+function setReadyExpiry(hours) {
+    $('rd_expires').value = hours ? localStampAfter(hours) : '';
+}
+
 function renderReadyPreview() {
-    const text = readyMessage({ details: $('rd_details').value.trim(), terms: $('rd_terms').value.trim() });
+    const text = readyMessage({ details: $('rd_details').value.trim(), terms: $('rd_terms').value.trim() }, '«الاسم»');
     $('rd_preview').textContent = text || 'اكتب الحساب فوق وبيطلع هون زي ما بيوصل للزبون';
     $('rd_preview').classList.toggle('text-slate-400', !text);
 }
@@ -314,7 +445,8 @@ async function saveReady(e) {
         category: $('rd_category').value.trim(),
         details,
         terms: $('rd_terms').value.replace(/\r\n?/g, '\n').trim(),
-        paused: $('rd_paused').checked
+        paused: $('rd_paused').checked,
+        expiresAt: sheetHas('readyExtra') ? $('rd_expires').value : item.expiresAt
     });
     if (!old) readyAccounts.push(item);
     queueOps({ action: 'upsert_ready', ready: readyPayload(item) });
@@ -322,6 +454,30 @@ async function saveReady(e) {
     renderReadyPage();
     const status = await flushOutbox();
     showToast(old ? 'تم تعديل الحساب' : 'انضاف الحساب', `${item.name} — ${syncResultMessage(status)}`, syncToastType(status));
+}
+
+function renewReady(id) {
+    const x = readyAccounts.find(y => y.id === id);
+    if (!x) return;
+    x.expiresAt = localStampAfter(24);
+    queueOps({ action: 'upsert_ready', ready: readyPayload(x) });
+    renderReadyPage();
+    flushOutbox();
+    showToast('تجدّد 24 ساعة', `${x.name}: بينتهي ${x.expiresAt.slice(11)} بكرا`, 'success');
+}
+
+// ملف الزبون: الحسابات اللي انبعتتله
+function customerReadySendsHtml(c) {
+    const list = readySends.filter(s => (c.id && s.customerId === c.id) || (!s.customerId && normName(s.customerName) === normName(c.name)))
+        .sort((a, b) => b.at.localeCompare(a.at));
+    if (!list.length) return '';
+    return `<div class="bg-slate-50 border border-slate-200/80 rounded-xl p-4">
+        <h4 class="text-xs font-bold text-slate-800 mb-2">📋 حسابات انبعتتله</h4>
+        ${list.slice(0, 8).map(s => `<div class="flex justify-between gap-3 text-xs py-1.5 border-t border-slate-200/70 first:border-0">
+            <b class="text-slate-700 min-w-0 truncate">${escapeHtml(s.readyName)}</b>
+            <span class="text-slate-400 shrink-0">${escapeHtml(agoText(readyStampMs(s.at)))}${s.createdBy ? ' · ' + escapeHtml(personName(s.createdBy)) : ''}</span>
+        </div>`).join('')}
+    </div>`;
 }
 
 function toggleReadyPaused(id) {
@@ -356,7 +512,11 @@ function bindReadyEvents() {
     $('ready_search').addEventListener('input', renderReadyPage);
     $('ready_sort').addEventListener('change', () => setReadySort($('ready_sort').value));
     $('readyForm').addEventListener('submit', saveReady);
-    ['rd_details', 'rd_terms'].forEach(i => $(i).addEventListener('input', renderReadyPreview));
+    ['rd_details', 'rd_terms'].forEach(i => {
+        $(i).addEventListener('input', renderReadyPreview);
+        $(i).addEventListener('focus', () => { readyLastField = i; });
+    });
+    $('rs_message').addEventListener('input', () => { readySendTouched = true; });
     ['input', 'focus', 'click'].forEach(ev => $('rs_customer').addEventListener(ev, onReadyCustomerInput));
     $('rs_customer').addEventListener('keydown', onReadyCustomerKey);
     $('rs_phone').addEventListener('input', () => {

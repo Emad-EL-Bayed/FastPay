@@ -31,7 +31,7 @@ function lockMark(date) {
 
 // الحقول اللي بتتغير حتى بيوم مقفل (نفس السكربت): الحالة (إلا الإلغاء)، اسم الزبون، الملاحظة
 const LOCK_FREE_FIELDS = {
-    ledger: ['status', 'recipient', 'customerId'],
+    ledger: ['status', 'recipient', 'customerId', 'approval', 'approvedBy'],
     usdtMoves: ['customerName', 'customerId'],
     egpMoves: ['customerName', 'customerId'],
     accountMoves: ['note', 'accountName'],
@@ -73,6 +73,36 @@ function renderAdminTools() {
         : '';
     $('restore-section').classList.toggle('hidden', !admin);
     $('restore-open-btn').disabled = !sheetHas('restore');
+    renderTxLimitSettings();
+}
+
+// ---------- حد الحوالة للموظف (إعداد مشترك txLimitOn / txLimit) ----------
+function renderTxLimitSettings() {
+    const on = globalConfig.txLimitOn !== 'no';
+    const ok = sheetHas('txApproval');
+    const btn = $('tx-limit-toggle');
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', String(on));
+    btn.lastChild.textContent = on ? 'شغّال' : 'مسكّر';
+    if (document.activeElement !== $('tx_limit')) $('tx_limit').value = toNum(globalConfig.txLimit, 5000);
+    $('tx_limit').disabled = !on;
+    $('tx-limit-note').classList.toggle('hidden', ok);
+}
+
+function toggleTxLimit() {
+    globalConfig.txLimitOn = globalConfig.txLimitOn === 'no' ? 'yes' : 'no';
+    saveAll();
+    renderTxLimitSettings();
+    showToast(globalConfig.txLimitOn === 'no' ? 'حد الحوالة مسكّر' : 'حد الحوالة شغّال', globalConfig.txLimitOn === 'no' ? 'الموظفين بيسجّلوا أي مبلغ بدون موافقة' : `فوق ${fmt(txLimitIls(), 0)} ₪ بتستنى موافقتك`, 'info');
+}
+
+function saveTxLimit() {
+    const v = toNum($('tx_limit').value, 0);
+    if (!(v > 0)) { $('tx_limit').value = toNum(globalConfig.txLimit, 5000); return showToast('تنبيه', 'الحد لازم يكون أكبر من صفر (أو سكّر السويتش)', 'warning'); }
+    if (v === toNum(globalConfig.txLimit, 5000)) return;
+    globalConfig.txLimit = round2(v);
+    saveAll();
+    showToast('انحفظ الحد', `حوالة الموظف فوق ${fmt(v, 0)} ₪ بتستنى موافقتك`, 'success');
 }
 
 // المدير بيغيّر آخر يوم مقفل (أو بيفتح الكل)، والإعداد المشترك بيوصل لكل الأجهزة

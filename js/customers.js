@@ -235,6 +235,8 @@ function renderCustomerProfile(c) {
 
             ${profileActionsHtml(c, registered)}
 
+            ${hasPerm('ready') || hasPerm('customers') ? customerReadySendsHtml(c) : ''}
+
             ${profileTimelineHtml(s)}
         </div>
     `;

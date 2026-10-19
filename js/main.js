@@ -60,6 +60,9 @@ const CLICK_ACTIONS = {
     'ready-send-any': () => sendReady(true),
     'ready-select-customer': (el) => selectReadyCustomer(el.dataset.id),
     'ready-filter': (el) => { readyFilter = el.dataset.filter || 'all'; renderReadyPage(); },
+    'edit-ready-renew': (el) => renewReady(el.dataset.id),
+    'ready-token': (el) => insertReadyToken(el.dataset.token),
+    'ready-expire': (el) => setReadyExpiry(toNum(el.dataset.hours, 0)),
     'open-trader-modal': () => openTraderModal(),
     'open-trader': (el) => openTraderPanel(el.dataset.id),
     'pick-trader-logo': () => $('tr_logo_input').click(),
@@ -161,7 +164,14 @@ const CLICK_ACTIONS = {
     'pay-save': savePayModal,
     'pay-skip': skipPayModal,
     'pay-cancel': cancelPayModal,
-    'tx-pay': (el) => { const tx = ledger.find(x => x.id === toNum(el.dataset.id, NaN)); if (tx && walletsReady()) openTxPayModal(tx, 'مكتمل', { afterCreate: true }); },
+    'tx-pay': (el) => {
+        const tx = ledger.find(x => x.id === toNum(el.dataset.id, NaN));
+        if (tx && txHeld(tx)) return approvalWarn(tx);
+        if (tx && walletsReady()) openTxPayModal(tx, 'مكتمل', { afterCreate: true });
+    },
+    'tx-approve': (el) => approveTx(toNum(el.dataset.id, NaN)),
+    'tx-limit-toggle': toggleTxLimit,
+    'daily-test': (el) => testDailyPush(el.dataset.job),
     // USDT
     'usdt-new': (el) => openUsdtModal(el.dataset.kind),
     'usdt-kind': (el) => { if (!editingUsdtId) setUsdtKind(el.dataset.kind); updateUsdtPreview(); },
@@ -300,13 +310,54 @@ function bindGlobalEvents() {
         // قائمة النسخ مفتوحة: Esc بيسكّرها هي بس
         if (!$('copy-menu').classList.contains('hidden')) return closeCopyMenu();
         // نغلق النافذة العليا فقط (مثلاً الفاتورة فوق ملف الزبون، أو الحركة فوق حساب التاجر)
-        const top = ['searchModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'readySendModal', 'readyModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'accountModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal']
-            .find(id => !$(id).classList.contains('hidden'));
+        const top = topModalId();
         if (top) closeModal(top);
         // حساب التاجر (صفحة مش نافذة): Esc برّا الخانات بيرجع لقائمة التجار
         else if (traderViewOpen() && !e.target.closest?.('input, textarea, select')) closeTraderView();
         $('customer-search-dropdown').classList.add('hidden');
     });
+}
+
+// النوافذ من فوق لتحت: Esc وزر الرجوع بيسكّروا اللي فوق بس
+// (الإشعار المهم و"مين عدّل قبلي" مش هون: ما بيتسكّروا إلا بالاختيار)
+const MODAL_ORDER = ['searchModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'readySendModal', 'readyModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'accountModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal'];
+const topModalId = () => MODAL_ORDER.find(id => !$(id).classList.contains('hidden'));
+
+// ================= زر الرجوع بالجوال (بطلب عماد 2026-10-19) =================
+// كان بيطلّع من البرنامج كله. هلّق بالترتيب: بيسكّر النافذة أو القائمة المفتوحة، بيرجع من حساب التاجر لقائمة التجار،
+// ومن أي صفحة للحاسبة (والصفحة الفرعية لأمها)، ومن الحاسبة: "اكبس رجوع كمان مرة" والثانية بتطلع.
+// بالـ history حالتين: base وفوقها guard؛ الرجوع بيوصل base فبنرجع نحط guard إذا عملنا إشي
+function handleBackButton() {
+    if (!$('notifyAlertModal').classList.contains('hidden') || !$('conflictModal').classList.contains('hidden')) return true;
+    if (!$('appConfirmModal').classList.contains('hidden')) { closeAppConfirm(); return true; }
+    if (!$('copy-menu').classList.contains('hidden')) { closeCopyMenu(); return true; }
+    if (!$('mnav-more-menu').classList.contains('hidden')) { $('mnav-more-menu').classList.add('hidden'); return true; }
+    const open = [...document.querySelectorAll('.cust-dropdown:not(.hidden), #user-menu:not(.hidden)')];
+    if (open.length) { open.forEach(el => el.classList.add('hidden')); return true; }
+    const top = topModalId();
+    if (top) { closeModal(top); return true; }
+    if (traderViewOpen()) { closeTraderView(); return true; }
+    const current = TABS.find(t => !$('page-' + t).classList.contains('hidden'));
+    if (current && current !== 'calculator') { switchTab(SUB_TABS[current] || 'calculator'); return true; }
+    return false;
+}
+
+function initBackButton() {
+    if (!window.history?.pushState) return;
+    try {
+        history.replaceState({ fp: 'base' }, '');
+        history.pushState({ fp: 'guard' }, '');
+    } catch (e) { return; /* بعض المتصفحات بالملف (file://) */ }
+    window.addEventListener('popstate', () => {
+        if (handleBackButton()) pushBackGuard();
+        else showToast('اكبس رجوع كمان مرة للخروج', '', 'info');
+    });
+    // رجع لـ base وبعدين اشتغل بالبرنامج: الرجوع الجاي بيسكّر مش بيطلع
+    document.addEventListener('click', () => { if (history.state?.fp === 'base') pushBackGuard(); }, true);
+}
+
+function pushBackGuard() {
+    try { history.pushState({ fp: 'guard' }, ''); } catch (e) { /* ما بيضر */ }
 }
 
 // الحاسبة
@@ -448,6 +499,9 @@ function bindUserEvents() {
 
 // الإعدادات وتسعير الدول
 function bindSettingsEvents() {
+    $('tx_limit').addEventListener('change', saveTxLimit);
+    $('push_debts_hour').addEventListener('change', () => saveDailyPushHour('pushDebtsHour', $('push_debts_hour').value));
+    $('push_summary_hour').addEventListener('change', () => saveDailyPushHour('pushSummaryHour', $('push_summary_hour').value));
     ['set_screen_rate', 'set_sell_offset', 'set_buy_offset'].forEach(id => $(id).addEventListener('input', updateSellBuyPreview));
     $('countryForm').addEventListener('submit', saveCountry);
 }
@@ -512,6 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // آخر نسخة محفوظة على الجهاز فوراً (إذا في)، وبنفس اللحظة من Google Sheets (cache.js)
     startDataLoad();
+    initBackButton();
 
     fetchLiveDollarRate();
     fetchEgpRate();

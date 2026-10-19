@@ -103,7 +103,11 @@ const SHARED_SETTINGS = {
     egpReceivePct: { label: 'الجنيه: نسبة الاستقبال % (الزبون بياخد أقل من قيمة الجنيه بالسوق)', type: 'num' },
     egpSendTiers: { label: 'الجنيه: شرائح نسبة الإرسال فوق أول شريحة [{min: من كم شيكل, pct}]', type: 'json' },
     egpReceiveTiers: { label: 'الجنيه: شرائح نسبة الاستقبال فوق أول شريحة [{min: من كم شيكل, pct}]', type: 'json' },
-    lockedThrough: { label: 'قفل الأيام: الحركات لحد هاد التاريخ ما بتتعدل (بيتحدث مع كل جرد)', type: 'str' }
+    lockedThrough: { label: 'قفل الأيام: الحركات لحد هاد التاريخ ما بتتعدل (بيتحدث مع كل جرد)', type: 'str' },
+    txLimitOn: { label: 'حد الحوالة للموظف: yes شغّال / no مسكّر', type: 'str' },
+    txLimit: { label: 'حد الحوالة للموظف ₪ (فوقه بتستنى موافقة المدير)', type: 'num' },
+    pushDebtsHour: { label: 'إشعار تذكير الديون: الساعة (0-23) أو off', type: 'str' },
+    pushSummaryHour: { label: 'إشعار ملخص اليوم: الساعة (0-23) أو off', type: 'str' }
 };
 
 

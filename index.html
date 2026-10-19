@@ -28,40 +28,40 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=90">
+    <link rel="stylesheet" href="styles.css?v=91">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=90">
+    <link rel="stylesheet" href="tailwind.css?v=91">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/core.js?v=90" defer></script>
-    <script src="js/theme.js?v=90" defer></script>
-    <script src="js/logo-data.js?v=90" defer></script>
-    <script src="js/shell.js?v=90" defer></script>
-    <script src="js/calculator.js?v=90" defer></script>
-    <script src="js/reports.js?v=90" defer></script>
-    <script src="js/sync.js?v=90" defer></script>
-    <script src="js/conflicts.js?v=90" defer></script>
-    <script src="js/cache.js?v=90" defer></script>
-    <script src="js/bgsync.js?v=90" defer></script>
-    <script src="js/transactions.js?v=90" defer></script>
-    <script src="js/receipts.js?v=90" defer></script>
-    <script src="js/customers.js?v=90" defer></script>
-    <script src="js/countries.js?v=90" defer></script>
-    <script src="js/service-logos.js?v=90" defer></script>
-    <script src="js/traders.js?v=90" defer></script>
-    <script src="js/expenses.js?v=90" defer></script>
-    <script src="js/ready.js?v=90" defer></script>
-    <script src="js/settings.js?v=90" defer></script>
-    <script src="js/accounts.js?v=90" defer></script>
-    <script src="js/usdt.js?v=90" defer></script>
-    <script src="js/egp.js?v=90" defer></script>
-    <script src="js/closing.js?v=90" defer></script>
-    <script src="js/admin.js?v=90" defer></script>
-    <script src="js/position.js?v=90" defer></script>
-    <script src="js/search.js?v=90" defer></script>
-    <script src="js/notify.js?v=90" defer></script>
-    <script src="js/push.js?v=90" defer></script>
-    <script src="js/auth.js?v=90" defer></script>
-    <script src="js/main.js?v=90" defer></script>
+    <script src="js/core.js?v=91" defer></script>
+    <script src="js/theme.js?v=91" defer></script>
+    <script src="js/logo-data.js?v=91" defer></script>
+    <script src="js/shell.js?v=91" defer></script>
+    <script src="js/calculator.js?v=91" defer></script>
+    <script src="js/reports.js?v=91" defer></script>
+    <script src="js/sync.js?v=91" defer></script>
+    <script src="js/conflicts.js?v=91" defer></script>
+    <script src="js/cache.js?v=91" defer></script>
+    <script src="js/bgsync.js?v=91" defer></script>
+    <script src="js/transactions.js?v=91" defer></script>
+    <script src="js/receipts.js?v=91" defer></script>
+    <script src="js/customers.js?v=91" defer></script>
+    <script src="js/countries.js?v=91" defer></script>
+    <script src="js/service-logos.js?v=91" defer></script>
+    <script src="js/traders.js?v=91" defer></script>
+    <script src="js/expenses.js?v=91" defer></script>
+    <script src="js/ready.js?v=91" defer></script>
+    <script src="js/settings.js?v=91" defer></script>
+    <script src="js/accounts.js?v=91" defer></script>
+    <script src="js/usdt.js?v=91" defer></script>
+    <script src="js/egp.js?v=91" defer></script>
+    <script src="js/closing.js?v=91" defer></script>
+    <script src="js/admin.js?v=91" defer></script>
+    <script src="js/position.js?v=91" defer></script>
+    <script src="js/search.js?v=91" defer></script>
+    <script src="js/notify.js?v=91" defer></script>
+    <script src="js/push.js?v=91" defer></script>
+    <script src="js/auth.js?v=91" defer></script>
+    <script src="js/main.js?v=91" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -412,6 +412,8 @@
                                 <button type="button" data-action="calc-adjust" data-step="reset" id="calc-adj-reset" class="calc-adj-btn calc-adj-reset hidden" title="رجّع المبلغ زي ما انحسب" aria-label="إلغاء التعديل">↺</button>
                             </div>
                             <p id="calc-adjust-note" class="calc-adjust-note hidden"></p>
+                            <!-- الموظف فوق الحد: بتنحفظ وبتستنى موافقة المدير (transactions.js applyTxLimit) -->
+                            <p id="calc-limit-note" class="calc-limit-note hidden"></p>
                             <div class="flex flex-wrap gap-1.5 mt-3 text-[11px] font-bold">
                                 <span class="rate-pill">الشاشة <b id="res_rate_screen" class="num">3.000</b></span>
                                 <span class="rate-pill">البيع <b id="res_rate_sell" class="num">2.990</b></span>
@@ -633,6 +635,9 @@
                         <button data-action="export-csv" class="text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 px-2.5 py-2 rounded-lg transition">⬇ تصدير Excel</button>
                     </div>
                 </div>
+
+                <!-- للمدير: الحوالات اللي بتستنى موافقته (حد الموظف، transactions.js renderApprovalBanner) -->
+                <div id="approval-banner" class="hidden approval-banner"></div>
 
                 <!-- فلتر الحالات: تشغيل/إيقاف لكل حالة، ويبقى محفوظاً -->
                 <div class="flex flex-wrap items-center gap-2">
@@ -1259,6 +1264,22 @@
                         </div>
                         <p class="text-[11px] text-slate-400">اللي معه صلاحية "تعديل الأيام المقفلة" (والمدير "الكل") بيعدّل عادي. الحالة واسم الزبون بيتغيروا حتى بيوم مقفل، والحركة الجديدة بنفس يوم الجرد مسموحة.</p>
                     </div>
+                    <!-- حد الحوالة للموظف (transactions.js applyTxLimit، والسكربت txApprovalGate) -->
+                    <div id="tx-limit-section" class="space-y-2 pt-4 border-t border-slate-100">
+                        <div class="flex flex-wrap items-start justify-between gap-2">
+                            <div class="min-w-0 flex-1">
+                                <h4 class="text-sm font-bold text-slate-900">حد الحوالة للموظف</h4>
+                                <p class="text-[11px] text-slate-400 leading-5">حوالة الموظف فوق هالمبلغ بتنحفظ وبتستنى موافقتك قبل ما تصير مكتملة، وبيوصلك إشعار. الحوالة بالدولار بتنحسب بسعر الشاشة. اللي معه "إدارة المستخدمين" ما عليه حد.</p>
+                            </div>
+                            <button type="button" id="tx-limit-toggle" data-action="tx-limit-toggle" class="status-toggle" style="--c:#10b981" aria-pressed="false"><span class="sw"></span>شغّال</button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label for="tx_limit" class="text-[11px] font-bold text-slate-500">الحد</label>
+                            <input type="text" inputmode="decimal" autocomplete="off" data-commas id="tx_limit" class="field w-32 text-xs font-bold num">
+                            <span class="text-xs font-bold text-slate-500">₪</span>
+                        </div>
+                        <p id="tx-limit-note" class="hidden text-[11px] font-bold text-amber-700">انشر سكربت Google Sheets الجديد حتى يشتغل الحد</p>
+                    </div>
                     <div class="flex flex-wrap justify-between items-center gap-2 pt-4 border-t border-slate-100">
                         <div>
                             <h4 class="text-sm font-bold text-slate-900">سجل التعديلات</h4>
@@ -1284,6 +1305,21 @@
                     </div>
                     <div id="push-status" class="text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
                     <p id="push-script-note" class="hidden text-[11px] font-bold text-amber-700">انشر سكربت Google Sheets الجديد أول</p>
+                    <!-- إشعارات يومية (السكربت hourlyPushJobs): الساعات إعداد مشترك pushDebtsHour / pushSummaryHour -->
+                    <div id="daily-push-box" class="hidden daily-push">
+                        <h4 class="text-sm font-bold text-slate-900">إشعارات يومية على الجوال</h4>
+                        <div class="daily-row">
+                            <span class="min-w-0 flex-1"><b>☀️ تذكير بالديون</b><small>مين عليه وقديش، ومين إله عندك</small></span>
+                            <select id="push_debts_hour" class="field text-xs font-bold w-auto" aria-label="ساعة تذكير الديون"></select>
+                            <button type="button" data-action="daily-test" data-job="debts" class="daily-test-btn">جرّب هلّق</button>
+                        </div>
+                        <div class="daily-row">
+                            <span class="min-w-0 flex-1"><b>🌙 ملخص آخر اليوم</b><small>الربح، عدد الحركات، وأرصدة الحسابات</small></span>
+                            <select id="push_summary_hour" class="field text-xs font-bold w-auto" aria-label="ساعة ملخص اليوم"></select>
+                            <button type="button" data-action="daily-test" data-job="summary" class="daily-test-btn">جرّب هلّق</button>
+                        </div>
+                        <p id="daily-push-note" class="text-[11px] text-slate-400 leading-5"></p>
+                    </div>
                     <!-- الخطوات: مفتوحة لحد ما يكتمل الإعداد، وبعدها مسكّرة تحت "تغيير إعداد فاير بيز" (renderPushSettings) -->
                     <details id="push-setup-box" class="push-setup" open>
                     <summary class="text-xs font-bold text-slate-600 cursor-pointer">تغيير إعداد فاير بيز</summary>
@@ -1513,6 +1549,21 @@
                 <div>
                     <label for="rd_terms" class="font-bold block mb-1 text-slate-700">الشروط <span class="font-medium text-slate-400">(اختياري، بتنبعت تحت الحساب)</span></label>
                     <textarea id="rd_terms" rows="3" dir="auto" maxlength="3000" placeholder="مثلاً: أقل مبلغ 500 ريال · ابعت صورة الإيصال بعد التحويل" class="w-full field leading-6"></textarea>
+                </div>
+                <!-- كلمات بتتعبّى لحالها لما ينبعت (ready.js fillReady) -->
+                <div class="ready-tokens">
+                    <span class="text-[11px] font-bold text-slate-500">كلمات بتتعبّى لحالها:</span>
+                    <button type="button" data-action="ready-token" data-token="الاسم" class="ready-token-chip" title="اسم الزبون">{الاسم}</button><button type="button" data-action="ready-token" data-token="التاريخ" class="ready-token-chip" title="تاريخ اليوم">{التاريخ}</button><button type="button" data-action="ready-token" data-token="الدولار" class="ready-token-chip" title="سعر البيع">{الدولار}</button><button type="button" data-action="ready-token" data-token="استقبال_الجنيه" class="ready-token-chip" title="الألف جنيه استقبال ₪">{استقبال_الجنيه}</button><button type="button" data-action="ready-token" data-token="إرسال_الجنيه" class="ready-token-chip" title="الألف جنيه إرسال ₪">{إرسال_الجنيه}</button>
+                    <span class="block w-full text-[10px] text-slate-400">اكبس وحدة بتنزل بمكان المؤشر. الأسعار من البرنامج نفسه، فبتضل محدّثة لحالها.</span>
+                </div>
+                <div id="rd_expires_wrap" class="hidden">
+                    <label for="rd_expires" class="font-bold block mb-1 text-slate-700">ينتهي <span class="font-medium text-slate-400">(اختياري: بعده بيتوقف لحاله)</span></label>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <input type="datetime-local" id="rd_expires" class="field text-xs font-bold">
+                        <button type="button" data-action="ready-expire" data-hours="24" class="ready-token-chip">24 ساعة</button>
+                        <button type="button" data-action="ready-expire" data-hours="48" class="ready-token-chip">48 ساعة</button>
+                        <button type="button" data-action="ready-expire" data-hours="0" class="ready-token-chip">بدون</button>
+                    </div>
                 </div>
                 <label class="flex items-center gap-2 font-bold text-slate-700 cursor-pointer select-none">
                     <input type="checkbox" id="rd_paused" class="w-4 h-4 accent-slate-900">
