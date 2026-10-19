@@ -28,39 +28,40 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=87">
+    <link rel="stylesheet" href="styles.css?v=89">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=87">
+    <link rel="stylesheet" href="tailwind.css?v=89">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/core.js?v=87" defer></script>
-    <script src="js/theme.js?v=87" defer></script>
-    <script src="js/logo-data.js?v=87" defer></script>
-    <script src="js/shell.js?v=87" defer></script>
-    <script src="js/calculator.js?v=87" defer></script>
-    <script src="js/reports.js?v=87" defer></script>
-    <script src="js/sync.js?v=87" defer></script>
-    <script src="js/conflicts.js?v=87" defer></script>
-    <script src="js/cache.js?v=87" defer></script>
-    <script src="js/bgsync.js?v=87" defer></script>
-    <script src="js/transactions.js?v=87" defer></script>
-    <script src="js/receipts.js?v=87" defer></script>
-    <script src="js/customers.js?v=87" defer></script>
-    <script src="js/countries.js?v=87" defer></script>
-    <script src="js/service-logos.js?v=87" defer></script>
-    <script src="js/traders.js?v=87" defer></script>
-    <script src="js/expenses.js?v=87" defer></script>
-    <script src="js/settings.js?v=87" defer></script>
-    <script src="js/accounts.js?v=87" defer></script>
-    <script src="js/usdt.js?v=87" defer></script>
-    <script src="js/egp.js?v=87" defer></script>
-    <script src="js/closing.js?v=87" defer></script>
-    <script src="js/admin.js?v=87" defer></script>
-    <script src="js/position.js?v=87" defer></script>
-    <script src="js/search.js?v=87" defer></script>
-    <script src="js/notify.js?v=87" defer></script>
-    <script src="js/push.js?v=87" defer></script>
-    <script src="js/auth.js?v=87" defer></script>
-    <script src="js/main.js?v=87" defer></script>
+    <script src="js/core.js?v=89" defer></script>
+    <script src="js/theme.js?v=89" defer></script>
+    <script src="js/logo-data.js?v=89" defer></script>
+    <script src="js/shell.js?v=89" defer></script>
+    <script src="js/calculator.js?v=89" defer></script>
+    <script src="js/reports.js?v=89" defer></script>
+    <script src="js/sync.js?v=89" defer></script>
+    <script src="js/conflicts.js?v=89" defer></script>
+    <script src="js/cache.js?v=89" defer></script>
+    <script src="js/bgsync.js?v=89" defer></script>
+    <script src="js/transactions.js?v=89" defer></script>
+    <script src="js/receipts.js?v=89" defer></script>
+    <script src="js/customers.js?v=89" defer></script>
+    <script src="js/countries.js?v=89" defer></script>
+    <script src="js/service-logos.js?v=89" defer></script>
+    <script src="js/traders.js?v=89" defer></script>
+    <script src="js/expenses.js?v=89" defer></script>
+    <script src="js/ready.js?v=89" defer></script>
+    <script src="js/settings.js?v=89" defer></script>
+    <script src="js/accounts.js?v=89" defer></script>
+    <script src="js/usdt.js?v=89" defer></script>
+    <script src="js/egp.js?v=89" defer></script>
+    <script src="js/closing.js?v=89" defer></script>
+    <script src="js/admin.js?v=89" defer></script>
+    <script src="js/position.js?v=89" defer></script>
+    <script src="js/search.js?v=89" defer></script>
+    <script src="js/notify.js?v=89" defer></script>
+    <script src="js/push.js?v=89" defer></script>
+    <script src="js/auth.js?v=89" defer></script>
+    <script src="js/main.js?v=89" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -142,6 +143,10 @@
                 <button data-action="switch-tab" data-tab="customers" id="nav-customers" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-slate-600 hover:bg-slate-50 hover:text-slate-900">
                     <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                     إدارة الزبائن
+                </button>
+                <button data-action="switch-tab" data-tab="ready" id="nav-ready" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2h-2M6 7h8a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2zm2 5h4m-4 4h4"></path></svg>
+                    الحسابات الجاهزة
                 </button>
                 <button data-action="switch-tab" data-tab="countries" id="nav-countries" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-slate-600 hover:bg-slate-50 hover:text-slate-900">
                     <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -282,13 +287,18 @@
                                     <button type="button" data-action="set-payout" data-payout="كاش" class="seg-btn" role="radio">كاش</button>
                                 </div>
                                 <div id="payout-details" class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-                                    <div>
+                                    <div id="provider-cell">
                                         <span class="calc-label">الجهة</span>
                                         <div id="provider-row" class="flex flex-wrap gap-2"></div>
                                     </div>
                                     <div id="account-row">
                                         <label for="calc_account" id="calc_account_label" class="calc-label">رقم المحفظة</label>
                                         <input type="text" id="calc_account" data-latin class="calc-input font-mono">
+                                    </div>
+                                    <!-- البنك بس: رقم الحساب (بطلب عماد 2026-10-19). الجوال أو رقم الحساب أو IBAN، واحد على الأقل -->
+                                    <div id="bank-account-row" class="hidden">
+                                        <label for="calc_bank_account" class="calc-label">رقم الحساب</label>
+                                        <input type="text" id="calc_bank_account" data-latin autocomplete="off" class="calc-input font-mono">
                                     </div>
                                     <!-- البنك بس: IBAN اختياري (calculator.js syncIbanField) -->
                                     <div id="iban-row" class="hidden sm:col-span-2">
@@ -390,6 +400,18 @@
                                 <span id="res_currency_lbl" class="text-2xl font-bold text-slate-300">₪ شيكل</span>
                             </div>
                             <p id="res_hint" class="text-xs text-slate-400 mt-1">أدخل المبلغ لعرض النتيجة</p>
+                            <!-- تعديل ± على المسلّم قبل الحفظ (بطلب عماد 2026-10-19): "احذف القروش" بيطلع خصم، والأزرار لأقرب نص زي نافذة التعديل -->
+                            <div id="calc-adjust" class="calc-adjust hidden">
+                                <button type="button" data-action="calc-adjust" data-step="cents" id="calc-adj-cents" class="calc-adj-btn calc-adj-cents">احذف القروش</button>
+                                <span class="calc-adj-steps" dir="ltr">
+                                    <button type="button" data-action="calc-adjust" data-step="-1" class="calc-adj-btn" aria-label="ناقص 1">−1</button>
+                                    <button type="button" data-action="calc-adjust" data-step="-0.5" class="calc-adj-btn" aria-label="ناقص نص">−½</button>
+                                    <button type="button" data-action="calc-adjust" data-step="0.5" class="calc-adj-btn" aria-label="زائد نص">+½</button>
+                                    <button type="button" data-action="calc-adjust" data-step="1" class="calc-adj-btn" aria-label="زائد 1">+1</button>
+                                </span>
+                                <button type="button" data-action="calc-adjust" data-step="reset" id="calc-adj-reset" class="calc-adj-btn calc-adj-reset hidden" title="رجّع المبلغ زي ما انحسب" aria-label="إلغاء التعديل">↺</button>
+                            </div>
+                            <p id="calc-adjust-note" class="calc-adjust-note hidden"></p>
                             <div class="flex flex-wrap gap-1.5 mt-3 text-[11px] font-bold">
                                 <span class="rate-pill">الشاشة <b id="res_rate_screen" class="num">3.000</b></span>
                                 <span class="rate-pill">البيع <b id="res_rate_sell" class="num">2.990</b></span>
@@ -1000,6 +1022,31 @@
                 </div>
             </div>
 
+            <!-- ================= الحسابات الجاهزة (ready.js، بطلب عماد 2026-10-19) ================= -->
+            <div id="page-ready" class="space-y-4 hidden">
+                <div class="section-card p-4 space-y-3">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="relative flex-1 min-w-[14rem]">
+                            <svg class="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"></path></svg>
+                            <input type="search" id="ready_search" placeholder="بحث بالاسم أو التصنيف أو رقم الحساب..." autocomplete="off" class="w-full field text-xs sm:text-sm !pr-9">
+                        </div>
+                        <select id="ready_sort" class="text-xs border border-slate-200 rounded-lg p-2.5 bg-white font-semibold" aria-label="ترتيب الحسابات">
+                            <option value="used">الأكثر استعمالاً</option>
+                            <option value="recent">آخر استعمال</option>
+                            <option value="newest">الأحدث إضافة</option>
+                            <option value="name">الاسم</option>
+                        </select>
+                        <button type="button" data-action="ready-new" id="ready-new-btn" class="bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs px-4 py-2.5 rounded-lg transition shadow-sm">+ حساب جديد</button>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                        <div id="ready-filters" class="tv-scroll min-w-0"></div>
+                        <span id="ready-count" class="text-[11px] text-slate-400 font-bold shrink-0"></span>
+                    </div>
+                </div>
+                <div id="ready-old-script" class="hidden section-card p-4 text-xs font-bold text-amber-800 !bg-amber-50 !border-amber-200">الصفحة بدها سكربت Google Sheets الجديد: الصقه وانشره (✏️ ← إصدار جديد)، وبعدها بتقدر تضيف الحسابات.</div>
+                <div id="ready-grid" class="ready-grid"></div>
+            </div>
+
             <!-- ================= 5. تسعير الدول ================= -->
             <div id="page-countries" class="space-y-4 hidden">
                 <div class="section-card p-5 md:p-6">
@@ -1420,6 +1467,10 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             الزبائن
         </button>
+        <button data-action="switch-tab" data-tab="ready" id="mnav-ready" class="mobile-nav-item hidden flex flex-col items-center gap-0.5 py-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2h-2M6 7h8a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2zm2 5h4m-4 4h4"></path></svg>
+            الجاهزة
+        </button>
         <button data-action="switch-tab" data-tab="countries" id="mnav-countries" class="mobile-nav-item flex flex-col items-center gap-0.5 py-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             الدول
@@ -1434,6 +1485,85 @@
         </button>
     </nav>
     <div id="mnav-more-menu" class="hidden mnav-more-menu md:hidden"></div>
+
+    <!-- ================= الحسابات الجاهزة: إضافة وتعديل (ready.js) ================= -->
+    <div id="readyModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="section-card max-w-lg w-full p-6 my-auto">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                <h3 id="readyModalTitle" class="text-base font-bold text-slate-900">حساب جاهز جديد</h3>
+                <button data-action="close-modal" data-modal="readyModal" class="text-slate-400 hover:text-slate-700" aria-label="إغلاق">✕</button>
+            </div>
+            <form id="readyForm" class="mt-4 space-y-3 text-xs">
+                <input type="hidden" id="rd_id">
+                <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                    <div class="sm:col-span-3">
+                        <label for="rd_name" class="font-bold block mb-1 text-slate-700">الاسم *</label>
+                        <input type="text" id="rd_name" maxlength="120" placeholder="حساب سعودي — الراجحي" autocomplete="off" class="w-full field font-bold">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label for="rd_category" class="font-bold block mb-1 text-slate-700">التصنيف <span class="font-medium text-slate-400">(للفلترة)</span></label>
+                        <input type="text" id="rd_category" list="rd_categories" maxlength="60" placeholder="السعودية" autocomplete="off" class="w-full field">
+                        <datalist id="rd_categories"></datalist>
+                    </div>
+                </div>
+                <div>
+                    <label for="rd_details" class="font-bold block mb-1 text-slate-700">الحساب * <span class="font-medium text-slate-400">(اللي بينبعت للزبون)</span></label>
+                    <textarea id="rd_details" rows="5" dir="auto" maxlength="3000" placeholder="البنك: الراجحي&#10;اسم الحساب: ...&#10;رقم الحساب: ...&#10;IBAN: SA..." class="w-full field leading-7"></textarea>
+                </div>
+                <div>
+                    <label for="rd_terms" class="font-bold block mb-1 text-slate-700">الشروط <span class="font-medium text-slate-400">(اختياري، بتنبعت تحت الحساب)</span></label>
+                    <textarea id="rd_terms" rows="3" dir="auto" maxlength="3000" placeholder="مثلاً: أقل مبلغ 500 ريال · ابعت صورة الإيصال بعد التحويل" class="w-full field leading-6"></textarea>
+                </div>
+                <label class="flex items-center gap-2 font-bold text-slate-700 cursor-pointer select-none">
+                    <input type="checkbox" id="rd_paused" class="w-4 h-4 accent-slate-900">
+                    موقوف مؤقتاً <span class="font-medium text-slate-400">(النسخ والإرسال مسكّرين لحد ما ترجّعه)</span>
+                </label>
+                <div class="ready-preview">
+                    <span class="ready-preview-label">هيك بتوصل للزبون</span>
+                    <pre id="rd_preview" dir="auto"></pre>
+                </div>
+                <div class="pt-1 flex gap-2">
+                    <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg shadow-sm transition">حفظ</button>
+                    <button type="button" data-action="close-modal" data-modal="readyModal" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= الحسابات الجاهزة: إرسال لزبون على واتساب (ready.js) ================= -->
+    <div id="readySendModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="section-card max-w-md w-full p-6 my-auto">
+            <div class="flex justify-between items-start gap-3 pb-3 border-b border-slate-100">
+                <div class="min-w-0">
+                    <h3 class="text-base font-bold text-slate-900">إرسال على واتساب</h3>
+                    <p id="rs_title" class="text-[11px] text-slate-400 truncate"></p>
+                </div>
+                <button data-action="close-modal" data-modal="readySendModal" class="text-slate-400 hover:text-slate-700" aria-label="إغلاق">✕</button>
+            </div>
+            <div class="mt-4 space-y-3 text-xs">
+                <div class="relative">
+                    <label for="rs_customer" class="font-bold block mb-1 text-slate-700">الزبون</label>
+                    <input type="hidden" id="rs_customer_id">
+                    <input type="text" id="rs_customer" placeholder="اختار الزبون أو اكتب اسمه" autocomplete="off" role="combobox" aria-controls="rs-customer-dropdown" class="w-full field font-bold">
+                    <div id="rs-customer-dropdown" role="listbox" class="cust-dropdown hidden"></div>
+                </div>
+                <div>
+                    <label for="rs_phone" class="font-bold block mb-1 text-slate-700">رقم الواتساب</label>
+                    <input type="tel" id="rs_phone" dir="ltr" placeholder="970599123456" autocomplete="off" class="w-full field font-mono text-right">
+                    <span id="rs_phone_hint" class="text-[10px] text-slate-400 block mt-1"></span>
+                </div>
+                <div>
+                    <label for="rs_message" class="font-bold block mb-1 text-slate-700">الرسالة <span class="font-medium text-slate-400">(بتقدر تعدّلها لهالمرة)</span></label>
+                    <textarea id="rs_message" rows="7" dir="auto" class="w-full field text-[12px] leading-6"></textarea>
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button type="button" data-action="ready-send-go" class="ready-btn ready-btn-wa flex-1"><svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 004.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2z"/></svg><span>فتح محادثة الزبون</span></button>
+                    <button type="button" data-action="close-modal" data-modal="readySendModal" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold">إلغاء</button>
+                </div>
+                <button type="button" data-action="ready-send-any" class="w-full text-center text-[11px] font-bold text-slate-500 hover:text-slate-800 underline underline-offset-4">بدون زبون: افتح واتساب واختار المحادثة</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ================= مودال التأكيد ================= -->
     <div id="appConfirmModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
@@ -1483,10 +1613,16 @@
                     <label for="m_cust_account" id="m_cust_account_label" class="font-bold block mb-1 text-slate-700">رقم المحفظة</label>
                     <input type="text" id="m_cust_account" data-latin class="w-full field font-mono">
                 </div>
-                <div id="m_cust_iban_wrap" class="hidden">
-                    <label for="m_cust_iban" class="font-bold block mb-1 text-slate-700">IBAN <span class="font-medium text-slate-400">(اختياري)</span></label>
-                    <input type="text" id="m_cust_iban" dir="ltr" autocomplete="off" autocapitalize="characters" spellcheck="false" class="w-full field font-mono text-left">
-                    <span id="m_cust_iban_hint" class="iban-hint"></span>
+                <div id="m_cust_bank_wrap" class="hidden space-y-3">
+                    <div>
+                        <label for="m_cust_bank_account" class="font-bold block mb-1 text-slate-700">رقم الحساب <span class="font-medium text-slate-400">(اختياري)</span></label>
+                        <input type="text" id="m_cust_bank_account" data-latin autocomplete="off" class="w-full field font-mono">
+                    </div>
+                    <div>
+                        <label for="m_cust_iban" class="font-bold block mb-1 text-slate-700">IBAN <span class="font-medium text-slate-400">(اختياري)</span></label>
+                        <input type="text" id="m_cust_iban" dir="ltr" autocomplete="off" autocapitalize="characters" spellcheck="false" class="w-full field font-mono text-left">
+                        <span id="m_cust_iban_hint" class="iban-hint"></span>
+                    </div>
                 </div>
                 <div class="pt-2 flex gap-2">
                     <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg shadow-sm transition">حفظ البيانات</button>
@@ -1634,10 +1770,17 @@
                         <input type="text" id="edit_tx_account" data-latin class="w-full border border-slate-200 rounded-lg p-2 bg-white font-mono">
                     </div>
                 </div>
-                <div id="edit_tx_iban_wrap" class="hidden">
-                    <label for="edit_tx_iban" class="font-bold block mb-1 text-slate-700">IBAN <span class="font-medium text-slate-400">(اختياري)</span></label>
-                    <input type="text" id="edit_tx_iban" dir="ltr" autocomplete="off" autocapitalize="characters" spellcheck="false" class="w-full border border-slate-200 rounded-lg p-2 bg-white font-mono text-left">
-                    <span id="edit_tx_iban_hint" class="iban-hint"></span>
+                <!-- البنك: رقم الحساب و IBAN (مع رقم الجوال فوق، واحد منهم على الأقل) -->
+                <div id="edit_tx_bank_wrap" class="hidden space-y-3">
+                    <div>
+                        <label for="edit_tx_bank_account" class="font-bold block mb-1 text-slate-700">رقم الحساب</label>
+                        <input type="text" id="edit_tx_bank_account" data-latin autocomplete="off" class="w-full border border-slate-200 rounded-lg p-2 bg-white font-mono">
+                    </div>
+                    <div>
+                        <label for="edit_tx_iban" class="font-bold block mb-1 text-slate-700">IBAN <span class="font-medium text-slate-400">(اختياري)</span></label>
+                        <input type="text" id="edit_tx_iban" dir="ltr" autocomplete="off" autocapitalize="characters" spellcheck="false" class="w-full border border-slate-200 rounded-lg p-2 bg-white font-mono text-left">
+                        <span id="edit_tx_iban_hint" class="iban-hint"></span>
+                    </div>
                 </div>
                 <div class="grid grid-cols-3 gap-3">
                     <div class="col-span-2">
@@ -1688,7 +1831,10 @@
                 </div>
                 <!-- تعديل ± على المسلّم بعد الحساب، زي USDT (transactions.js bumpTxFinalAdjust) -->
                 <div id="edit_tx_final_adjust_wrap">
-                    <label for="edit_tx_final_adjust" class="font-bold block mb-1 text-slate-700">تعديل على المسلّم ±</label>
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <label for="edit_tx_final_adjust" class="font-bold text-slate-700">تعديل على المسلّم ±</label>
+                        <button type="button" data-action="tx-final-adjust" data-step="cents" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 disabled:cursor-not-allowed text-amber-700 font-bold text-[11px]">احذف القروش</button>
+                    </div>
                     <div class="flex gap-1.5 items-stretch">
                         <input type="number" step="any" id="edit_tx_final_adjust" dir="ltr" placeholder="0" class="flex-1 min-w-0 border border-slate-200 rounded-lg p-2 bg-white font-bold font-mono text-right">
                         <button type="button" dir="ltr" data-action="tx-final-adjust" data-step="-1" class="w-10 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:cursor-not-allowed text-slate-700 font-black text-sm font-mono">−1</button>

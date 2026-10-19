@@ -21,9 +21,10 @@ const PERM_LABELS = {
     delete: 'الحذف',
     profit: 'رؤية الأرباح',
     unlock: 'تعديل الأيام المقفلة',
-    notify: 'إرسال إشعارات'
+    notify: 'إرسال إشعارات',
+    ready: 'الحسابات الجاهزة'
 };
-const PAGE_PERMS = ['calculator', 'transactions', 'usdt', 'egp', 'accounts', 'expenses', 'traders', 'customers', 'countries', 'reports', 'settings', 'users'];
+const PAGE_PERMS = ['calculator', 'transactions', 'usdt', 'egp', 'accounts', 'expenses', 'traders', 'customers', 'ready', 'countries', 'reports', 'settings', 'users'];
 const EXTRA_PERMS = ['delete', 'profit', 'unlock', 'notify'];
 const ALL_PERM_KEYS = [...PAGE_PERMS, ...EXTRA_PERMS];
 

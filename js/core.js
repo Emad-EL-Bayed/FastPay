@@ -39,9 +39,9 @@ const RATE_REFRESH_MS = 10 * 60 * 1000;
 const STATUSES = ['قيد الإنتظار', 'فحص', 'جزئي', 'مكتمل', 'ملغي'];
 const CANCELLED = 'ملغي';
 const PAYOUTS = ['محفظة', 'بنكي', 'كاش'];
-// الجهات المتاحة لكل طريقة استلام
+// الجهات المتاحة لكل طريقة استلام (بال باي أول، بطلب عماد 2026-10-19)
 const PAYOUT_PROVIDERS = {
-    'محفظة': ['جوال باي', 'بال باي'],
+    'محفظة': ['بال باي', 'جوال باي'],
     'بنكي': ['بنك فلسطين'],
     'كاش': []
 };
@@ -456,7 +456,8 @@ function costLabel(mode, value) {
 function normalizeProvider(payout, provider) {
     const p = String(provider ?? '').trim();
     if (p) return p;
-    // الحوالات القديمة بدون جهة: المحفظة الافتراضية جوال باي، والبنك بنك فلسطين
+    // الحوالات القديمة بدون جهة: المحفظة كانت جوال باي (قبل ما بال باي يصير أول)، والبنك بنك فلسطين
+    if (payout === 'محفظة') return 'جوال باي';
     return (PAYOUT_PROVIDERS[payout] || [])[0] || '';
 }
 
@@ -468,6 +469,7 @@ function normalizeCustomer(c) {
         payout: PAYOUTS.includes(c?.payout) ? c.payout : 'محفظة',
         provider: normalizeProvider(c?.payout, c?.provider),
         account: String(c?.account ?? '').trim(),
+        bankAccount: latinDigits(String(c?.bankAccount ?? '')).trim(),
         iban: cleanIban(c?.iban),
         createdAt: String(c?.createdAt ?? '').slice(0, 10)
     };
@@ -497,6 +499,7 @@ function normalizeTx(t) {
         phone: phone === '-' ? '' : phone,
         customerId: String(t?.customerId ?? '').trim(),
         account: String(t?.account ?? '').trim(),
+        bankAccount: latinDigits(String(t?.bankAccount ?? '')).trim(),
         iban: cleanIban(t?.iban),
         payout: PAYOUTS.includes(t?.payout) ? t.payout : 'محفظة',
         provider: normalizeProvider(t?.payout, t?.provider),

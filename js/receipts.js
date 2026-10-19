@@ -159,6 +159,7 @@ function renderReceipt(t) {
     const amount = t.currency === 'USD' ? `$ ${fmt(t.clientUsd)}` : `${fmt(t.clientIls)} ₪`;
     const rows = [['طريقة الاستلام', escapeHtml(payoutLabel(t))]];
     if (t.payout !== 'كاش' && t.account) rows.push([accountLabel(t), ltr(escapeHtml(t.account))]);
+    if (t.payout === 'بنكي' && t.bankAccount) rows.push(['رقم الحساب', ltr(escapeHtml(t.bankAccount))]);
     if (t.payout === 'بنكي' && t.iban) rows.push(['IBAN', `<bdi class="ltr-num" style="font-size:0.68rem;white-space:normal">${escapeHtml(formatIban(t.iban))}</bdi>`]);
     rows.push(['مصدر الحوالة', escapeHtml(t.country)]);
     rows.push(['المبلغ المرسل', ltr(fmt(t.orig))]);

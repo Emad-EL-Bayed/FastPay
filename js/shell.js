@@ -4,7 +4,7 @@
 // الملفات تُحمَّل بالترتيب في index.html وتتشارك نفس المتغيرات العامة.
 
 // ================= التبديل بين التبويبات =================
-const TABS = ['calculator', 'reports', 'transactions', 'usdt', 'egp', 'accounts', 'expenses', 'traders', 'customers', 'countries', 'settings', 'users', 'position'];
+const TABS = ['calculator', 'reports', 'transactions', 'usdt', 'egp', 'accounts', 'expenses', 'traders', 'customers', 'ready', 'countries', 'settings', 'users', 'position'];
 const TITLES = {
     calculator: 'حاسبة وصرافة الحوالات',
     reports: 'التقرير المالي والأرباح',
@@ -15,6 +15,7 @@ const TITLES = {
     expenses: 'المصاريف التشغيلية',
     traders: 'حسابات التجار',
     customers: 'إدارة الزبائن',
+    ready: 'الحسابات الجاهزة',
     countries: 'تسعير ومعاملات الدول',
     settings: 'الإعدادات العامة والربط السحابي',
     users: 'المستخدمون والصلاحيات',
@@ -78,6 +79,7 @@ function switchTab(tab) {
     // زر التجار بالقائمة دايماً بيفتح القائمة (مش آخر تاجر كان مفتوح)
     if (tab === 'traders') { panelTraderId = null; renderTraders(); }
     if (tab === 'customers') renderCustomersTable();
+    if (tab === 'ready') renderReadyPage();
     if (tab === 'countries') renderCountriesTable();
     if (tab === 'settings') loadSettingsPage();
     if (tab === 'position') renderPositionPage();
@@ -411,7 +413,7 @@ function closeAppConfirm() {
 }
 
 // ================= شريط الجوال: 4 صفحات + "المزيد" =================
-const MOBILE_PRIMARY = ['calculator', 'transactions', 'usdt', 'accounts', 'egp', 'reports', 'customers', 'traders', 'expenses', 'countries', 'settings'];
+const MOBILE_PRIMARY = ['calculator', 'transactions', 'usdt', 'accounts', 'egp', 'reports', 'customers', 'ready', 'traders', 'expenses', 'countries', 'settings'];
 
 function updateMobileNav() {
     const allowed = MOBILE_PRIMARY.filter(tabVisible);

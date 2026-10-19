@@ -1543,6 +1543,71 @@ html.motion-off .copy-menu { animation: none; }
 .notify-foot button:disabled { opacity: 0.75; cursor: default; }
 .notify-alert { border: 2px solid rgb(var(--c-amber-300, 252 211 77)); }
 
+/* ================= تعديل ± على المسلّم بالحاسبة (calculator.js، بطاقة النتيجة الغامقة) ================= */
+.calc-adjust { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-top: 0.8rem; }
+.calc-adj-steps { display: inline-flex; gap: 0.25rem; }
+.calc-adj-btn { min-width: 2.1rem; padding: 0.35rem 0.5rem; border-radius: 0.65rem; font-size: 0.75rem; font-weight: 800; line-height: 1.2; color: #e2e8f0; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.12); transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease; }
+.calc-adj-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.22); }
+.calc-adj-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.calc-adj-cents { color: #fcd34d; background: rgba(252, 211, 77, 0.1); border-color: rgba(252, 211, 77, 0.3); padding-inline: 0.65rem; }
+.calc-adj-cents:hover:not(:disabled) { background: rgba(252, 211, 77, 0.18); border-color: rgba(252, 211, 77, 0.45); }
+.calc-adj-reset { margin-inline-start: auto; min-width: 2rem; font-size: 0.9rem; }
+.calc-adjust-note { margin-top: 0.45rem; font-size: 0.72rem; color: #94a3b8; }
+
+/* ================= الحسابات الجاهزة (ready.js) ================= */
+.ready-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr)); align-items: start; }
+.ready-card { display: flex; flex-direction: column; gap: 0.85rem; padding: 1.1rem 1.15rem 0.9rem; border-radius: 1.15rem; background: rgb(var(--b-white, 255 255 255)); border: 1px solid rgb(var(--c-slate-200, 226 232 240)); box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 10px 26px -20px rgb(15 23 42 / 0.3); transition: box-shadow 0.2s ease, border-color 0.2s ease; }
+.ready-card:hover { border-color: rgb(var(--c-slate-300, 203 213 225)); box-shadow: 0 1px 2px rgb(15 23 42 / 0.05), 0 16px 34px -20px rgb(15 23 42 / 0.38); }
+.ready-card.is-paused { background: rgb(var(--b-slate-50, 248 250 252)); border-style: dashed; }
+.ready-card.is-paused > :not(.ready-head) { opacity: 0.5; }
+.ready-head { display: flex; align-items: flex-start; gap: 0.75rem; }
+.ready-icon { width: 2.6rem; height: 2.6rem; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 0.85rem; background: rgb(var(--b-slate-100, 241 245 249)); color: rgb(var(--t-slate-500, 100 116 139)); }
+.ready-icon svg { width: 1.3rem; height: 1.3rem; }
+.ready-flag { font-size: 1.5rem; line-height: 1; background: rgb(var(--b-slate-50, 248 250 252)); border: 1px solid rgb(var(--c-slate-100, 241 245 249)); }
+.ready-name { font-family: 'Cairo', sans-serif; font-size: 1.02rem; font-weight: 800; line-height: 1.45; color: rgb(var(--t-slate-900, 15 23 42)); overflow-wrap: anywhere; }
+.ready-meta { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.15rem; }
+.ready-meta:not(:has(span)) { display: none; }
+.ready-cat, .ready-paused { font-size: 0.68rem; font-weight: 800; padding: 0.1rem 0.55rem; border-radius: 9999px; }
+.ready-cat { background: rgb(var(--b-blue-50, 239 246 255)); color: rgb(var(--t-blue-700, 29 78 216)); }
+.ready-paused { background: rgb(var(--b-amber-100, 254 243 199)); color: rgb(var(--t-amber-800, 146 64 14)); }
+.ready-tools { display: flex; gap: 0.1rem; margin-inline-start: auto; margin-top: -0.2rem; margin-inline-end: -0.35rem; flex-shrink: 0; }
+.ready-tools button { width: 2rem; height: 2rem; display: inline-flex; align-items: center; justify-content: center; border-radius: 0.6rem; color: rgb(var(--t-slate-400, 148 163 184)); transition: background-color 0.15s ease, color 0.15s ease; }
+.ready-tools button:hover { background: rgb(var(--b-slate-100, 241 245 249)); color: rgb(var(--t-slate-700, 51 65 85)); }
+.ready-tools button[data-action="delete-ready"]:hover { background: rgb(var(--b-rose-50, 255 241 242)); color: rgb(var(--t-rose-600, 225 29 72)); }
+.ready-tools svg { width: 1rem; height: 1rem; }
+.ready-details { position: relative; padding: 0.8rem 0.95rem; padding-inline-end: 2.7rem; border-radius: 0.85rem; background: rgb(var(--b-slate-50, 248 250 252)); border: 1px solid rgb(var(--c-slate-200, 226 232 240)); }
+.ready-text { margin: 0; font-family: 'IBM Plex Sans Arabic', sans-serif; font-size: 0.86rem; font-weight: 500; line-height: 1.85; color: rgb(var(--t-slate-800, 30 41 59)); white-space: pre-wrap; overflow-wrap: anywhere; unicode-bidi: plaintext; text-align: start; font-variant-numeric: tabular-nums; max-height: 14rem; overflow-y: auto; }
+.ready-copy-mini { position: absolute; top: 0.6rem; inset-inline-end: 0.6rem; }
+.ready-terms { padding: 0.6rem 0.85rem; border-radius: 0.8rem; background: rgb(var(--b-amber-50, 255 251 235)); border: 1px solid rgb(var(--c-amber-200, 253 230 138)); }
+.ready-terms-label { display: block; font-size: 0.66rem; font-weight: 800; color: rgb(var(--t-amber-700, 180 83 9)); margin-bottom: 0.15rem; }
+.ready-terms p { font-size: 0.78rem; line-height: 1.75; color: rgb(var(--t-amber-900, 120 53 15)); white-space: pre-wrap; overflow-wrap: anywhere; unicode-bidi: plaintext; text-align: start; }
+.ready-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.ready-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; padding: 0.65rem 0.9rem; border-radius: 0.8rem; font-size: 0.8rem; font-weight: 800; transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease; }
+.ready-btn svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+.ready-btn:active:not(:disabled) { transform: scale(0.97); }
+.ready-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.ready-btn-copy { background: rgb(var(--b-slate-900, 15 23 42)); color: rgb(var(--t-inv, 255 255 255)); }
+.ready-btn-copy:hover:not(:disabled) { background: rgb(var(--b-slate-800, 30 41 59)); }
+.ready-btn-copy.copied { background: rgb(var(--b-emerald-600, 5 150 105)); color: #fff; }
+.ready-btn-wa { background: #16a34a; color: #fff; box-shadow: 0 6px 16px -10px rgb(22 163 74 / 0.8); }
+.ready-btn-wa:hover:not(:disabled) { background: #15803d; }
+.ready-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.35rem 0.75rem; padding-top: 0.65rem; border-top: 1px solid rgb(var(--c-slate-100, 241 245 249)); }
+.ready-usage { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.45rem; font-size: 0.7rem; font-weight: 600; color: rgb(var(--t-slate-500, 100 116 139)); }
+.ready-usage span { display: inline-flex; align-items: center; gap: 0.25rem; }
+.ready-usage svg { width: 0.8rem; height: 0.8rem; opacity: 0.7; }
+.ready-usage b { font-weight: 800; color: rgb(var(--t-slate-700, 51 65 85)); }
+.ready-usage i { font-style: normal; color: rgb(var(--t-slate-300, 203 213 225)); }
+.ready-added { font-size: 0.62rem; font-weight: 500; color: rgb(var(--t-slate-300, 203 213 225)); white-space: nowrap; }
+.ready-empty { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 0.4rem; padding: 3rem 1.5rem; text-align: center; border-radius: 1.25rem; border: 1px dashed rgb(var(--c-slate-300, 203 213 225)); background: rgb(var(--b-white, 255 255 255)); font-size: 0.8rem; color: rgb(var(--t-slate-500, 100 116 139)); }
+.ready-empty b { font-size: 0.95rem; color: rgb(var(--t-slate-800, 30 41 59)); }
+.ready-empty span:not(.ready-empty-icon) { max-width: 26rem; line-height: 1.8; }
+.ready-empty-icon { width: 3.2rem; height: 3.2rem; display: inline-flex; align-items: center; justify-content: center; border-radius: 1rem; background: rgb(var(--b-slate-100, 241 245 249)); color: rgb(var(--t-slate-400, 148 163 184)); margin-bottom: 0.3rem; }
+.ready-empty-icon svg { width: 1.6rem; height: 1.6rem; }
+.ready-empty .ready-btn { padding-inline: 1.4rem; }
+.ready-preview { border-radius: 0.8rem; border: 1px dashed rgb(var(--c-slate-300, 203 213 225)); background: rgb(var(--b-slate-50, 248 250 252)); padding: 0.6rem 0.8rem; }
+.ready-preview-label { display: block; font-size: 0.66rem; font-weight: 800; color: rgb(var(--t-slate-400, 148 163 184)); margin-bottom: 0.25rem; }
+.ready-preview pre { margin: 0; font-family: 'IBM Plex Sans Arabic', sans-serif; font-size: 0.76rem; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; unicode-bidi: plaintext; text-align: start; max-height: 10rem; overflow-y: auto; color: rgb(var(--t-slate-700, 51 65 85)); }
+
 /* ================= الوضع الداكن ================= */
 /* الألوان نفسها متغيرات (build/tailwind.config.js) وبتتحول لحالها، وهون بس اللي إله شكل خاص بالداكن.
    <html data-theme="dark"> بيتحط من js/theme.js (ومن سكربت صغير بأول index.html قبل أول رسم) */

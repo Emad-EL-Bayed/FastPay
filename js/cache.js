@@ -95,6 +95,8 @@ async function restoreSnapshot() {
     sheetFeatures = Array.isArray(snap.features) ? snap.features : [];
     sheetSupportsFinalAdjust = sheetHas('finalAdjust');
     syncIbanField($('calc_iban'), $('calc_iban_hint'));
+    syncBankAccountField($('calc_bank_account'));
+    runLiveCalc();
     syncCursor = snap.cursor || null;
     lastFullLoadMs = snap.lastFull || 0;
     dataEpoch = snap.epoch ?? null;
@@ -158,7 +160,7 @@ function flashChangedRows(before) {
         const seen = new Set();
         ids.forEach(id => {
             document.querySelectorAll(`[data-id="${CSS.escape(id)}"]`).forEach(el => {
-                const box = el.closest('tr, .trader-card, .acc-card, .st-row, .tw-row, .tsv-card, li');
+                const box = el.closest('tr, .trader-card, .acc-card, .st-row, .tw-row, .tsv-card, .ready-card, li');
                 if (!box || seen.has(box) || !box.offsetParent) return;
                 seen.add(box);
                 replayClass(box, 'row-changed');

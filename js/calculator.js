@@ -168,13 +168,27 @@ function setPayout(payout, provider) {
     `).join('');
     $('payout-details').classList.toggle('hidden', payout === 'كاش');
     $('payout-cash-note').classList.toggle('hidden', payout !== 'كاش');
-    // البنك: رقم الجوال المربوط بالحساب (للتحويل) و IBAN اختياري
+    // البنك: رقم الجوال المربوط بالحساب (للتحويل)، رقم الحساب، و IBAN. واحد منهم على الأقل
     const bank = payout === 'بنكي';
     $('calc_account_label').textContent = bank ? 'رقم الجوال (للتحويل)' : 'رقم المحفظة';
     $('calc_account').placeholder = bank ? 'الجوال المربوط بحساب ' + (provider || 'البنك') : 'رقم محفظة ' + (provider || 'الزبون');
+    // البنك: الجهة بسطر لحالها، وتحتها الجوال ورقم الحساب جنب بعض
+    $('provider-cell').classList.toggle('sm:col-span-2', bank);
+    $('bank-account-row').classList.toggle('hidden', !bank);
     $('iban-row').classList.toggle('hidden', !bank);
+    syncBankAccountField($('calc_bank_account'));
     syncIbanField($('calc_iban'), $('calc_iban_hint'));
 }
+
+// رقم الحساب البنكي: الخانة بتتسكّر إذا السكربت المنشور قديم (ما فيه عمود إله فبيضيع)
+function syncBankAccountField(input) {
+    const supported = sheetHas('bankAccount');
+    input.disabled = !supported;
+    input.placeholder = supported ? 'رقم حساب الزبون' : 'حدّث السكربت حتى ينحفظ رقم الحساب';
+}
+
+// للحفظ: '' إذا فاضي أو الخانة مسكّرة
+const readBankAccountField = (input) => (input.disabled ? '' : latinDigits(input.value).trim());
 
 // ---------- IBAN (للبنك، اختياري) ----------
 // بالحاسبة ونافذة تعديل الحوالة ونافذة الزبون. الخانة بتتسكّر إذا السكربت المنشور قديم (ما في عمود IBAN فبيضيع)،
@@ -242,14 +256,72 @@ function readCalcInputs() {
         profitPct: toNum($('calc_profit_pct').value, 0),
         screenRate: toNum($('calc_screen_rate').value, globalConfig.screenRate),
         minusIls: toNum(globalConfig.minusIls, 0),
-        currency: $('calc_currency').value === 'USD' ? 'USD' : 'ILS'
+        currency: $('calc_currency').value === 'USD' ? 'USD' : 'ILS',
+        finalAdjust: 0
     };
+}
+
+// ---------- تعديل ± على المسلّم قبل الحفظ (بطلب عماد 2026-10-19) ----------
+// زي نافذة تعديل الحوالة: الأزرار بتوصل لأقرب نص بنفس الاتجاه، و"احذف القروش" بينزل للرقم الصحيح
+// (691.20 ← 691، وبيبين "خصم 0.20"). أي تغيير بالمبلغ أو النسب أو العملة بيلغي التعديل (كان لرقم ثاني)
+let calcAdjust = 0;
+let calcAdjustSig = '';
+const calcInputSig = (i) => JSON.stringify([i.country, i.orig, i.type, i.factor, i.costMode, i.costPct, i.costFixed, i.profitPct, i.screenRate, i.minusIls, i.currency]);
+
+// المدخلات مع التعديل (إذا لسا لنفس الأرقام)
+function calcInputsWithAdjust() {
+    const input = readCalcInputs();
+    if (calcAdjust && calcInputSig(input) !== calcAdjustSig) calcAdjust = 0;
+    input.finalAdjust = sheetHas('txAdjust') ? calcAdjust : 0;
+    return input;
+}
+
+// المسلّم قبل أي تعديل، بعملة التسليم
+function deliveredBase(input) {
+    const r = computeTransfer({ ...input, finalAdjust: 0 });
+    return input.currency === 'USD' ? r.clientUsd : r.clientIls;
+}
+
+// الرقم الجديد بعد الكبسة: step رقم (±½، ±1) أو 'cents' أو 'reset'
+function nextFinalAdjust(base, adj, step) {
+    if (step === 'reset') return 0;
+    if (step === 'cents') return round2(Math.max(Math.floor(round2(base + adj) + 1e-9), 0) - base);
+    const target = round2(base + adj + step);
+    const snapped = step > 0 ? Math.floor(target * 2 + 1e-9) / 2 : Math.ceil(target * 2 - 1e-9) / 2;
+    return round2(Math.max(snapped, 0) - base);
+}
+
+// "خصم 0.20 ₪" / "زيادة 0.50 ₪"
+const adjustWord = (adj, cur) => `${adj < 0 ? 'خصم' : 'زيادة'} ${moneyCur(Math.abs(adj), cur)}`;
+
+function bumpCalcAdjust(stepRaw) {
+    if (!sheetHas('txAdjust')) return;
+    const input = calcInputsWithAdjust();
+    if (input.orig <= 0) return;
+    const step = stepRaw === 'cents' || stepRaw === 'reset' ? stepRaw : toNum(stepRaw, 0);
+    if (!step) return;
+    calcAdjust = nextFinalAdjust(deliveredBase(input), input.finalAdjust, step);
+    calcAdjustSig = calcInputSig(input);
+    runLiveCalc();
+}
+
+function renderCalcAdjust(input, r) {
+    const show = input.orig > 0 && sheetHas('txAdjust');
+    $('calc-adjust').classList.toggle('hidden', !show);
+    const adj = show ? r.finalAdjust : 0;
+    const cur = input.currency === 'USD' ? 'USD' : 'ILS';
+    const amount = cur === 'USD' ? r.clientUsd : r.clientIls;
+    // ما في قروش: الزر ما إله شغل
+    $('calc-adj-cents').disabled = !show || Math.abs(amount - Math.floor(amount + 1e-9)) < 0.005;
+    $('calc-adj-reset').classList.toggle('hidden', !adj);
+    $('calc-adjust-note').classList.toggle('hidden', !adj);
+    if (adj) $('calc-adjust-note').innerHTML = `قبل التعديل <bdi class="num">${escapeHtml(moneyCur(deliveredBase(input), cur))}</bdi> · <b class="${adj < 0 ? 'text-amber-300' : 'text-sky-300'}">${escapeHtml(adjustWord(adj, cur))}</b>`;
 }
 
 let lastResultValue = null;
 
 function runLiveCalc() {
-    const input = readCalcInputs();
+    const input = calcInputsWithAdjust();
     const r = computeTransfer(input);
     const isUsd = input.currency === 'USD';
     const payoutAmount = isUsd ? r.clientUsd : r.clientIls;
@@ -276,6 +348,7 @@ function runLiveCalc() {
         : isUsd
             ? 'يُسلَّم بالدولار، شامل خصم التكلفة وربحك'
             : 'شامل خصم التكلفة وربحك';
+    renderCalcAdjust(input, r);
 
     animateNumber($('res_profit_ils'), r.profitIls, (v) => '+' + fmt(v), 350);
     $('res_profit_usd').textContent = fmt(r.profitUsd) + ' $';
@@ -345,8 +418,10 @@ function resetCalcForm() {
     $('calc_recipient').value = '';
     $('calc_customer_id').value = '';
     $('calc_account').value = '';
+    $('calc_bank_account').value = '';
     setIbanField($('calc_iban'), $('calc_iban_hint'), '');
     $('calc_orig_amount').value = '';
+    calcAdjust = 0;
     $('calc_status').value = STATUSES[0];
     $('calc_date').value = localDateStr();
     $('calc_phone').value = '';
@@ -535,6 +610,7 @@ function fillCustomerIntoCalc(c) {
     $('calc_customer_id').value = c.id || '';
     setPayout(c.payout || 'محفظة', c.provider);
     $('calc_account').value = c.account || '';
+    $('calc_bank_account').value = c.bankAccount || '';
     setIbanField($('calc_iban'), $('calc_iban_hint'), c.iban);
     $('calc_phone').value = '';
     updateCustomerPhoneField('calc', customers.find(x => c.id && x.id === c.id) || null, c.name);

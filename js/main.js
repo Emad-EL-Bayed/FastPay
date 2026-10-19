@@ -49,6 +49,17 @@ const CLICK_ACTIONS = {
     'edit-customer': (el) => openCustomerModal(customers.find(c => c.id === el.dataset.id)),
     'delete-customer': (el) => deleteCustomerPrompt(el.dataset.id),
     'open-whatsapp': (el) => openWhatsapp(el.dataset.id),
+    // الحسابات الجاهزة
+    'ready-new': () => openReadyModal(),
+    'edit-ready': (el) => openReadyModal(readyAccounts.find(x => x.id === el.dataset.id)),
+    'edit-ready-pause': (el) => toggleReadyPaused(el.dataset.id),
+    'delete-ready': (el) => deleteReadyPrompt(el.dataset.id),
+    'ready-copy': copyReady,
+    'ready-send': (el) => openReadySend(el.dataset.id),
+    'ready-send-go': () => sendReady(false),
+    'ready-send-any': () => sendReady(true),
+    'ready-select-customer': (el) => selectReadyCustomer(el.dataset.id),
+    'ready-filter': (el) => { readyFilter = el.dataset.filter || 'all'; renderReadyPage(); },
     'open-trader-modal': () => openTraderModal(),
     'open-trader': (el) => openTraderPanel(el.dataset.id),
     'pick-trader-logo': () => $('tr_logo_input').click(),
@@ -158,7 +169,8 @@ const CLICK_ACTIONS = {
     'usdt-select-customer': (el) => selectUsdtCustomer(el.dataset.id),
     'usdt-pay': (el) => openUsdtPay(toNum(el.dataset.id, NaN)),
     'final-adjust': (el) => bumpFinalAdjust(el.dataset.target, toNum(el.dataset.step, 0)),
-    'tx-final-adjust': (el) => bumpTxFinalAdjust(toNum(el.dataset.step, 0)),
+    'tx-final-adjust': (el) => bumpTxFinalAdjust(el.dataset.step),
+    'calc-adjust': (el) => bumpCalcAdjust(el.dataset.step),
     'usdt-receipt': (el) => openUsdtReceipt(toNum(el.dataset.id, NaN)),
     'edit-usdt': (el) => openUsdtModal('deposit', usdtMoves.find(m => m.id === toNum(el.dataset.id, NaN))),
     'delete-usdt': (el) => deleteUsdtPrompt(toNum(el.dataset.id, NaN)),
@@ -236,6 +248,7 @@ function bindEvents() {
     bindSettingsEvents();
     bindExpenseEvents();
     bindReportEvents();
+    bindReadyEvents();
 }
 
 // على مستوى الصفحة: الأزرار (data-action)، إغلاق القوائم والنوافذ، Escape، عجلة الماوس
@@ -263,6 +276,7 @@ function bindGlobalEvents() {
 
         if (!e.target.closest('#us-customer-dropdown') && e.target !== $('us_customer')) closeUsdtCustomerPicker();
         if (!e.target.closest('#eg-customer-dropdown') && e.target !== $('eg_customer')) closeEgpCustomerPicker();
+        if (!e.target.closest('#rs-customer-dropdown') && e.target !== $('rs_customer')) closeReadyCustomerPicker();
 
         // إغلاق قائمة اقتراحات الزبائن عند الضغط خارجها
         const dropdown = $('customer-search-dropdown');
@@ -286,7 +300,7 @@ function bindGlobalEvents() {
         // قائمة النسخ مفتوحة: Esc بيسكّرها هي بس
         if (!$('copy-menu').classList.contains('hidden')) return closeCopyMenu();
         // نغلق النافذة العليا فقط (مثلاً الفاتورة فوق ملف الزبون، أو الحركة فوق حساب التاجر)
-        const top = ['searchModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'accountModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal']
+        const top = ['searchModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'readySendModal', 'readyModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'accountModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal']
             .find(id => !$(id).classList.contains('hidden'));
         if (top) closeModal(top);
         // حساب التاجر (صفحة مش نافذة): Esc برّا الخانات بيرجع لقائمة التجار

@@ -63,6 +63,7 @@ function renderDataViews() {
     renderRecentTx();
     renderCustomersTable();
     renderExpenses();
+    renderReadyPage();
     updateReportsData();
     updateSyncPendingBar();
 }
@@ -97,7 +98,8 @@ const COLLECTION_NORMALIZERS = {
     usdtMoves: { get: () => usdtMoves, set: (v) => { usdtMoves = v; }, norm: (r) => normalizeUsdt(r), ok: (x) => x.id },
     egpWallets: { get: () => egpWallets, set: (v) => { egpWallets = v; }, norm: (r) => normalizeEgpWallet(r), ok: (x) => x.id },
     egpMoves: { get: () => egpMoves, set: (v) => { egpMoves = v; }, norm: (r) => normalizeEgp(r), ok: (x) => x.id },
-    closings: { get: () => closings, set: (v) => { closings = v; }, norm: (r) => normalizeClosing(r), ok: (x) => x.id }
+    closings: { get: () => closings, set: (v) => { closings = v; }, norm: (r) => normalizeClosing(r), ok: (x) => x.id },
+    readyAccounts: { get: () => readyAccounts, set: (v) => { readyAccounts = v; }, norm: (r) => normalizeReady(r), ok: (x) => x.id && x.name }
 };
 
 // ---------- تسعير الدول من الشيت ----------
@@ -164,7 +166,9 @@ const OP_ROWS = {
     upsert_usdt: ['usdtMoves', 'move'], delete_usdt: ['usdtMoves', null],
     upsert_egp_wallet: ['egpWallets', 'wallet'], delete_egp_wallet: ['egpWallets', null],
     upsert_egp: ['egpMoves', 'move'], delete_egp: ['egpMoves', null],
-    upsert_closing: ['closings', 'closing']
+    upsert_closing: ['closings', 'closing'],
+    // الحسابات الجاهزة: السكربت ما بيفحص "مين عدّل قبلي" عليها (النسخ بيغيّر آخر تحديث كل شوي)، بس آخر تحديث بيتسجّل
+    upsert_ready: ['readyAccounts', 'ready'], delete_ready: ['readyAccounts', null], use_ready: ['readyAccounts', null]
 };
 const opIsDelete = (op) => op.action === 'delete' || String(op.action || '').startsWith('delete_');
 
@@ -263,6 +267,8 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
     const servicesBefore = JSON.stringify(traderServices);
     // اللي تغيّر من آخر مرة بيومض لحظة بعد الرسم (مش بأول تحميل بدون نسخة)
     const stampsBefore = stale || silent ? new Map(rowStamps) : null;
+    // آخر تحديث لكل سطر من هالقراءة، قبل أي عملية بتنضاف هون (رفع التسعير لما ورقته فاضية): كان ياخد _base من النسخة المحفوظة القديمة
+    takeStamps(data, !data.incremental);
     if (data.incremental) {
         mergeIncremental(data);
     } else {
@@ -286,15 +292,17 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
         sheetSupportsEgp = Array.isArray(data.egpMoves);
         sheetFeatures = Array.isArray(data.features) ? data.features : [];
         sheetSupportsFinalAdjust = sheetHas('finalAdjust');
-        // خانة IBAN بالحاسبة بتنفتح لما يكون السكربت بيدعمها
+        // خانات IBAN ورقم الحساب و± بالحاسبة بتنفتح لما يكون السكربت بيدعمها
         syncIbanField($('calc_iban'), $('calc_iban_hint'));
+        syncBankAccountField($('calc_bank_account'));
+        runLiveCalc();
         dataEpoch = data.dataEpoch || '';
         egpWallets = (data.egpWallets || []).map(normalizeEgpWallet).filter(w => w.id);
         egpMoves = (data.egpMoves || []).map(normalizeEgp).filter(m => m.id);
         closings = (data.closings || []).map(normalizeClosing).filter(c => c.id);
+        readyAccounts = (data.readyAccounts || []).map(normalizeReady).filter(x => x.id && x.name);
         lastFullLoadMs = Date.now();
     }
-    takeStamps(data, !data.incremental);
     // السكربت القديم لا يرسل serverTime، فيبقى التحميل كاملاً في كل مرة
     syncCursor = data.serverTime || null;
     updateAuthFromServer(data);
@@ -356,7 +364,7 @@ const UPSERT_OPS = {
     upsert_egp_wallet: ['egpWallets', 'wallet'],
     upsert_service: ['traderServices', 'service']
 };
-const DELETE_OPS = { delete_account: 'accounts', delete_amove: 'accountMoves', delete_usdt: 'usdtMoves', delete_egp: 'egpMoves', delete_egp_wallet: 'egpWallets', delete_service: 'traderServices' };
+const DELETE_OPS = { delete_account: 'accounts', delete_amove: 'accountMoves', delete_usdt: 'usdtMoves', delete_egp: 'egpMoves', delete_egp_wallet: 'egpWallets', delete_service: 'traderServices', delete_ready: 'readyAccounts' };
 
 function applyOpLocally(op) {
     if (op.action === 'upsert') {
@@ -404,6 +412,19 @@ function applyOpLocally(op) {
         countries = countries.filter(x => x.id !== op.id);
     } else if (op.action === 'delete_expense') {
         expenses = expenses.filter(x => x.id !== toNum(op.id, NaN));
+    } else if (op.action === 'upsert_ready') {
+        // المحتوى بس: العدادات من الشيت
+        const x = normalizeReady(op.ready);
+        const old = readyAccounts.find(y => y.id === x.id);
+        if (old) Object.assign(old, { name: x.name, category: x.category, details: x.details, terms: x.terms, paused: x.paused });
+        else if (x.id && x.name) readyAccounts.push(x);
+    } else if (op.action === 'use_ready') {
+        // نسخ/إرسال لسا ما وصل الشيت: فوق العداد اللي إجا منه
+        const x = readyAccounts.find(y => y.id === String(op.id));
+        if (x) {
+            x[op.kind === 'send' ? 'sends' : 'copies'] += 1;
+            if (op.at && op.at > x.lastUsedAt) { x.lastUsedAt = op.at; x.lastUsedBy = session?.username || ''; }
+        }
     }
 }
 
@@ -535,6 +556,11 @@ function applyWriteResult(op, res) {
     if (key) {
         if (opIsDelete(op)) rowStamps.delete(key);
         else if (res.updatedAt) rowStamps.set(key, String(res.updatedAt));
+    }
+    // النسخ والإرسال: العداد زي ما بالشيت (مع اللي عملوه غيري)
+    if (op.action === 'use_ready' && 'copies' in res) {
+        const x = readyAccounts.find(y => y.id === String(op.id));
+        if (x) Object.assign(x, { copies: toNum(res.copies, x.copies), sends: toNum(res.sends, x.sends), lastUsedAt: res.lastUsedAt || x.lastUsedAt, lastUsedBy: res.lastUsedBy || x.lastUsedBy });
     }
     if (!res.serial) return;
     const target = op.action === 'upsert' ? ledger.find(t => t.id === toNum(op.id, NaN))

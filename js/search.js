@@ -34,13 +34,13 @@ function searchAll(raw) {
     };
 
     if (customers.length) {
-        add('الزبائن', customers.filter(c => has(c.name) || num(c.phone, c.account, c.iban)), c => ({
+        add('الزبائن', customers.filter(c => has(c.name) || num(c.phone, c.account, c.bankAccount, c.iban)), c => ({
             icon: '👤', title: c.name, sub: [c.phone && `<bdi class="ltr-num">${escapeHtml(c.phone)}</bdi>`, c.account && escapeHtml(c.account)].filter(Boolean).join(' · ') || escapeHtml(c.payout),
             run: () => openCustomerProfile(c.id, c.name)
         }));
     }
     if (hasPerm('transactions')) {
-        add('الحوالات', latestFirst(ledger.filter(t => has(t.recipient) || num(t.account, t.id, t.iban) || exact(t))), t => ({
+        add('الحوالات', latestFirst(ledger.filter(t => has(t.recipient) || num(t.account, t.bankAccount, t.id, t.iban) || exact(t))), t => ({
             icon: '💸', title: t.recipient, sub: `${receiptNo(t)} · ${escapeHtml(t.date)} · ${t.currency === 'USD' ? moneyCur(t.clientUsd, 'USD') : moneyCur(t.clientIls, 'ILS')} · ${escapeHtml(t.status)}`,
             run: () => gotoRef('tx', t.id)
         }));
@@ -71,6 +71,12 @@ function searchAll(raw) {
         add('الحسابات', accounts.filter(a => has(accountName(a))), a => ({
             icon: '💳', title: accountName(a), sub: moneyCur(accountBalances()[a.id]?.ILS || 0, 'ILS'),
             run: () => { accountFilterId = a.id; switchTab('accounts'); }
+        }));
+    }
+    if (hasPerm('ready')) {
+        add('الحسابات الجاهزة', readyAccounts.filter(x => has(x.name, x.category) || num(x.details)), x => ({
+            icon: '📋', title: x.name, sub: escapeHtml([x.category, x.paused ? 'موقوف' : ''].filter(Boolean).join(' · ') || 'حساب جاهز'),
+            run: () => { readyFilter = 'all'; $('ready_search').value = x.name; switchTab('ready'); }
         }));
     }
     // تطابق رقم الإيصال بالضبط فوق الكل

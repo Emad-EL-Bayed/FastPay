@@ -218,6 +218,7 @@ const RESTORE_OPTIONS = [
     ['traders', 'التجار وحركاتهم وخدماتهم', () => traders.length + traderMoves.length + traderServices.length],
     ['closings', 'الجرد اليومي', () => closings.length],
     ['settings', 'الإعدادات وتسعير الدول (وقفل الأيام)', () => null],
+    ['ready', 'الحسابات الجاهزة', () => readyAccounts.length],
     ['users', 'المستخدمين وكلمات السر', () => null]
 ];
 // المستخدمين مش مختارة تلقائياً: بترجّع كلمات السر القديمة

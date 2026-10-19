@@ -74,7 +74,8 @@ async function commitNewTransaction(form) {
 // نموذج الحاسبة بعد التحقق، أو null بعد تنبيه بالخانة الناقصة
 function readNewTxForm() {
     const warn = (msg) => { showToast('تنبيه', msg, 'warning'); return null; };
-    const input = readCalcInputs();
+    // مع التعديل ± (احذف القروش...) إذا انعمل لنفس الأرقام
+    const input = calcInputsWithAdjust();
     if (input.orig <= 0) return warn('الرجاء إدخال المبلغ أولاً');
     if (input.isOther && !input.country) {
         $('calc_other_name').focus();
@@ -89,12 +90,13 @@ function readNewTxForm() {
     const payout = $('calc_payout_type').value;
     const provider = payout === 'كاش' ? '' : $('calc_provider').value;
     const account = payout === 'كاش' ? '' : $('calc_account').value.trim();
-    // البنك: رقم الجوال أو الـ IBAN (واحد منهم على الأقل)
+    // البنك: رقم الجوال أو رقم الحساب أو الـ IBAN (واحد منهم على الأقل)
+    const bankAccount = payout === 'بنكي' ? readBankAccountField($('calc_bank_account')) : '';
     const iban = payout === 'بنكي' ? readIbanField($('calc_iban')) : '';
     if (iban === null) return null;
-    if (payout !== 'كاش' && !account && !iban) {
+    if (payout !== 'كاش' && !account && !bankAccount && !iban) {
         $('calc_account').focus();
-        return warn(payout === 'بنكي' ? 'اكتب رقم الجوال المربوط بالحساب أو الـ IBAN' : 'اكتب رقم المحفظة');
+        return warn(payout === 'بنكي' ? 'اكتب رقم الجوال المربوط بالحساب أو رقم الحساب أو الـ IBAN' : 'اكتب رقم المحفظة');
     }
     // الزبون المختار من القائمة أو بنفس الاسم، وإلا زبون جديد
     const customer = customers.find(c => c.id === $('calc_customer_id').value)
@@ -104,29 +106,29 @@ function readNewTxForm() {
     const date = $('calc_date').value || localDateStr();
     if (backdateLocked(date)) { lockWarn(); return null; }
     return {
-        input, recipient, payout, provider, account, iban, customer, phone,
+        input, recipient, payout, provider, account, bankAccount, iban, customer, phone,
         date,
         status: $('calc_status').value
     };
 }
 
 // ربط الحوالة بالزبون (مع تحديث بياناته ورقم الواتساب إن كُتب)، أو إنشاء زبون جديد
-function upsertTxCustomer({ customer, recipient, payout, provider, account, iban, phone, date }) {
+function upsertTxCustomer({ customer, recipient, payout, provider, account, bankAccount, iban, phone, date }) {
     if (customer) {
-        Object.assign(customer, { name: recipient, payout, provider, account: account || customer.account, iban: iban || customer.iban || '' }, phone ? { phone } : {});
+        Object.assign(customer, { name: recipient, payout, provider, account: account || customer.account, bankAccount: bankAccount || customer.bankAccount || '', iban: iban || customer.iban || '' }, phone ? { phone } : {});
         return customer;
     }
-    const created = { id: newCustomerId(), name: recipient, phone, payout, provider, account, iban, createdAt: date };
+    const created = { id: newCustomerId(), name: recipient, phone, payout, provider, account, bankAccount, iban, createdAt: date };
     customers.unshift(created);
     return created;
 }
 
 // الحساب من الأرقام مباشرة (وليس من النص المعروض) ثم التقريب لقرشين
-function buildNewTx({ input, recipient, payout, provider, account, iban, date, status }, customer) {
+function buildNewTx({ input, recipient, payout, provider, account, bankAccount, iban, date, status }, customer) {
     const r = computeTransfer(input);
     return {
         id: newTxId(),
-        date, customerId: customer.id, recipient, phone: '', account, iban, payout, provider,
+        date, customerId: customer.id, recipient, phone: '', account, bankAccount, iban, payout, provider,
         currency: input.currency,
         country: input.country,
         type: input.type,
@@ -140,6 +142,7 @@ function buildNewTx({ input, recipient, payout, provider, account, iban, date, s
         screenRate: input.screenRate,
         clientIls: round2(r.clientIls),
         clientUsd: round2(r.clientUsd),
+        finalAdjust: round2(r.finalAdjust),
         costIls: round2(r.costIls),
         profitIls: round2(r.profitIls),
         status
@@ -289,23 +292,23 @@ function renderLedgerTable() {
 const COPY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>';
 
 function txCopyButton(t) {
-    if (!t.account && !t.iban) return '';
-    const title = t.iban ? 'نسخ الرقم أو الـ IBAN' : 'نسخ ' + accountLabel(t);
+    if (!t.account && !t.iban && !t.bankAccount) return '';
+    const title = txCopyItems(t).length > 1 ? 'نسخ الرقم أو الحساب أو الـ IBAN' : 'نسخ ' + txCopyItems(t)[0].label;
     return `<button type="button" data-action="tx-copy" data-id="${t.id}" class="copy-btn" title="${title}" aria-label="${title}">${COPY_ICON}</button>`;
 }
 
 // شو بينسخ: {label, shown, value}
 function txCopyItems(t) {
     const items = [];
-    if (t.account) items.push({ label: accountLabel(t), shown: t.account, value: t.account });
-    if (t.iban) items.push({ label: 'IBAN', shown: formatIban(t.iban), value: t.iban });
-    // الاسم، الرقم، IBAN، والمبلغ: كل واحد بسطر
-    if (items.length > 1) {
-        const all = [t.recipient, t.account, t.iban, msgMoney(txDue(t), t.currency)].filter(Boolean).join('\n');
-        items.push({ label: 'نسخ الكل', shown: 'الاسم والرقم و IBAN والمبلغ، كل واحد بسطر', value: all, all: true });
-    }
+    if (t.account) items.push({ label: accountLabel(t), shown: t.account, value: t.account, field: 'account' });
+    if (t.bankAccount) items.push({ label: 'رقم الحساب', shown: t.bankAccount, value: t.bankAccount, field: 'bankAccount' });
+    if (t.iban) items.push({ label: 'IBAN', shown: formatIban(t.iban), value: t.iban, field: 'iban' });
+    // الاسم، الأرقام، والمبلغ: كل واحد بسطر
+    if (items.length > 1) items.push({ label: 'نسخ الكل', shown: 'الاسم والأرقام والمبلغ، كل واحد بسطر', value: txCopyAllText(t), all: true });
     return items;
 }
+
+const txCopyAllText = (t) => [t.recipient, t.account, t.bankAccount, t.iban, msgMoney(txDue(t), t.currency)].filter(Boolean).join('\n');
 
 function onTxCopy(btn) {
     const t = ledger.find(x => x.id === toNum(btn.dataset.id, NaN));
@@ -324,7 +327,7 @@ async function copyWithFlash(btn, item) {
         live.classList.add('copied');
         setTimeout(() => live.classList.remove('copied'), 1200);
     }
-    showToast('تم النسخ', item.all ? 'الاسم والرقم و IBAN والمبلغ، كل واحد بسطر' : `${item.label}: ${item.shown}`, 'success');
+    showToast('تم النسخ', item.all ? 'الاسم والأرقام والمبلغ، كل واحد بسطر' : `${item.label}: ${item.shown}`, 'success');
 }
 
 // القائمة الصغيرة جنب الزر (وحدة بس مفتوحة)
@@ -394,6 +397,7 @@ function renderTxDetails() {
     const copyBtn = (field, label) => `<button type="button" data-action="txd-copy" data-id="${t.id}" data-field="${field}" class="copy-btn" title="نسخ ${label}" aria-label="نسخ ${label}">${COPY_ICON}</button>`;
     const receive = [txDetailsRow('طريقة الاستلام', escapeHtml(payoutLabel(t)))];
     if (t.account) receive.push(txDetailsRow(accountLabel(t), `<bdi class="ltr-num font-mono">${escapeHtml(t.account)}</bdi>`, copyBtn('account', accountLabel(t))));
+    if (t.bankAccount) receive.push(txDetailsRow('رقم الحساب', `<bdi class="ltr-num font-mono">${escapeHtml(t.bankAccount)}</bdi>`, copyBtn('bankAccount', 'رقم الحساب')));
     if (t.iban) receive.push(txDetailsRow('IBAN', `<bdi class="ltr-num font-mono txd-iban">${escapeHtml(formatIban(t.iban))}</bdi>`, copyBtn('iban', 'IBAN'), true));
     // ÷ 4.03 أو × 1.365، والنسبة المباشرة: خصم 6%
     const factorText = fmt(t.factor, 4).replace(/\.?0+$/, '');
@@ -405,7 +409,7 @@ function renderTxDetails() {
         txDetailsRow('التكلفة', `<bdi class="num">${escapeHtml(costLabel(t.costMode, t.costMode === 'fixed' ? t.costFixed : t.costPct))}</bdi>`),
         txDetailsRow('نسبة الربح', `<bdi class="num">${t.profitPct}%</bdi>`),
         txDetailsRow('سعر الشاشة', `<span class="num">${fmt(t.screenRate, 3)} ₪</span>`),
-        ...(t.finalAdjust ? [txDetailsRow('تعديل على المسلّم', `<bdi class="num">${signedAmount(t.finalAdjust, t.currency)}</bdi>`)] : []),
+        ...(t.finalAdjust ? [txDetailsRow('تعديل على المسلّم', `<bdi class="num">${escapeHtml(adjustWord(t.finalAdjust, t.currency))}</bdi>`)] : []),
         `<div class="profit-only">${txDetailsRow('ربحي', `<span class="num font-black ${cancelled ? 'text-slate-400 line-through' : 'text-emerald-600'}">+${fmt(t.profitIls)} ₪</span>`)}</div>`
     ];
     const moves = refMoves('tx', t.id);
@@ -437,7 +441,7 @@ function renderTxDetails() {
             <section>
                 <h4 class="txd-title">الاستلام</h4>
                 ${receive.join('')}
-                ${t.account && t.iban ? `<button type="button" data-action="txd-copy" data-id="${t.id}" data-field="all" class="txd-copy-all">${COPY_ICON} نسخ الكل (الاسم والرقم و IBAN والمبلغ)</button>` : ''}
+                ${txCopyItems(t).some(i => i.all) ? `<button type="button" data-action="txd-copy" data-id="${t.id}" data-field="all" class="txd-copy-all">${COPY_ICON} نسخ الكل (الاسم والأرقام والمبلغ)</button>` : ''}
             </section>
             <section>
                 <h4 class="txd-title">الحساب</h4>
@@ -459,8 +463,8 @@ function copyTxField(btn) {
     if (!t) return;
     const items = txCopyItems(t);
     const item = btn.dataset.field === 'all'
-        ? (items.find(i => i.all) || { label: 'نسخ الكل', value: [t.recipient, t.account, t.iban, msgMoney(txDue(t), t.currency)].filter(Boolean).join('\n'), all: true })
-        : btn.dataset.field === 'iban' ? items.find(i => i.label === 'IBAN') : items[0];
+        ? (items.find(i => i.all) || { label: 'نسخ الكل', value: txCopyAllText(t), all: true })
+        : items.find(i => i.field === btn.dataset.field) || items[0];
     if (item) copyWithFlash(btn, item);
 }
 
@@ -528,6 +532,8 @@ function openEditTxModal(id) {
     fillProviderSelect($('edit_tx_provider'), tx.payout, tx.provider);
     $('edit_tx_currency').value = tx.currency;
     $('edit_tx_account').value = tx.account;
+    $('edit_tx_bank_account').value = tx.bankAccount;
+    syncBankAccountField($('edit_tx_bank_account'));
     setIbanField($('edit_tx_iban'), $('edit_tx_iban_hint'), tx.iban);
     syncEditTxPayoutFields();
     $('edit_tx_status').value = tx.status;
@@ -560,11 +566,11 @@ function openEditTxModal(id) {
     openModal('editTxModal');
 }
 
-// البنك: "رقم الجوال (للتحويل)" و IBAN، المحفظة: رقم المحفظة، والكاش بدون رقم
+// البنك: "رقم الجوال (للتحويل)" ورقم الحساب و IBAN، المحفظة: رقم المحفظة، والكاش بدون رقم
 function syncEditTxPayoutFields() {
     const payout = $('edit_tx_payout').value;
     $('edit_tx_account_label').textContent = payout === 'بنكي' ? 'رقم الجوال (للتحويل)' : payout === 'كاش' ? 'الرقم (للكاش مش لازم)' : 'رقم المحفظة';
-    $('edit_tx_iban_wrap').classList.toggle('hidden', payout !== 'بنكي');
+    $('edit_tx_bank_wrap').classList.toggle('hidden', payout !== 'بنكي');
 }
 
 function onEditCountrySelect() {
@@ -609,20 +615,14 @@ function recalcEditModal() {
 }
 
 // ================= تعديل ± على المسلّم (زي USDT) =================
-// المسلّم فيه قروش (1,387.46)، فالأزرار بتوصل لأقرب نص بنفس الاتجاه: +½ ← 1,387.50، −½ ← 1,387.00، وبعدها خطوات عادية
-const txAdjustBase = (input) => {
-    const r = computeTransfer({ ...input, finalAdjust: 0 });
-    return input.currency === 'USD' ? r.clientUsd : r.clientIls;
-};
-
-function bumpTxFinalAdjust(step) {
+// المسلّم فيه قروش (1,387.46)، فالأزرار بتوصل لأقرب نص بنفس الاتجاه: +½ ← 1,387.50، −½ ← 1,387.00، وبعدها خطوات عادية.
+// "احذف القروش" ← 1,387.00 (خصم 0.46). نفس الحساب تبع الحاسبة (calculator.js nextFinalAdjust)
+function bumpTxFinalAdjust(stepRaw) {
     const el = $('edit_tx_final_adjust');
+    const step = stepRaw === 'cents' ? 'cents' : toNum(stepRaw, 0);
     if (el.disabled || !step) return;
     const input = readEditInputs();
-    const base = txAdjustBase(input);
-    const target = round2(base + input.finalAdjust + step);
-    const snapped = step > 0 ? Math.floor(target * 2 + 1e-9) / 2 : Math.ceil(target * 2 - 1e-9) / 2;
-    const adj = round2(Math.max(snapped, 0) - base);
+    const adj = nextFinalAdjust(deliveredBase(input), input.finalAdjust, step);
     el.value = adj ? String(adj) : '';
     recalcEditModal();
 }
@@ -635,8 +635,8 @@ function syncTxAdjustHint(input, r) {
     }
     const cur = input.currency === 'USD' ? 'USD' : 'ILS';
     hint.innerHTML = r.finalAdjust
-        ? `قبل التعديل ${escapeHtml(moneyCur(txAdjustBase(input), cur))} · التعديل <b>${signedAmount(r.finalAdjust, cur)}</b> <span class="profit-only">· الربح ${signedAmount(-r.finalAdjust * (cur === 'USD' ? input.screenRate : 1), 'ILS')}</span>`
-        : 'الأزرار بتوصل لأقرب نص · موجب = بنعطيه أكثر (ربح أقل) · سالب = بنعطيه أقل (ربح أكثر)';
+        ? `قبل التعديل ${escapeHtml(moneyCur(deliveredBase(input), cur))} · <b>${escapeHtml(adjustWord(r.finalAdjust, cur))}</b> <span class="profit-only">· الربح ${signedAmount(-r.finalAdjust * (cur === 'USD' ? input.screenRate : 1), 'ILS')}</span>`
+        : 'الأزرار بتوصل لأقرب نص · "احذف القروش" بينزل للرقم الصحيح · موجب = بنعطيه أكثر، سالب = أقل';
 }
 
 async function saveEditedTransaction(e) {
@@ -651,6 +651,7 @@ async function saveEditedTransaction(e) {
     // IBAN بس للبنك؛ غيره بينمسح. السكربت القديم ما فيه عمود إله، فبيضل زي ما هو
     const iban = $('edit_tx_payout').value === 'بنكي' ? readIbanField($('edit_tx_iban')) : '';
     if (iban === null) return;
+    const bankAccount = $('edit_tx_payout').value === 'بنكي' ? readBankAccountField($('edit_tx_bank_account')) : '';
 
     const r = computeTransfer(input);
     const oldStatus = tx.status;
@@ -663,6 +664,7 @@ async function saveEditedTransaction(e) {
         provider: $('edit_tx_payout').value === 'كاش' ? '' : $('edit_tx_provider').value,
         account: $('edit_tx_account').value.trim(),
         ...(sheetHas('iban') ? { iban } : {}),
+        ...(sheetHas('bankAccount') ? { bankAccount } : {}),
         status: $('edit_tx_status').value,
         country: selectedCountry($('edit_tx_country'))?.name || tx.country,
         ...input,
@@ -700,9 +702,9 @@ function csvCell(value) {
 }
 
 function exportToCSV() {
-    const header = ['المعرف', 'رقم الإيصال', 'التاريخ', 'المرسل إليه', 'رقم الحساب / المحفظة', 'IBAN', 'طريقة التسليم', 'الجهة', 'الدولة', 'نوع المعادلة', 'المبلغ الأصلي', 'معامل التحويل', 'نسبة التكلفة %', 'تكلفة ثابتة $', 'نسبة الربح %', 'الخصم الإضافي', 'سعر الشاشة المعتمد', 'عملة التسليم', 'المسلّم بالشيكل', 'المسلّم بالدولار', 'تعديل على النهائي', 'التكلفة بالشيكل', 'صافي الربح بالشيكل', 'الحالة'];
+    const header = ['المعرف', 'رقم الإيصال', 'التاريخ', 'المرسل إليه', 'رقم الحساب / المحفظة', 'رقم الحساب البنكي', 'IBAN', 'طريقة التسليم', 'الجهة', 'الدولة', 'نوع المعادلة', 'المبلغ الأصلي', 'معامل التحويل', 'نسبة التكلفة %', 'تكلفة ثابتة $', 'نسبة الربح %', 'الخصم الإضافي', 'سعر الشاشة المعتمد', 'عملة التسليم', 'المسلّم بالشيكل', 'المسلّم بالدولار', 'تعديل على النهائي', 'التكلفة بالشيكل', 'صافي الربح بالشيكل', 'الحالة'];
     const rows = ledger.map(t => [
-        t.id, t.serial || '', t.date, t.recipient, t.account, formatIban(t.iban), t.payout, t.provider, t.country, TYPE_LABEL[t.type],
+        t.id, t.serial || '', t.date, t.recipient, t.account, t.bankAccount, formatIban(t.iban), t.payout, t.provider, t.country, TYPE_LABEL[t.type],
         t.orig, t.factor, t.costPct, t.costFixed, t.profitPct, t.minusIls, t.screenRate,
         t.currency === 'USD' ? 'دولار' : 'شيكل', t.clientIls.toFixed(2), t.clientUsd.toFixed(2), t.finalAdjust || '',
         t.costIls.toFixed(2), t.profitIls.toFixed(2), t.status
