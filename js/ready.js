@@ -52,40 +52,16 @@ function normalizeReadySend(r) {
 const readyPayload = (x) => ({ id: x.id, name: x.name, category: x.category, details: x.details, terms: x.terms, paused: x.paused ? 'yes' : 'no', expiresAt: x.expiresAt || '', createdAt: x.createdAt });
 
 // ---------- كلمات بتتعبّى لحالها بالرسالة (بطلب عماد 2026-10-19) ----------
-// {الاسم} = اسم الزبون (بالنسخ بدون زبون بتنشال)، والأسعار من البرنامج نفسه، فما بتعدّلها بإيدك كل ما تتغير
+// {الاسم} = اسم الزبون (بالنسخ بدون زبون بتنشال)، و{التاريخ}. الأسعار انشالت بقراره (2026-10-20): السعر بيتغير وبيختلف
+// حسب الشريحة والمبلغ، فرقم بالرسالة كان يطلع غير الفاتورة؛ الأسعار من الحاسبة وصفحتي USDT والجنيه
 const READY_TOKENS = [
     ['الاسم', 'اسم الزبون'],
-    ['التاريخ', 'تاريخ اليوم'],
-    ['الدولار', 'سعر البيع'],
-    ['استقبال_الجنيه', 'الألف جنيه استقبال ₪'],
-    ['إرسال_الجنيه', 'الألف جنيه إرسال ₪'],
-    ['سحب_USDT', 'سعر سحب الـ USDT ₪ لكل وحدة، حسب الشرائح'],
-    ['إيداع_USDT', 'سعر إيداع الـ USDT ₪ لكل وحدة، حسب الشرائح (بدون رسوم الشبكة)']
+    ['التاريخ', 'تاريخ اليوم']
 ];
 
-// سعر الـ USDT الواحد بالشيكل لكل شريحة (السحب: سعر البيع ناقص النسبة، الإيداع: سعر الشراء زائد النسبة).
-// شريحة وحدة: الرقم لحاله؛ أكثر: كل شريحة بسطر ("أقل من 400 USDT: 2.95")
-function usdtPriceText(kind) {
-    const rate = kind === 'withdraw' ? sellBuyRates().sell : sellBuyRates().buy;
-    if (!(rate > 0)) return '؟';
-    const tiers = usdtKindTiers(kind);
-    const price = (pct) => fmt(rate * (kind === 'withdraw' ? 1 - pct / 100 : 1 + pct / 100), 2);
-    if (tiers.length <= 1) return price(tiers[0]?.pct ?? 0);
-    return tiers.map(t => `${tierRangeText(tiers, t.min, 'USDT')}: ${price(t.pct)}`).join('\n');
-}
-
 function readyTokenValues() {
-    const price = (v) => (v > 0 ? fmtTrim(v) : '؟');
-    const r = egpRates();
     const d = localDateStr().split('-');
-    return {
-        'التاريخ': `${d[2]}/${d[1]}/${d[0]}`,
-        'الدولار': price(round3(sellBuyRates().sell)),
-        'استقبال_الجنيه': price(egpPerThousand(r.receive, r.usdReceive, 'ILS')),
-        'إرسال_الجنيه': price(egpPerThousand(r.send, r.usdSend, 'ILS')),
-        'سحب_USDT': usdtPriceText('withdraw'),
-        'إيداع_USDT': usdtPriceText('deposit')
-    };
+    return { 'التاريخ': `${d[2]}/${d[1]}/${d[0]}` };
 }
 
 // name: اسم الزبون، أو '' (بتنشال)، أو null (بتضل علامة، للعرض بالكرت)
