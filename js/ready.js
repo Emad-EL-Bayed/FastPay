@@ -58,8 +58,21 @@ const READY_TOKENS = [
     ['التاريخ', 'تاريخ اليوم'],
     ['الدولار', 'سعر البيع'],
     ['استقبال_الجنيه', 'الألف جنيه استقبال ₪'],
-    ['إرسال_الجنيه', 'الألف جنيه إرسال ₪']
+    ['إرسال_الجنيه', 'الألف جنيه إرسال ₪'],
+    ['سحب_USDT', 'سعر سحب الـ USDT ₪ لكل وحدة، حسب الشرائح'],
+    ['إيداع_USDT', 'سعر إيداع الـ USDT ₪ لكل وحدة، حسب الشرائح (بدون رسوم الشبكة)']
 ];
+
+// سعر الـ USDT الواحد بالشيكل لكل شريحة (السحب: سعر البيع ناقص النسبة، الإيداع: سعر الشراء زائد النسبة).
+// شريحة وحدة: الرقم لحاله؛ أكثر: كل شريحة بسطر ("أقل من 400 USDT: 2.95")
+function usdtPriceText(kind) {
+    const rate = kind === 'withdraw' ? sellBuyRates().sell : sellBuyRates().buy;
+    if (!(rate > 0)) return '؟';
+    const tiers = usdtKindTiers(kind);
+    const price = (pct) => fmt(rate * (kind === 'withdraw' ? 1 - pct / 100 : 1 + pct / 100), 2);
+    if (tiers.length <= 1) return price(tiers[0]?.pct ?? 0);
+    return tiers.map(t => `${tierRangeText(tiers, t.min, 'USDT')}: ${price(t.pct)}`).join('\n');
+}
 
 function readyTokenValues() {
     const price = (v) => (v > 0 ? fmtTrim(v) : '؟');
@@ -69,7 +82,9 @@ function readyTokenValues() {
         'التاريخ': `${d[2]}/${d[1]}/${d[0]}`,
         'الدولار': price(round3(sellBuyRates().sell)),
         'استقبال_الجنيه': price(egpPerThousand(r.receive, r.usdReceive, 'ILS')),
-        'إرسال_الجنيه': price(egpPerThousand(r.send, r.usdSend, 'ILS'))
+        'إرسال_الجنيه': price(egpPerThousand(r.send, r.usdSend, 'ILS')),
+        'سحب_USDT': usdtPriceText('withdraw'),
+        'إيداع_USDT': usdtPriceText('deposit')
     };
 }
 
