@@ -28,41 +28,41 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=99">
+    <link rel="stylesheet" href="styles.css?v=101">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=99">
+    <link rel="stylesheet" href="tailwind.css?v=101">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=99" defer></script>
-    <script src="js/core.js?v=99" defer></script>
-    <script src="js/theme.js?v=99" defer></script>
-    <script src="js/logo-data.js?v=99" defer></script>
-    <script src="js/shell.js?v=99" defer></script>
-    <script src="js/calculator.js?v=99" defer></script>
-    <script src="js/reports.js?v=99" defer></script>
-    <script src="js/sync.js?v=99" defer></script>
-    <script src="js/conflicts.js?v=99" defer></script>
-    <script src="js/cache.js?v=99" defer></script>
-    <script src="js/bgsync.js?v=99" defer></script>
-    <script src="js/transactions.js?v=99" defer></script>
-    <script src="js/receipts.js?v=99" defer></script>
-    <script src="js/customers.js?v=99" defer></script>
-    <script src="js/countries.js?v=99" defer></script>
-    <script src="js/service-logos.js?v=99" defer></script>
-    <script src="js/traders.js?v=99" defer></script>
-    <script src="js/expenses.js?v=99" defer></script>
-    <script src="js/ready.js?v=99" defer></script>
-    <script src="js/settings.js?v=99" defer></script>
-    <script src="js/accounts.js?v=99" defer></script>
-    <script src="js/usdt.js?v=99" defer></script>
-    <script src="js/egp.js?v=99" defer></script>
-    <script src="js/closing.js?v=99" defer></script>
-    <script src="js/admin.js?v=99" defer></script>
-    <script src="js/position.js?v=99" defer></script>
-    <script src="js/search.js?v=99" defer></script>
-    <script src="js/notify.js?v=99" defer></script>
-    <script src="js/push.js?v=99" defer></script>
-    <script src="js/auth.js?v=99" defer></script>
-    <script src="js/main.js?v=99" defer></script>
+    <script src="js/endpoint.js?v=101" defer></script>
+    <script src="js/core.js?v=101" defer></script>
+    <script src="js/theme.js?v=101" defer></script>
+    <script src="js/logo-data.js?v=101" defer></script>
+    <script src="js/shell.js?v=101" defer></script>
+    <script src="js/calculator.js?v=101" defer></script>
+    <script src="js/reports.js?v=101" defer></script>
+    <script src="js/sync.js?v=101" defer></script>
+    <script src="js/conflicts.js?v=101" defer></script>
+    <script src="js/cache.js?v=101" defer></script>
+    <script src="js/bgsync.js?v=101" defer></script>
+    <script src="js/transactions.js?v=101" defer></script>
+    <script src="js/receipts.js?v=101" defer></script>
+    <script src="js/customers.js?v=101" defer></script>
+    <script src="js/countries.js?v=101" defer></script>
+    <script src="js/service-logos.js?v=101" defer></script>
+    <script src="js/traders.js?v=101" defer></script>
+    <script src="js/expenses.js?v=101" defer></script>
+    <script src="js/ready.js?v=101" defer></script>
+    <script src="js/settings.js?v=101" defer></script>
+    <script src="js/accounts.js?v=101" defer></script>
+    <script src="js/usdt.js?v=101" defer></script>
+    <script src="js/egp.js?v=101" defer></script>
+    <script src="js/closing.js?v=101" defer></script>
+    <script src="js/admin.js?v=101" defer></script>
+    <script src="js/position.js?v=101" defer></script>
+    <script src="js/search.js?v=101" defer></script>
+    <script src="js/notify.js?v=101" defer></script>
+    <script src="js/push.js?v=101" defer></script>
+    <script src="js/auth.js?v=101" defer></script>
+    <script src="js/main.js?v=101" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -2326,6 +2326,8 @@
                 <div id="us_preview" class="tm-preview space-y-1"></div>
                 <div class="pt-1 flex gap-2">
                     <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg text-sm transition">حفظ</button>
+                    <!-- نسخ السعر للزبون قبل الحفظ: العملية والكمية، الشبكة، والمبلغ -->
+                    <button type="button" id="us_copy" data-action="usdt-copy" title="نسخ العملية والمبلغ للزبون" class="quote-copy px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-sm">⧉ نسخ</button>
                     <button type="button" data-action="close-modal" data-modal="usdtModal" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">إلغاء</button>
                 </div>
             </form>

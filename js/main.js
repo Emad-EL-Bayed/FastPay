@@ -191,6 +191,7 @@ const CLICK_ACTIONS = {
     'usdt-new': (el) => openUsdtModal(el.dataset.kind),
     'usdt-kind': (el) => { if (!editingUsdtId) setUsdtKind(el.dataset.kind); updateUsdtPreview(); },
     'usdt-currency': (el) => setUsdtCurrency(el.dataset.cur),
+    'usdt-copy': (el) => copyUsdtQuote(el),
     'usdt-select-customer': (el) => selectUsdtCustomer(el.dataset.id),
     'usdt-pay': (el) => openUsdtPay(toNum(el.dataset.id, NaN)),
     'final-adjust': (el) => bumpFinalAdjust(el.dataset.target, toNum(el.dataset.step, 0)),

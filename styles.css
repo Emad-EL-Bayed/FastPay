@@ -1588,6 +1588,7 @@ html.motion-off .copy-menu { animation: none; }
 .ready-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .ready-btn-copy { background: rgb(var(--b-slate-900, 15 23 42)); color: rgb(var(--t-inv, 255 255 255)); }
 .ready-btn-copy:hover:not(:disabled) { background: rgb(var(--b-slate-800, 30 41 59)); }
+.quote-copy.copied, .quote-copy.copied:hover { background: rgb(var(--b-emerald-600, 5 150 105)); color: #fff; }
 .ready-btn-copy.copied { background: rgb(var(--b-emerald-600, 5 150 105)); color: #fff; }
 .ready-btn-wa { background: #16a34a; color: #fff; box-shadow: 0 6px 16px -10px rgb(22 163 74 / 0.8); }
 .ready-btn-wa:hover:not(:disabled) { background: #15803d; }

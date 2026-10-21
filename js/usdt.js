@@ -301,6 +301,7 @@ function setUsdtKind(kind, { keepValues = false } = {}) {
     $('us_money_wrap').classList.toggle('hidden', adjust);
     $('us_deposit_fields').classList.toggle('hidden', kind !== 'deposit');
     $('us_final_adjust_wrap').classList.toggle('hidden', adjust);
+    $('us_copy').classList.toggle('hidden', adjust);
     updateUsdtCustomerStatus();
     $('us_amount_label').textContent = adjust ? 'كمية USDT' : kind === 'deposit' ? 'المبلغ الذي يريده الزبون (USDT)' : 'المبلغ الذي أرسله الزبون (USDT)';
     $('us_rate_label').textContent = kind === 'deposit' ? 'سعر الشراء' : 'سعر البيع';
@@ -394,6 +395,30 @@ function updateUsdtPreview() {
             <div class="flex justify-between text-[11px] text-slate-500"><span>رصيد USDT: +${fmt(r.usdtEffect)} (يصبح ${fmt(balAfter)})</span><span class="profit-only">الربح ${fmt(r.profitIls)} ₪</span></div>`;
     }
     $('us_preview').innerHTML = lines;
+}
+
+// زر "نسخ" جنب حفظ: نص قصير للزبون قبل الحفظ (بطلب عماد 2026-10-21)
+// "إيداع 200$ USDT" ثم الشبكة (للإيداع) ثم المبلغ، بدون أغورات إلا إذا فيه (636 ₪ / 636.55 ₪)
+function usdtQuoteText() {
+    const f = resolvedUsdtForm();
+    if (f.kind === 'adjust' || !(f.amount > 0)) return '';
+    const r = computeUsdt({ ...f, amount: Math.max(0, f.amount) });
+    return [
+        `${f.kind === 'deposit' ? 'إيداع' : 'سحب'} ${fmtTrim(f.amount)}$ USDT`,
+        f.kind === 'deposit' ? f.network : '',
+        `${fmtTrim(r.total)} ${CUR_SYM[f.currency] || '₪'}`
+    ].filter(Boolean).join('\n');
+}
+
+async function copyUsdtQuote(btn) {
+    const text = usdtQuoteText();
+    if (!text) return showToast('تنبيه', 'اكتب المبلغ أول', 'warning');
+    if (!(await copyText(text))) return showToast('ما زبط النسخ', 'المتصفح منع النسخ، انسخه بإيدك', 'warning');
+    btn.classList.add('copied');
+    btn.textContent = '✓ تم النسخ';
+    clearTimeout(btn._copiedTimer);
+    btn._copiedTimer = setTimeout(() => { btn.classList.remove('copied'); btn.textContent = '⧉ نسخ'; }, 1400);
+    showToast('تم النسخ', text.replace(/\n/g, ' · '), 'success');
 }
 
 // ---------- تعديل ± على المبلغ النهائي (USDT والجنيه) ----------
