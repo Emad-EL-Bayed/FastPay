@@ -28,41 +28,41 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=102">
+    <link rel="stylesheet" href="styles.css?v=106">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=102">
+    <link rel="stylesheet" href="tailwind.css?v=106">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=102" defer></script>
-    <script src="js/core.js?v=102" defer></script>
-    <script src="js/theme.js?v=102" defer></script>
-    <script src="js/logo-data.js?v=102" defer></script>
-    <script src="js/shell.js?v=102" defer></script>
-    <script src="js/calculator.js?v=102" defer></script>
-    <script src="js/reports.js?v=102" defer></script>
-    <script src="js/sync.js?v=102" defer></script>
-    <script src="js/conflicts.js?v=102" defer></script>
-    <script src="js/cache.js?v=102" defer></script>
-    <script src="js/bgsync.js?v=102" defer></script>
-    <script src="js/transactions.js?v=102" defer></script>
-    <script src="js/receipts.js?v=102" defer></script>
-    <script src="js/customers.js?v=102" defer></script>
-    <script src="js/countries.js?v=102" defer></script>
-    <script src="js/service-logos.js?v=102" defer></script>
-    <script src="js/traders.js?v=102" defer></script>
-    <script src="js/expenses.js?v=102" defer></script>
-    <script src="js/ready.js?v=102" defer></script>
-    <script src="js/settings.js?v=102" defer></script>
-    <script src="js/accounts.js?v=102" defer></script>
-    <script src="js/usdt.js?v=102" defer></script>
-    <script src="js/egp.js?v=102" defer></script>
-    <script src="js/closing.js?v=102" defer></script>
-    <script src="js/admin.js?v=102" defer></script>
-    <script src="js/position.js?v=102" defer></script>
-    <script src="js/search.js?v=102" defer></script>
-    <script src="js/notify.js?v=102" defer></script>
-    <script src="js/push.js?v=102" defer></script>
-    <script src="js/auth.js?v=102" defer></script>
-    <script src="js/main.js?v=102" defer></script>
+    <script src="js/endpoint.js?v=106" defer></script>
+    <script src="js/core.js?v=106" defer></script>
+    <script src="js/theme.js?v=106" defer></script>
+    <script src="js/logo-data.js?v=106" defer></script>
+    <script src="js/shell.js?v=106" defer></script>
+    <script src="js/calculator.js?v=106" defer></script>
+    <script src="js/reports.js?v=106" defer></script>
+    <script src="js/sync.js?v=106" defer></script>
+    <script src="js/conflicts.js?v=106" defer></script>
+    <script src="js/cache.js?v=106" defer></script>
+    <script src="js/bgsync.js?v=106" defer></script>
+    <script src="js/transactions.js?v=106" defer></script>
+    <script src="js/receipts.js?v=106" defer></script>
+    <script src="js/customers.js?v=106" defer></script>
+    <script src="js/countries.js?v=106" defer></script>
+    <script src="js/service-logos.js?v=106" defer></script>
+    <script src="js/traders.js?v=106" defer></script>
+    <script src="js/expenses.js?v=106" defer></script>
+    <script src="js/ready.js?v=106" defer></script>
+    <script src="js/settings.js?v=106" defer></script>
+    <script src="js/accounts.js?v=106" defer></script>
+    <script src="js/usdt.js?v=106" defer></script>
+    <script src="js/egp.js?v=106" defer></script>
+    <script src="js/closing.js?v=106" defer></script>
+    <script src="js/admin.js?v=106" defer></script>
+    <script src="js/position.js?v=106" defer></script>
+    <script src="js/search.js?v=106" defer></script>
+    <script src="js/notify.js?v=106" defer></script>
+    <script src="js/push.js?v=106" defer></script>
+    <script src="js/auth.js?v=106" defer></script>
+    <script src="js/main.js?v=106" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -275,6 +275,8 @@
                                 </div>
                                 <div id="customer-search-dropdown" role="listbox" class="cust-dropdown hidden"></div>
                             </div>
+                            <!-- كرّر آخر حوالة (calculator.js renderCalcRepeat): لزبون إله حوالات قبل، زر لكل دولة (لحد 3) -->
+                            <div id="calc-repeat" class="calc-repeat hidden"></div>
                             <div id="calc_phone_wrap" class="hidden">
                                 <label for="calc_phone" id="calc_phone_label" class="calc-label">رقم الواتساب (اختياري)</label>
                                 <input type="tel" id="calc_phone" dir="ltr" placeholder="970599123456" autocomplete="off" class="calc-input font-mono text-right">
@@ -854,6 +856,8 @@
                         <button data-action="open-account-modal" class="flex-1 md:flex-none bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition">+ حساب جديد</button>
                     </div>
                 </div>
+                <!-- جاهزية الدفع (position.js renderPayoutReadiness): اللي لسا لازم ندفعه حسب جهة الصرف مقابل رصيد الحسابات -->
+                <div id="payout-readiness" class="section-card p-4 space-y-3"></div>
                 <div id="accounts-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
                 <div class="section-card p-4">
                     <h3 class="text-sm font-bold text-slate-900 mb-2">سجل الجرد (آخر 7 أيام)</h3>
@@ -1128,26 +1132,16 @@
                     <button data-action="switch-tab" data-tab="settings" class="subnav-btn">الإعدادات العامة</button>
                     <button data-action="switch-tab" data-tab="users" class="subnav-btn">المستخدمون والصلاحيات</button>
                 </div>
-                <!-- المظهر والحركات: على هذا الجهاز فقط (js/theme.js) -->
-                <div class="section-card p-6 max-w-2xl space-y-4">
-                    <div>
-                        <h3 class="text-base font-bold text-slate-900">المظهر</h3>
-                        <p class="text-xs text-slate-400">على هذا الجهاز فقط، وكل موظف بيختار اللي بريحه (كمان من القائمة اللي تحت صورتك فوق).</p>
-                    </div>
-                    <div id="theme-seg" class="seg" role="radiogroup" aria-label="المظهر">
-                        <button type="button" data-action="set-theme" data-theme-opt="light" class="seg-btn" role="radio">☀️ فاتح</button>
-                        <button type="button" data-action="set-theme" data-theme-opt="dark" class="seg-btn" role="radio">🌙 داكن</button>
-                        <button type="button" data-action="set-theme" data-theme-opt="auto" class="seg-btn" role="radio">🖥️ حسب الجهاز</button>
-                    </div>
-                    <div class="flex flex-wrap items-center justify-between gap-3">
-                        <div class="min-w-0">
-                            <b class="block text-xs text-slate-800">الحركات والأنيميشن</b>
-                            <span class="text-[11px] text-slate-400">دخول الصفحات والنوافذ، عدّ الأرقام، والخلفية المتحركة. وقّفها إذا الجهاز بطيء.</span>
-                        </div>
-                        <button type="button" id="motion-toggle" data-action="toggle-motion" class="status-toggle on" style="--c:#10b981" aria-pressed="true"><span class="sw"></span>الحركات</button>
-                    </div>
+                <!-- تابات الإعدادات (settings.js setSettingsTab): كل كرت عليه data-stab، والتاب المفتوح بينحفظ على الجهاز -->
+                <div id="settings-tabs" class="stabs max-w-2xl" role="tablist" aria-label="أقسام الإعدادات">
+                    <button type="button" data-action="settings-tab" data-stab="rates" class="stab-btn" role="tab"><span class="stab-ic" aria-hidden="true">💱</span>الأسعار</button>
+                    <button type="button" data-action="settings-tab" data-stab="security" class="stab-btn" role="tab"><span class="stab-ic" aria-hidden="true">🛡️</span>الحماية</button>
+                    <button type="button" data-action="settings-tab" data-stab="receipt" class="stab-btn" role="tab"><span class="stab-ic" aria-hidden="true">🧾</span><span class="hidden sm:inline">الفاتورة وواتساب</span><span class="sm:hidden">الفاتورة</span></button>
+                    <button type="button" data-action="settings-tab" data-stab="link" class="stab-btn" role="tab"><span class="stab-ic" aria-hidden="true">🔗</span>الربط</button>
+                    <button type="button" data-action="settings-tab" data-stab="look" class="stab-btn" role="tab"><span class="stab-ic" aria-hidden="true">🎨</span>المظهر</button>
                 </div>
-                <div class="section-card p-6 max-w-2xl space-y-5">
+
+                <div data-stab="rates" class="section-card p-6 max-w-2xl space-y-5">
                     <div>
                         <h3 class="text-base font-bold text-slate-900">سعر الشاشة والنسب الافتراضية</h3>
                         <p class="text-xs text-slate-400">النسب الافتراضية تُستخدم للدول الجديدة ولخيار "أخرى". لكل دولة نسبها الخاصة من صفحة "تسعير الدول"</p>
@@ -1221,40 +1215,45 @@
                     </div>
                 </div>
 
-
-                <!-- النسخ الاحتياطي التلقائي وسجل المحذوفات -->
-                <div class="section-card p-6 max-w-2xl space-y-4">
+                <!-- إعدادات USDT: تُحفظ مباشرة عند التعديل -->
+                <div data-stab="rates" id="usdt-settings" class="section-card p-6 max-w-2xl space-y-5">
                     <div>
-                        <h3 class="text-base font-bold text-slate-900">النسخ الاحتياطي</h3>
-                        <p class="text-xs text-slate-400">نسخة كاملة من الشيت كل يوم الساعة 12 بالليل في مجلد "فاست باي - نسخ احتياطية" بـ Google Drive، ونحتفظ بآخر 30 يوماً</p>
+                        <h3 class="text-base font-bold text-slate-900">إعدادات USDT</h3>
+                        <p class="text-xs text-slate-400">تُحفظ تلقائياً عند التعديل لكل الأجهزة. سعر الإيداع = سعر الشراء، وسعر السحب = سعر البيع (من الأعلى). الشرائح حسب كمية الـ USDT، والنسبة بتتعبّى لحالها بنافذة الحركة وبتقدر تغيّرها لحركة وحدة.</p>
                     </div>
-                    <div id="backup-status" class="text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
-                    <!-- استرجاع نسخة كاملة (admin.js، للمدير بس) -->
-                    <div id="restore-section" class="hidden flex flex-wrap justify-between items-center gap-2 pt-2 border-t border-slate-100">
-                        <div>
-                            <h4 class="text-sm font-bold text-slate-900">استرجاع نسخة احتياطية</h4>
-                            <p class="text-[11px] text-slate-400">رجّع البيانات زي ما كانت بنسخة معيّنة، وقبلها بتنحفظ نسخة من الوضع الحالي</p>
-                        </div>
-                        <button id="restore-open-btn" data-action="open-restore" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white px-3 py-2 rounded-lg">استرجاع نسخة</button>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">نسبة الإيداع حسب المبلغ</span><button type="button" data-action="usdt-tier-add" data-kind="deposit" class="text-xs font-bold text-blue-700">+ شريحة</button></div>
+                        <div id="usdt-deposit-tiers-list" class="space-y-2"></div>
                     </div>
-                    <div id="deleted-section" class="space-y-2 pt-2 border-t border-slate-100">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <h4 class="text-sm font-bold text-slate-900">سجل المحذوفات</h4>
-                                <p class="text-[11px] text-slate-400">مين حذف وإيش حذف، مع استرجاع السطر كما كان</p>
-                            </div>
-                            <button data-action="load-deleted" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg">عرض المحذوفات</button>
-                        </div>
-                        <div class="table-scroll max-h-80 overflow-y-auto">
-                            <table class="w-full text-right border-collapse">
-                                <tbody id="deleted-body" class="divide-y divide-slate-100"></tbody>
-                            </table>
-                        </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">الشبكات ورسومها ($)</span><button type="button" data-action="usdt-net-add" class="text-xs font-bold text-blue-700">+ شبكة</button></div>
+                        <div id="usdt-networks-list" class="space-y-2"></div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">نسبة السحب حسب المبلغ</span><button type="button" data-action="usdt-tier-add" data-kind="withdraw" class="text-xs font-bold text-blue-700">+ شريحة</button></div>
+                        <div id="usdt-tiers-list" class="space-y-2"></div>
                     </div>
                 </div>
 
+                <!-- إعدادات الجنيه: شرائح نسبة الإرسال والاستقبال حسب المبلغ بالشيكل (egp.js renderEgpTierSettings)، تُحفظ عند التعديل -->
+                <div data-stab="rates" id="egp-settings" class="section-card p-6 max-w-2xl space-y-5">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">إعدادات الجنيه المصري</h3>
+                        <p class="text-xs text-slate-400">نسبتنا حسب المبلغ بالشيكل اللي بيدفعه الزبون (إرسال) أو بياخده (استقبال)، والدولار بيتحول لشيكل. اكتب النسبة أو سعر الألف جنيه وبتنحسب الثانية. تُحفظ تلقائياً لكل الأجهزة. أول شريحة هي نفس النسبة بـ "⚙️ الأسعار" بصفحة الجنيه.</p>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">نسبة الإرسال حسب المبلغ</span><button type="button" data-action="egp-tier-add" data-kind="send" class="text-xs font-bold text-blue-700">+ شريحة</button></div>
+                        <div id="egp-send-tiers" class="space-y-2"></div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">نسبة الاستقبال حسب المبلغ</span><button type="button" data-action="egp-tier-add" data-kind="receive" class="text-xs font-bold text-blue-700">+ شريحة</button></div>
+                        <div id="egp-receive-tiers" class="space-y-2"></div>
+                    </div>
+                    <p id="egp-tiers-market" class="text-[11px] text-slate-400"></p>
+                </div>
+
                 <!-- أدوات المدير: قفل الأيام، سجل التعديلات، مسح البيانات التجريبية (admin.js) -->
-                <div class="section-card p-6 max-w-2xl space-y-5">
+                <div data-stab="security" class="section-card p-6 max-w-2xl space-y-5">
                     <div>
                         <h3 class="text-base font-bold text-slate-900">الرقابة والأمان</h3>
                         <p class="text-xs text-slate-400">قفل الأيام بعد الجرد، ومين عدّل شو</p>
@@ -1327,31 +1326,82 @@
                     </div>
                 </div>
 
-                <!-- التقرير الشهري بالإيميل (settings.js، السكربت hourlyPushJobs ← sendMonthlyReport) -->
-                <div id="monthly-settings" class="hidden section-card p-6 max-w-2xl space-y-4">
+                <!-- الأجهزة المسجّلة (admin.js renderSessionsCard، ميزة devices): المدير بيشوف أجهزة الكل، والباقي أجهزتهم -->
+                <div data-stab="security" id="devices-settings" class="hidden section-card p-6 max-w-2xl space-y-4">
                     <div class="flex flex-wrap items-start justify-between gap-2">
-                        <div class="min-w-0 flex-1">
-                            <h3 class="text-base font-bold text-slate-900">📧 التقرير الشهري بالإيميل</h3>
-                            <p class="text-xs text-slate-400 leading-5">أول كل شهر الساعة 8 الصبح: الربح لكل مصدر ودولة، المصاريف، الصافي، المقارنة مع الشهر اللي قبله، أكثر الزبائن ربح، وشغل الموظفين.</p>
+                        <div class="min-w-0">
+                            <h3 class="text-base font-bold text-slate-900">📱 الأجهزة المسجّلة</h3>
+                            <p class="text-xs text-slate-400">كل جهاز داخل على البرنامج. طلّع أي جهاز ضاع أو لموظف ترك الشغل، وبيوقف يوصله إشعارات كمان.</p>
                         </div>
-                        <button type="button" id="monthly-toggle" data-action="monthly-toggle" class="status-toggle" style="--c:#10b981" aria-pressed="false"><span class="sw"></span>شغّال</button>
+                        <button type="button" data-action="sessions-refresh" class="shrink-0 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg">⟳ تحديث</button>
                     </div>
-                    <div id="monthly-fields" class="space-y-3">
-                        <div>
-                            <label for="report_email" class="block text-[11px] font-bold text-slate-500 mb-1">الإيميل</label>
-                            <div class="flex gap-2">
-                                <input type="email" id="report_email" dir="ltr" autocomplete="off" class="flex-1 min-w-0 field text-xs font-bold text-left">
-                                <button type="button" data-action="monthly-save" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg">حفظ</button>
+                    <div id="devices-list" class="space-y-3"></div>
+                </div>
+
+                <!-- بيانات الشركة للفاتورة -->
+                <div data-stab="receipt" class="section-card p-6 max-w-2xl space-y-5">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">بيانات الشركة والفاتورة</h3>
+                        <p class="text-xs text-slate-400">تظهر في أعلى كل فاتورة. الشعار ثابت من ملف assets/logo.png (لتغييره استبدل الملف)</p>
+                    </div>
+                    <div class="space-y-4 text-xs sm:text-sm">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="set_company_name" class="block text-xs font-bold text-slate-700 mb-1">اسم الشركة الكامل</label>
+                                <input type="text" id="set_company_name" class="w-full font-bold field">
                             </div>
-                            <span class="text-[10px] text-slate-400 block mt-1">فاضي = إيميل حساب جوجل اللي عليه السكربت</span>
+                            <div>
+                                <label for="set_company_subtitle" class="block text-xs font-bold text-slate-700 mb-1">سطر تحت الاسم (عنوان أو هاتف)</label>
+                                <input type="text" id="set_company_subtitle" class="w-full field">
+                            </div>
                         </div>
-                        <button type="button" id="monthly-test-btn" data-action="monthly-test" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-800 px-4 py-2.5 rounded-lg">جرّب هلّق (تقرير الشهر اللي فات)</button>
+                        <div>
+                            <label for="set_receipt_footer" class="block text-xs font-bold text-slate-700 mb-1">ملاحظة أسفل الفاتورة</label>
+                            <input type="text" id="set_receipt_footer" class="w-full field">
+                        </div>
+                        <!-- رسالة الفاتورة على واتساب حسب الحالة (receipts.js WA_MESSAGE_DEFAULTS) -->
+                        <div class="pt-4 border-t border-slate-100 space-y-3">
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-900">رسالة الفاتورة على واتساب</h4>
+                                <p class="text-[11px] text-slate-400 leading-5">بتنبعت مع صورة الفاتورة حسب حالتها. الكلمات بين { } بتتعبّى لحالها: {الاسم} {المبلغ} {المدفوع} {الباقي} {الرقم} {العملية} {الشركة}. الخانة الفاضية = الجملة الافتراضية المكتوبة فيها. بتنحفظ مع زر حفظ الإعدادات.</p>
+                            </div>
+                            <!-- رابط التتبّع برسالة الحوالة: سويتش عام (trackLinkOn) واستثناء لزبائن (trackLinkOff، من نافذة الزبون) -->
+                            <div id="track-link-row" class="hidden flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                                <div class="min-w-0 flex-1">
+                                    <b class="block text-xs text-slate-800">رابط التتبّع برسالة الحوالة</b>
+                                    <span id="track-link-note" class="block text-[11px] text-slate-400"></span>
+                                </div>
+                                <button type="button" id="track-link-toggle" data-action="track-link-toggle" class="status-toggle" style="--c:#10b981" aria-pressed="false"><span class="sw"></span>شغّال</button>
+                            </div>
+                            <div id="wa-messages-list" class="space-y-3"></div>
+                        </div>
                     </div>
-                    <p id="monthly-note" class="text-[11px] text-slate-400 leading-5"></p>
+                </div>
+
+                <div data-stab="link" class="section-card p-6 max-w-2xl space-y-5">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">الربط مع Google Sheets</h3>
+                        <p class="text-xs text-slate-400">الزبائن والحوالات تُقرأ من الشيت مباشرة ولا تُحفظ في المتصفح. يتطلب نشر السكربت المرفق <span class="font-mono">google-apps-script.gs</span></p>
+                    </div>
+                    <div class="space-y-4 text-xs sm:text-sm">
+                        <div>
+                            <label for="set_drive_url" class="block text-xs font-bold text-slate-700 mb-1">رابط Google Sheets Webhook</label>
+                            <input type="url" id="set_drive_url" dir="ltr" class="w-full text-xs font-mono border border-slate-200 rounded-lg p-2.5 outline-none bg-slate-50 focus:border-blue-500">
+                            <span class="text-[10px] text-slate-400 block mt-1">اتركه فارغاً لإيقاف المزامنة.</span>
+                        </div>
+                        <div id="sync-token-wrap">
+                            <label for="set_sync_token" class="block text-xs font-bold text-slate-700 mb-1">مفتاح الحماية السري (Token)</label>
+                            <input type="text" id="set_sync_token" dir="ltr" autocomplete="off" spellcheck="false" class="masked-input w-full text-xs font-mono border border-slate-200 rounded-lg p-2.5 outline-none bg-slate-50 focus:border-blue-500">
+                            <span class="text-[10px] text-slate-400 block mt-1">نفس القيمة المحفوظة في السكربت باسم SYNC_TOKEN. بدونه يستطيع أي شخص يملك الرابط الكتابة في الشيت.</span>
+                        </div>
+                        <button data-action="reload-sheets" class="w-full bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold py-2.5 rounded-xl text-xs transition">
+                            ⟳ إعادة تحميل الزبائن والحوالات من Google Sheets
+                        </button>
+                    </div>
                 </div>
 
                 <!-- إشعارات الجوال (push.js، Firebase): للمدير (الإعدادات + المستخدمين). خطوات فاير بيز والإعداد -->
-                <div id="push-settings" class="hidden section-card p-6 max-w-2xl space-y-4">
+                <div data-stab="link" id="push-settings" class="hidden section-card p-6 max-w-2xl space-y-4">
                     <div>
                         <h3 class="text-base font-bold text-slate-900">📲 إشعارات الجوال (Firebase)</h3>
                         <p class="text-xs text-slate-400">الإشعار بيوصل على شاشة جوال الموظف والبرنامج مسكّر. الإعداد مرة وحدة هون، وبعدين كل موظف بيفعّلها على جواله من قائمة الإشعارات 🔔</p>
@@ -1407,110 +1457,86 @@
                     <p class="text-[11px] text-slate-400 leading-5">على الآيفون: لازم البرنامج يكون مضاف للشاشة الرئيسية من سفاري (iOS 16.4 أو أحدث) ويتفعّل من الأيقونة. على الأندرويد: من كروم أو من البرنامج المضاف. ومن الملف على الماك ما بتشتغل (بدها رابط https).</p>
                 </div>
 
-                <!-- إعدادات USDT: تُحفظ مباشرة عند التعديل -->
-                <div id="usdt-settings" class="section-card p-6 max-w-2xl space-y-5">
-                    <div>
-                        <h3 class="text-base font-bold text-slate-900">إعدادات USDT</h3>
-                        <p class="text-xs text-slate-400">تُحفظ تلقائياً عند التعديل لكل الأجهزة. سعر الإيداع = سعر الشراء، وسعر السحب = سعر البيع (من الأعلى). الشرائح حسب كمية الـ USDT، والنسبة بتتعبّى لحالها بنافذة الحركة وبتقدر تغيّرها لحركة وحدة.</p>
-                    </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">نسبة الإيداع حسب المبلغ</span><button type="button" data-action="usdt-tier-add" data-kind="deposit" class="text-xs font-bold text-blue-700">+ شريحة</button></div>
-                        <div id="usdt-deposit-tiers-list" class="space-y-2"></div>
-                    </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">الشبكات ورسومها ($)</span><button type="button" data-action="usdt-net-add" class="text-xs font-bold text-blue-700">+ شبكة</button></div>
-                        <div id="usdt-networks-list" class="space-y-2"></div>
-                    </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">نسبة السحب حسب المبلغ</span><button type="button" data-action="usdt-tier-add" data-kind="withdraw" class="text-xs font-bold text-blue-700">+ شريحة</button></div>
-                        <div id="usdt-tiers-list" class="space-y-2"></div>
-                    </div>
-                </div>
-
-                <!-- إعدادات الجنيه: شرائح نسبة الإرسال والاستقبال حسب المبلغ بالشيكل (egp.js renderEgpTierSettings)، تُحفظ عند التعديل -->
-                <div id="egp-settings" class="section-card p-6 max-w-2xl space-y-5">
-                    <div>
-                        <h3 class="text-base font-bold text-slate-900">إعدادات الجنيه المصري</h3>
-                        <p class="text-xs text-slate-400">نسبتنا حسب المبلغ بالشيكل اللي بيدفعه الزبون (إرسال) أو بياخده (استقبال)، والدولار بيتحول لشيكل. اكتب النسبة أو سعر الألف جنيه وبتنحسب الثانية. تُحفظ تلقائياً لكل الأجهزة. أول شريحة هي نفس النسبة بـ "⚙️ الأسعار" بصفحة الجنيه.</p>
-                    </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">نسبة الإرسال حسب المبلغ</span><button type="button" data-action="egp-tier-add" data-kind="send" class="text-xs font-bold text-blue-700">+ شريحة</button></div>
-                        <div id="egp-send-tiers" class="space-y-2"></div>
-                    </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-700">نسبة الاستقبال حسب المبلغ</span><button type="button" data-action="egp-tier-add" data-kind="receive" class="text-xs font-bold text-blue-700">+ شريحة</button></div>
-                        <div id="egp-receive-tiers" class="space-y-2"></div>
-                    </div>
-                    <p id="egp-tiers-market" class="text-[11px] text-slate-400"></p>
-                </div>
-
-                <!-- بيانات الشركة للفاتورة -->
-                <div class="section-card p-6 max-w-2xl space-y-5">
-                    <div>
-                        <h3 class="text-base font-bold text-slate-900">بيانات الشركة والفاتورة</h3>
-                        <p class="text-xs text-slate-400">تظهر في أعلى كل فاتورة. الشعار ثابت من ملف assets/logo.png (لتغييره استبدل الملف)</p>
-                    </div>
-                    <div class="space-y-4 text-xs sm:text-sm">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label for="set_company_name" class="block text-xs font-bold text-slate-700 mb-1">اسم الشركة الكامل</label>
-                                <input type="text" id="set_company_name" class="w-full font-bold field">
-                            </div>
-                            <div>
-                                <label for="set_company_subtitle" class="block text-xs font-bold text-slate-700 mb-1">سطر تحت الاسم (عنوان أو هاتف)</label>
-                                <input type="text" id="set_company_subtitle" class="w-full field">
-                            </div>
+                <!-- التقرير الشهري بالإيميل (settings.js، السكربت hourlyPushJobs ← sendMonthlyReport) -->
+                <div data-stab="link" id="monthly-settings" class="hidden section-card p-6 max-w-2xl space-y-4">
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <h3 class="text-base font-bold text-slate-900">📧 التقرير الشهري بالإيميل</h3>
+                            <p class="text-xs text-slate-400 leading-5">أول كل شهر الساعة 8 الصبح: الربح لكل مصدر ودولة، المصاريف، الصافي، المقارنة مع الشهر اللي قبله، أكثر الزبائن ربح، وشغل الموظفين.</p>
                         </div>
+                        <button type="button" id="monthly-toggle" data-action="monthly-toggle" class="status-toggle" style="--c:#10b981" aria-pressed="false"><span class="sw"></span>شغّال</button>
+                    </div>
+                    <div id="monthly-fields" class="space-y-3">
                         <div>
-                            <label for="set_receipt_footer" class="block text-xs font-bold text-slate-700 mb-1">ملاحظة أسفل الفاتورة</label>
-                            <input type="text" id="set_receipt_footer" class="w-full field">
-                        </div>
-                        <!-- رسالة الفاتورة على واتساب حسب الحالة (receipts.js WA_MESSAGE_DEFAULTS) -->
-                        <div class="pt-4 border-t border-slate-100 space-y-3">
-                            <div>
-                                <h4 class="text-sm font-bold text-slate-900">رسالة الفاتورة على واتساب</h4>
-                                <p class="text-[11px] text-slate-400 leading-5">بتنبعت مع صورة الفاتورة حسب حالتها. الكلمات بين { } بتتعبّى لحالها: {الاسم} {المبلغ} {المدفوع} {الباقي} {الرقم} {العملية} {الشركة}. الخانة الفاضية = الجملة الافتراضية المكتوبة فيها. بتنحفظ مع زر حفظ الإعدادات.</p>
+                            <label for="report_email" class="block text-[11px] font-bold text-slate-500 mb-1">الإيميل</label>
+                            <div class="flex gap-2">
+                                <input type="email" id="report_email" dir="ltr" autocomplete="off" class="flex-1 min-w-0 field text-xs font-bold text-left">
+                                <button type="button" data-action="monthly-save" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg">حفظ</button>
                             </div>
-                            <!-- رابط التتبّع برسالة الحوالة: سويتش عام (trackLinkOn) واستثناء لزبائن (trackLinkOff، من نافذة الزبون) -->
-                            <div id="track-link-row" class="hidden flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200">
-                                <div class="min-w-0 flex-1">
-                                    <b class="block text-xs text-slate-800">رابط التتبّع برسالة الحوالة</b>
-                                    <span id="track-link-note" class="block text-[11px] text-slate-400"></span>
-                                </div>
-                                <button type="button" id="track-link-toggle" data-action="track-link-toggle" class="status-toggle" style="--c:#10b981" aria-pressed="false"><span class="sw"></span>شغّال</button>
-                            </div>
-                            <div id="wa-messages-list" class="space-y-3"></div>
+                            <span class="text-[10px] text-slate-400 block mt-1">فاضي = إيميل حساب جوجل اللي عليه السكربت</span>
                         </div>
+                        <button type="button" id="monthly-test-btn" data-action="monthly-test" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-800 px-4 py-2.5 rounded-lg">جرّب هلّق (تقرير الشهر اللي فات)</button>
                     </div>
+                    <p id="monthly-note" class="text-[11px] text-slate-400 leading-5"></p>
                 </div>
 
-                <div class="section-card p-6 max-w-2xl space-y-5">
+                <!-- النسخ الاحتياطي التلقائي وسجل المحذوفات -->
+                <div data-stab="link" class="section-card p-6 max-w-2xl space-y-4">
                     <div>
-                        <h3 class="text-base font-bold text-slate-900">الربط مع Google Sheets</h3>
-                        <p class="text-xs text-slate-400">الزبائن والحوالات تُقرأ من الشيت مباشرة ولا تُحفظ في المتصفح. يتطلب نشر السكربت المرفق <span class="font-mono">google-apps-script.gs</span></p>
+                        <h3 class="text-base font-bold text-slate-900">النسخ الاحتياطي</h3>
+                        <p class="text-xs text-slate-400">نسخة كاملة من الشيت كل يوم الساعة 12 بالليل في مجلد "فاست باي - نسخ احتياطية" بـ Google Drive، ونحتفظ بآخر 30 يوماً</p>
                     </div>
-                    <div class="space-y-4 text-xs sm:text-sm">
+                    <div id="backup-status" class="text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                    <!-- استرجاع نسخة كاملة (admin.js، للمدير بس) -->
+                    <div id="restore-section" class="hidden flex flex-wrap justify-between items-center gap-2 pt-2 border-t border-slate-100">
                         <div>
-                            <label for="set_drive_url" class="block text-xs font-bold text-slate-700 mb-1">رابط Google Sheets Webhook</label>
-                            <input type="url" id="set_drive_url" dir="ltr" class="w-full text-xs font-mono border border-slate-200 rounded-lg p-2.5 outline-none bg-slate-50 focus:border-blue-500">
-                            <span class="text-[10px] text-slate-400 block mt-1">اتركه فارغاً لإيقاف المزامنة.</span>
+                            <h4 class="text-sm font-bold text-slate-900">استرجاع نسخة احتياطية</h4>
+                            <p class="text-[11px] text-slate-400">رجّع البيانات زي ما كانت بنسخة معيّنة، وقبلها بتنحفظ نسخة من الوضع الحالي</p>
                         </div>
-                        <div id="sync-token-wrap">
-                            <label for="set_sync_token" class="block text-xs font-bold text-slate-700 mb-1">مفتاح الحماية السري (Token)</label>
-                            <input type="text" id="set_sync_token" dir="ltr" autocomplete="off" spellcheck="false" class="masked-input w-full text-xs font-mono border border-slate-200 rounded-lg p-2.5 outline-none bg-slate-50 focus:border-blue-500">
-                            <span class="text-[10px] text-slate-400 block mt-1">نفس القيمة المحفوظة في السكربت باسم SYNC_TOKEN. بدونه يستطيع أي شخص يملك الرابط الكتابة في الشيت.</span>
+                        <button id="restore-open-btn" data-action="open-restore" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white px-3 py-2 rounded-lg">استرجاع نسخة</button>
+                    </div>
+                    <div id="deleted-section" class="space-y-2 pt-2 border-t border-slate-100">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-900">سجل المحذوفات</h4>
+                                <p class="text-[11px] text-slate-400">مين حذف وإيش حذف، مع استرجاع السطر كما كان</p>
+                            </div>
+                            <button data-action="load-deleted" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg">عرض المحذوفات</button>
                         </div>
-                        <button data-action="reload-sheets" class="w-full bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold py-2.5 rounded-xl text-xs transition">
-                            ⟳ إعادة تحميل الزبائن والحوالات من Google Sheets
-                        </button>
+                        <div class="table-scroll max-h-80 overflow-y-auto">
+                            <table class="w-full text-right border-collapse">
+                                <tbody id="deleted-body" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <div class="max-w-2xl">
+                <!-- المظهر والحركات: على هذا الجهاز فقط (js/theme.js) -->
+                <div data-stab="look" class="section-card p-6 max-w-2xl space-y-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">المظهر</h3>
+                        <p class="text-xs text-slate-400">على هذا الجهاز فقط، وكل موظف بيختار اللي بريحه (كمان من القائمة اللي تحت صورتك فوق).</p>
+                    </div>
+                    <div id="theme-seg" class="seg" role="radiogroup" aria-label="المظهر">
+                        <button type="button" data-action="set-theme" data-theme-opt="light" class="seg-btn" role="radio">☀️ فاتح</button>
+                        <button type="button" data-action="set-theme" data-theme-opt="dark" class="seg-btn" role="radio">🌙 داكن</button>
+                        <button type="button" data-action="set-theme" data-theme-opt="auto" class="seg-btn" role="radio">🖥️ حسب الجهاز</button>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="min-w-0">
+                            <b class="block text-xs text-slate-800">الحركات والأنيميشن</b>
+                            <span class="text-[11px] text-slate-400">دخول الصفحات والنوافذ، عدّ الأرقام، والخلفية المتحركة. وقّفها إذا الجهاز بطيء.</span>
+                        </div>
+                        <button type="button" id="motion-toggle" data-action="toggle-motion" class="status-toggle on" style="--c:#10b981" aria-pressed="true"><span class="sw"></span>الحركات</button>
+                    </div>
+                </div>
+
+                <div data-stab="rates receipt link" class="max-w-2xl">
                     <button data-action="save-settings" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-sm transition">
                         حفظ جميع الإعدادات وتطبيقها فوراً
                     </button>
                 </div>
+
             </div>
 
         </main>
@@ -2254,6 +2280,17 @@
                     <input type="tel" id="us_phone" dir="ltr" placeholder="970599123456" autocomplete="off" class="w-full field font-mono text-right">
                     <span class="text-[10px] text-slate-400 block mt-1">مع المقدمة — حتى تنبعت الفاتورة على محادثته مباشرة.</span>
                 </div>
+                <!-- زبون جديد (سحب USDT): كيف بيستلم، زي الحاسبة (calculator.js setNewPayout). بينحفظ بملفه، وجاهزية الدفع بتحسب عليه -->
+                <div id="us_np_wrap" class="hidden np-box">
+                    <span class="font-bold block text-slate-700">كيف بيستلم؟ <span class="text-[10px] text-slate-400 font-normal">زبون جديد · بينحفظ بملفه</span></span>
+                    <div id="us_np_payouts" class="seg seg-sm" role="radiogroup" aria-label="طريقة الاستلام">
+                        <button type="button" data-action="np-payout" data-prefix="us" data-payout="محفظة" class="seg-btn" role="radio">محفظة</button>
+                        <button type="button" data-action="np-payout" data-prefix="us" data-payout="بنكي" class="seg-btn" role="radio">بنك</button>
+                        <button type="button" data-action="np-payout" data-prefix="us" data-payout="كاش" class="seg-btn" role="radio">كاش</button>
+                    </div>
+                    <div id="us_np_providers" class="flex flex-wrap gap-1.5"></div>
+                    <input type="text" id="us_np_account" dir="ltr" data-latin inputmode="numeric" autocomplete="off" class="w-full field font-mono text-right">
+                </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label for="us_amount" id="us_amount_label" class="font-bold block mb-1 text-slate-700">المبلغ (USDT)</label>
@@ -2361,6 +2398,17 @@
                     <label for="eg_phone" id="eg_phone_label" class="font-bold block mb-1 text-slate-700">رقم الواتساب (اختياري)</label>
                     <input type="tel" id="eg_phone" dir="ltr" placeholder="970599123456" autocomplete="off" class="w-full field font-mono text-right">
                     <span class="text-[10px] text-slate-400 block mt-1">مع المقدمة — حتى تنبعت الفاتورة على محادثته مباشرة.</span>
+                </div>
+                <!-- زبون جديد (استقبال جنيه): كيف بيستلم، زي الحاسبة (calculator.js setNewPayout). بينحفظ بملفه، وجاهزية الدفع بتحسب عليه -->
+                <div id="eg_np_wrap" class="hidden np-box">
+                    <span class="font-bold block text-slate-700">كيف بيستلم؟ <span class="text-[10px] text-slate-400 font-normal">زبون جديد · بينحفظ بملفه</span></span>
+                    <div id="eg_np_payouts" class="seg seg-sm" role="radiogroup" aria-label="طريقة الاستلام">
+                        <button type="button" data-action="np-payout" data-prefix="eg" data-payout="محفظة" class="seg-btn" role="radio">محفظة</button>
+                        <button type="button" data-action="np-payout" data-prefix="eg" data-payout="بنكي" class="seg-btn" role="radio">بنك</button>
+                        <button type="button" data-action="np-payout" data-prefix="eg" data-payout="كاش" class="seg-btn" role="radio">كاش</button>
+                    </div>
+                    <div id="eg_np_providers" class="flex flex-wrap gap-1.5"></div>
+                    <input type="text" id="eg_np_account" dir="ltr" data-latin inputmode="numeric" autocomplete="off" class="w-full field font-mono text-right">
                 </div>
                 <!-- المحفظة، والاتجاه (شحن/تعديل)، والمحفظة الثانية والرسوم (تحويل/إرسال) -->
                 <div class="grid grid-cols-2 gap-3">
@@ -2825,6 +2873,14 @@
                 </div>
                 <button type="submit" id="pf_save" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg transition disabled:opacity-60">حفظ</button>
             </form>
+            <!-- أجهزتي (admin.js): كل جهاز داخل بحسابي، وتطليع جهاز ضاع -->
+            <div id="pf_devices_wrap" class="hidden mt-5 pt-4 border-t border-slate-100 space-y-2 text-xs">
+                <div class="flex items-center justify-between gap-2">
+                    <b class="text-sm text-slate-900">📱 أجهزتي</b>
+                    <button type="button" data-action="sessions-refresh" class="text-[11px] font-bold text-blue-700 hover:underline">⟳ تحديث</button>
+                </div>
+                <div id="pf_devices" class="space-y-2"></div>
+            </div>
         </div>
     </div>
 

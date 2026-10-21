@@ -661,6 +661,7 @@ function updateEgpCustomerStatus() {
     $('eg_customer_status').className = 'text-[10px] font-bold ' + (known ? 'text-emerald-600' : 'text-blue-600');
     const trade = ['send', 'receive'].includes($('eg_kind').value);
     updateCustomerPhoneField('eg', known, trade ? q : '');
+    syncNewPayoutField('eg', !known && !!q && $('eg_kind').value === 'receive');
 }
 
 function onEgpCustomerInput() {
@@ -958,7 +959,7 @@ async function saveEgp(e) {
         const phone = readCustomerPhone('eg', customer?.id);
         if (phone === null) return;
         if (!customer) {
-            customer = normalizeCustomer({ id: newCustomerId(), name, phone, payout: 'كاش', provider: '', account: '', createdAt: $('eg_date').value || localDateStr() });
+            customer = normalizeCustomer({ id: newCustomerId(), name, phone, payout: 'كاش', provider: '', account: '', ...readNewPayout('eg'), createdAt: $('eg_date').value || localDateStr() });
             customers.unshift(customer);
             ops.push({ action: 'upsert_customer', customer });
         } else if (phone) {

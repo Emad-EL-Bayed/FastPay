@@ -104,6 +104,101 @@ function saveFraudLimits() {
 }
 
 // ---------- حد الحوالة للموظف (إعداد مشترك txLimitOn / txLimit) ----------
+// ================= الأجهزة المسجّلة (بطلب عماد 2026-10-21، ميزة devices) =================
+// كل جلسة دخول = جهاز (السكربت sessions_list). المدير بيشوف الكل مجمّعين حسب الموظف (الإعدادات ← الحماية)،
+// وكل واحد بيشوف أجهزته بـ "ملفي". "طلّعه" (session_revoke) بيطلّع الجهاز فوراً وبيوقف إشعاراته؛ الجهاز اللي إنت عليه لا (للخروج: تسجيل الخروج)
+let sessionsCache = null; // { sessions, manager, at }
+let sessionsLoading = false;
+
+const sessionsAvailable = () => authEnabled && !!session?.username && sheetHas('devices');
+const deviceIcon = (dev) => !dev ? '❔' : /آيفون|أندرويد|آيباد/.test(dev) ? '📱' : '💻';
+const sessionTime = (ms) => ms ? notifyWhen(new Date(ms).toISOString()) : '';
+
+function renderSessionsCard() {
+    const card = $('devices-settings');
+    const on = authEnabled && !!session?.username;
+    card.classList.toggle('hidden', !on);
+    if (!on) return;
+    if (!sheetHas('devices')) {
+        $('devices-list').innerHTML = '<p class="text-xs text-amber-700 font-bold">حدّث سكربت Google Sheets حتى تبين الأجهزة.</p>';
+        return;
+    }
+    renderSessionList($('devices-list'), false);
+    if (!sessionsCache || Date.now() - sessionsCache.at > 60000) loadSessions();
+}
+
+async function loadSessions() {
+    if (sessionsLoading || !sessionsAvailable()) return;
+    sessionsLoading = true;
+    refreshSessionViews();
+    const r = await postToSheets({ action: 'sessions_list' });
+    sessionsLoading = false;
+    if (r.status === 'ok' && r.data?.ok) sessionsCache = { sessions: r.data.sessions || [], manager: !!r.data.manager, at: Date.now() };
+    else if (!sessionsCache) sessionsCache = null;
+    refreshSessionViews(r.status === 'ok' ? '' : 'ما قدرنا نجيب الأجهزة، اكبس تحديث');
+}
+
+function refreshSessionViews(error = '') {
+    if (!pageHidden('settings') && settingsTab() === 'security') renderSessionList($('devices-list'), false, error);
+    if (!$('profileModal').classList.contains('hidden')) renderSessionList($('pf_devices'), true, error);
+}
+
+function sessionRowHtml(x) {
+    const meta = [
+        x.at ? 'دخل ' + sessionTime(x.at) : (x.dev ? '' : 'دخل قبل التحديث، اسمه بيبين أول ما ينفتح البرنامج عليه'),
+        // آخر استعمال بس إذا بعد الدخول بشوي (وإلا نفس الوقت مرتين)
+        x.seen && !(x.at && x.seen - x.at < 120000) ? 'آخر استعمال ' + sessionTime(x.seen) : ''
+    ].filter(Boolean).join(' · ');
+    const name = x.dev || (x.at ? 'جهاز بدون اسم' : 'جهاز قديم');
+    return `
+        <div class="dev-row${x.current ? ' current' : ''}">
+            <span class="dev-ic" aria-hidden="true">${deviceIcon(x.dev)}</span>
+            <div class="min-w-0 flex-1">
+                <div class="font-bold text-slate-900 truncate">${escapeHtml(name)}${x.current ? ' <span class="dev-badge">هالجهاز</span>' : ''}</div>
+                ${meta ? `<div class="text-[11px] text-slate-400">${meta}</div>` : ''}
+            </div>
+            ${x.current ? '' : `<button type="button" data-action="session-revoke" data-sid="${escapeHtml(x.sid)}" class="dev-out">طلّعه</button>`}
+        </div>`;
+}
+
+function renderSessionList(box, mineOnly, error = '') {
+    if (!box) return;
+    if (!sessionsCache) {
+        box.innerHTML = `<p class="text-xs ${error ? 'text-amber-700 font-bold' : 'text-slate-400'}">${error || (sessionsLoading ? 'عم نجيب الأجهزة…' : '')}</p>`;
+        return;
+    }
+    const list = sessionsCache.sessions.filter(x => !mineOnly || x.user === session?.username);
+    if (!list.length) { box.innerHTML = '<p class="text-xs text-slate-400">ما في أجهزة</p>'; return; }
+    if (mineOnly || !sessionsCache.manager) { box.innerHTML = list.map(sessionRowHtml).join(''); return; }
+    // المدير: مجمّعين حسب الموظف، أنا أول
+    const users = [...new Set(list.map(x => x.user))].sort((a, b) => (b === session?.username) - (a === session?.username) || personName(a).localeCompare(personName(b), 'ar'));
+    box.innerHTML = users.map(u => {
+        const mine = list.filter(x => x.user === u);
+        return `
+            <div class="space-y-1.5">
+                <div class="dev-user">${escapeHtml(personName(u))}<span>${mine.length === 1 ? 'جهاز واحد' : mine.length === 2 ? 'جهازين' : mine.length + ' أجهزة'}</span></div>
+                ${mine.map(sessionRowHtml).join('')}
+            </div>`;
+    }).join('');
+}
+
+function askRevokeSession(sid) {
+    const x = sessionsCache?.sessions.find(s => s.sid === sid);
+    if (!x) return;
+    const who = x.user === session?.username ? '' : ` تبع ${personName(x.user)}`;
+    showAppConfirm('تطليع جهاز', `بدك تطلّع "${x.dev || 'جهاز قديم'}"${who}؟ بيطلع من البرنامج فوراً وبيوقف يوصله إشعارات.`, async () => {
+        const r = await postToSheets({ action: 'session_revoke', sid });
+        if (r.status === 'ok' && r.data?.ok) {
+            sessionsCache.sessions = sessionsCache.sessions.filter(s => s.sid !== sid);
+            refreshSessionViews();
+            showToast('انطلع', `${x.dev || 'الجهاز'}${who} طلع من البرنامج`, 'success');
+        } else {
+            const err = r.data?.error;
+            showToast('ما زبط', err === 'forbidden' ? 'ما عندك صلاحية تطلّع هالجهاز' : err === 'self_session' ? 'هاد الجهاز اللي إنت عليه، استعمل تسجيل الخروج' : 'ما وصل رد، جرّب كمان مرة', 'warning');
+        }
+    });
+}
+
 function renderTxLimitSettings() {
     const on = globalConfig.txLimitOn !== 'no';
     const ok = sheetHas('txApproval');

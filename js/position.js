@@ -61,6 +61,111 @@ function debtItems() {
     return { owed, owe };
 }
 
+// ================= جاهزية الدفع (بطلب عماد 2026-10-21) =================
+// كل اللي لسا لازم ندفعه (نفس "عليك" بالديون: حوالات مش مكتملة، سحب USDT، استقبال/شراء جنيه) مجمّع حسب الجهة اللي
+// بينصرف عليها، مقابل رصيد حساباتنا من نفس النوع. الحوالة من جهتها، و USDT والجنيه من جهة الزبون المحفوظة بملفه
+const PROVIDER_ACC_TYPE = { 'بال باي': 'palpay', 'جوال باي': 'jawwal', 'بنك فلسطين': 'bank' };
+const READY_TYPE_WORD = { tx: 'حوالات', usdt: 'USDT', egp: 'جنيه' };
+
+function payoutAccType(payout, provider) {
+    if (payout === 'كاش') return 'cash';
+    if (PROVIDER_ACC_TYPE[provider]) return PROVIDER_ACC_TYPE[provider];
+    return payout === 'بنكي' ? 'bank' : '';
+}
+
+function payoutReadiness() {
+    const bal = accountBalances();
+    const have = {};
+    accounts.forEach(a => ['ILS', 'USD'].forEach(cur => {
+        const k = a.accType + '|' + cur;
+        have[k] = round2((have[k] || 0) + (bal[a.id]?.[cur] || 0));
+    }));
+    const groups = new Map();
+    debtItems().owe.forEach(i => {
+        let type = '', pending = false;
+        if (i.type === 'tx') {
+            const t = ledger.find(x => x.id === i.id);
+            type = t ? payoutAccType(t.payout, t.provider) : '';
+            pending = t?.approval === 'pending';
+        } else {
+            const c = customers.find(x => i.customerId && x.id === i.customerId) || customers.find(x => i.who && normName(x.name) === normName(i.who));
+            type = c ? payoutAccType(c.payout, c.provider) : '';
+        }
+        const key = type + '|' + i.cur;
+        if (!groups.has(key)) groups.set(key, { type, cur: i.cur, need: 0, pending: 0, by: {}, items: [] });
+        const g = groups.get(key);
+        g.need = round2(g.need + i.amount);
+        if (pending) g.pending = round2(g.pending + i.amount);
+        g.by[i.type] = round2((g.by[i.type] || 0) + i.amount);
+        g.items.push({ ...i, pending });
+    });
+    return [...groups.values()].map(g => {
+        const h = g.type ? (have[g.type + '|' + g.cur] || 0) : null;
+        return { ...g, have: h, short: g.type ? round2(g.need - h) : 0 };
+    }).sort((a, b) => (!a.type) - (!b.type) || b.short - a.short || b.need - a.need);
+}
+
+function payoutItemLabel(i) {
+    if (i.type === 'tx') return 'حوالة';
+    if (i.type === 'usdt') return 'سحب USDT';
+    return EGP_KINDS[egpMoves.find(m => m.id === i.id)?.kind] || 'جنيه';
+}
+
+function renderPayoutReadiness() {
+    const box = $('payout-readiness');
+    if (!box) return;
+    if (dataState === 'loading') { box.innerHTML = ''; box.classList.add('hidden'); return; }
+    box.classList.remove('hidden');
+    const rows = payoutReadiness();
+    const shorts = rows.filter(r => r.type && r.short > 0.004).length;
+    const missing = [['transactions', 'الحوالات'], ['usdt', 'USDT'], ['egp', 'الجنيه']].filter(([p]) => !hasPerm(p)).map(([, l]) => l);
+    const head = `
+        <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+                <h3 class="text-sm font-bold text-slate-900">💸 جاهزية الدفع</h3>
+                <p class="text-[11px] text-slate-400">اللي لسا لازم تدفعه للزبائن، مقابل رصيد حساباتك من نفس النوع</p>
+            </div>
+            ${!rows.length ? '' : shorts
+                ? `<span class="pr-badge short">⚠️ ناقص ${shorts === 1 ? 'بحساب واحد' : `بـ ${shorts} حسابات`}</span>`
+                : '<span class="pr-badge ok">✓ كله مكفّي</span>'}
+        </div>`;
+    const note = missing.length ? `<p class="text-[11px] text-amber-700">⚠️ مش محسوب حسب صلاحياتك: ${missing.join('، ')}</p>` : '';
+    if (!rows.length) {
+        box.innerHTML = head + '<p class="text-xs font-bold text-emerald-700">✓ ما في إشي مستني تدفعه هلّق</p>' + note;
+        return;
+    }
+    box.innerHTML = head + '<div class="space-y-2">' + rows.map(r => {
+        const t = ACCOUNT_TYPES[r.type] || { label: 'مش محدد', color: '#64748b', soft: '#f1f5f9', ink: '#334155' };
+        const by = Object.entries(r.by);
+        const breakdown = [
+            by.length > 1 ? by.map(([k, v]) => `${READY_TYPE_WORD[k]}: ${moneyCur(v, r.cur)}`).join(' · ') : '',
+            r.pending > 0.004 ? `منها ${moneyCur(r.pending, r.cur)} بتستنى موافقتك ⏳` : ''
+        ].filter(Boolean).join(' · ');
+        const state = !r.type
+            ? '<span class="pr-state none">بتختار الحساب وقت الدفع</span>'
+            : r.short > 0.004
+                ? `<span class="pr-state short">ناقصك ${moneyCur(r.short, r.cur)} ⚠️</span>`
+                : '<span class="pr-state ok">✓ مكفّي</span>';
+        const items = [...r.items].sort((a, b) => String(a.date).localeCompare(String(b.date))).map(i => `
+            <button type="button" data-action="goto-ref" data-type="${i.type}" data-id="${escapeHtml(i.id)}" class="pr-item">
+                <span class="min-w-0 truncate">${payoutItemLabel(i)} ${escapeHtml(i.no)} · ${escapeHtml(i.who || '')}${i.pending ? ' ⏳' : ''}</span>
+                <b class="num shrink-0">${moneyCur(i.amount, i.cur)}</b>
+            </button>`).join('');
+        return `
+            <details class="pr-row${r.short > 0.004 ? ' is-short' : ''}" style="--acc:${t.color};--acc-soft:${t.soft};--acc-ink:${t.ink}">
+                <summary class="pr-sum">
+                    <span class="pr-name"><span class="acc-chip">${escapeHtml(t.label)}</span>${r.cur === 'USD' ? '<span class="pr-cur">دولار</span>' : ''}</span>
+                    <span class="pr-num"><small>لازمك</small><b class="num">${moneyCur(r.need, r.cur)}</b></span>
+                    <span class="pr-num">${r.type ? `<small>معك</small><b class="num">${moneyCur(r.have, r.cur)}</b>` : ''}</span>
+                    ${state}
+                    <span class="pr-caret" aria-hidden="true">▾</span>
+                </summary>
+                ${breakdown ? `<div class="pr-break">${breakdown}</div>` : ''}
+                <div class="pr-items">${items}</div>
+            </details>`;
+    }).join('') + '</div>' + note;
+}
+
 // كل زبون بسطر: مجموعه بالشيكل والدولار، وأقدم حركة
 function groupDebts(items, usdRate) {
     const map = new Map();

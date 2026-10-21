@@ -171,7 +171,7 @@ async function submitLogin(e) {
     btn.disabled = true;
     $('login-error').textContent = '';
     try {
-        const r = await postToSheets({ action: 'login', username, password }, { noSession: true });
+        const r = await postToSheets({ action: 'login', username, password, device: pushDeviceLabel() }, { noSession: true });
         const data = r.data;
         if (r.status !== 'ok' || !data?.session) {
             $('login-error').textContent = LOGIN_ERRORS[r.error] || 'تعذر تسجيل الدخول، تأكد من الاتصال';
@@ -228,7 +228,12 @@ function openProfileModal() {
     $('pf_username').textContent = session?.username || '';
     profileDraft = { avatar: myAvatarUrl(), changed: false };
     renderProfilePreview();
-    openModal('profileModal');
+    $('pf_devices_wrap').classList.toggle('hidden', !sessionsAvailable());
+    if (sessionsAvailable()) {
+        openModal('profileModal');
+        renderSessionList($('pf_devices'), true);
+        if (!sessionsCache || Date.now() - sessionsCache.at > 60000) loadSessions();
+    } else openModal('profileModal');
     $('pf_name').focus();
 }
 

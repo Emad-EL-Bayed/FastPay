@@ -231,6 +231,7 @@ function updateUsdtCustomerStatus() {
     $('us_customer_status').className = 'text-[10px] font-bold ' + (known ? 'text-emerald-600' : 'text-blue-600');
     const adjust = $('us_kind').value === 'adjust';
     updateCustomerPhoneField('us', known, adjust ? '' : q);
+    syncNewPayoutField('us', !known && !!q && $('us_kind').value === 'withdraw');
 }
 
 function onUsdtCustomerInput() {
@@ -480,7 +481,7 @@ async function saveUsdt(e) {
         const phone = readCustomerPhone('us', customer?.id);
         if (phone === null) return;
         if (!customer) {
-            customer = normalizeCustomer({ id: newCustomerId(), name, phone, payout: 'كاش', provider: '', account: '', createdAt: $('us_date').value || localDateStr() });
+            customer = normalizeCustomer({ id: newCustomerId(), name, phone, payout: 'كاش', provider: '', account: '', ...readNewPayout('us'), createdAt: $('us_date').value || localDateStr() });
             customers.unshift(customer);
             ops.push({ action: 'upsert_customer', customer });
         } else if (phone) {

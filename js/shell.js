@@ -393,6 +393,9 @@ function openSettingsCard(id) {
     // الإشعار "المهم" ما بيتسكّر إلا بـ "قرأت"
     document.querySelectorAll('.modal:not(.hidden):not(#notifyAlertModal)').forEach(m => closeModal(m.id));
     switchTab('settings');
+    // التاب اللي فيه الكرت (الإعدادات صارت تابات)
+    const tab = $(id)?.dataset.stab?.split(' ')[0];
+    if (tab) setSettingsTab(tab);
     // بعد ما الصفحة ترسم وتخلص حركة الدخول
     setTimeout(() => {
         $(id)?.scrollIntoView({ behavior: motionReduced() ? 'instant' : 'smooth', block: 'start' });

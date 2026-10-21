@@ -144,6 +144,7 @@ function renderAccountsPage() {
                     </div>
                 </div>`;
         }).join('');
+    renderPayoutReadiness();
     renderAccountMoves();
     renderClosingHistory();
 }

@@ -212,6 +212,7 @@ function setPayout(payout, provider) {
     $('iban-row').classList.toggle('hidden', !bank);
     syncBankAccountField($('calc_bank_account'));
     syncIbanField($('calc_iban'), $('calc_iban_hint'));
+    syncCalcRepeatActive();
 }
 
 // رقم الحساب البنكي: الخانة بتتسكّر إذا السكربت المنشور قديم (ما فيه عمود إله فبيضيع)
@@ -355,6 +356,7 @@ function renderCalcAdjust(input, r) {
 let lastResultValue = null;
 
 function runLiveCalc() {
+    syncCalcRepeatActive();
     const input = calcInputsWithAdjust();
     const r = computeTransfer(input);
     const isUsd = input.currency === 'USD';
@@ -468,6 +470,7 @@ function resetCalcForm() {
     setCustomerStatus(false, 'عميل جديد');
     setPayout('محفظة');
     setCurrency('ILS');
+    renderCalcRepeat();
     calcRateTouched = false;
     applyScreenRateToUI();
     $('calc_other_name').value = '';
@@ -507,6 +510,76 @@ function replayCalcEntrance() {
     });
 }
 
+// ================= كرّر آخر حوالة (بطلب عماد 2026-10-21) =================
+// لزبون إله حوالات قبل: زر لكل دولة بعتها (آخر حوالة منها، لحد 3) بيعبّي المصدر وعملة التسليم وطريقة الاستلام والرقم.
+// المبلغ لا، والنسب من تسعير الدول اليوم (selectSource)، مش من الحوالة القديمة
+const CALC_REPEAT_MAX = 3;
+
+function calcRepeatTxs() {
+    const id = $('calc_customer_id').value;
+    const name = normName($('calc_recipient').value);
+    const c = customers.find(x => x.id === id) || (name ? customers.find(x => normName(x.name) === name) : null);
+    if (!c) return [];
+    const mine = ledger.filter(t => t.status !== 'ملغي' && t.country && !isUsdtSource({ name: t.country })
+        && (t.customerId ? t.customerId === c.id : normName(t.recipient) === normName(c.name)));
+    mine.sort((a, b) => String(b.date).localeCompare(String(a.date)) || toNum(b.id) - toNum(a.id));
+    const seen = new Set();
+    return mine.filter(t => !seen.has(t.country) && seen.add(t.country)).slice(0, CALC_REPEAT_MAX);
+}
+
+const repeatPayoutLabel = (t) => t.payout === 'كاش' ? 'كاش' : (t.provider || t.payout || '');
+
+// الزر مضوي إذا الحاسبة هلّق على نفس الدولة والعملة والجهة
+function calcMatchesTx(t) {
+    const src = calcSource?.other ? otherSourceName() : calcSource?.name;
+    return src === t.country && $('calc_currency').value === (t.currency === 'USD' ? 'USD' : 'ILS')
+        && $('calc_payout_type').value === t.payout && ($('calc_payout_type').value === 'كاش' || $('calc_provider').value === t.provider);
+}
+
+function renderCalcRepeat() {
+    const box = $('calc-repeat');
+    const list = calcRepeatTxs();
+    box.classList.toggle('hidden', !list.length);
+    if (!list.length) { box.innerHTML = ''; return; }
+    box.innerHTML = `<span class="calc-repeat-label">↻ زي آخر مرة:</span>` + list.map(t => `
+        <button type="button" data-action="calc-repeat" data-id="${escapeHtml(t.id)}" class="repeat-chip${calcMatchesTx(t) ? ' active' : ''}"
+            title="آخر حوالة من هون: ${escapeHtml(t.date)} · ${escapeHtml(moneyCur(t.currency === 'USD' ? t.clientUsd : t.clientIls, t.currency))}">
+            ${escapeHtml(t.country.replace(/^أخرى\s*-\s*/, ''))} · ${escapeHtml(repeatPayoutLabel(t))} · ${t.currency === 'USD' ? '$' : '₪'}
+        </button>`).join('');
+}
+
+// بس الإضاءة (بدون ما ندوّر بالحوالات من جديد): بعد أي تغيير بالمصدر أو العملة أو الجهة
+function syncCalcRepeatActive() {
+    document.querySelectorAll('#calc-repeat .repeat-chip').forEach(b => {
+        const t = ledger.find(x => String(x.id) === b.dataset.id);
+        b.classList.toggle('active', !!t && calcMatchesTx(t));
+    });
+}
+
+function applyCalcRepeat(id) {
+    const t = ledger.find(x => String(x.id) === String(id));
+    if (!t) return;
+    const other = /^أخرى\s*-\s*/.test(t.country);
+    if (other) {
+        selectSource(OTHER_SOURCE.name, true);
+        $('calc_other_name').value = t.country.replace(/^أخرى\s*-\s*/, '');
+        $('calc_factor').value = t.factor || '';
+        updateSourceBadge();
+    } else if (countries.some(c => c.name === t.country)) {
+        selectSource(t.country);
+    } else {
+        showToast('تنبيه', `${t.country} مش موجودة بتسعير الدول، اختار المصدر بإيدك`, 'warning');
+    }
+    setCurrency(t.currency);
+    setPayout(t.payout, t.provider);
+    $('calc_account').value = t.account || '';
+    $('calc_bank_account').value = t.bankAccount || '';
+    setIbanField($('calc_iban'), $('calc_iban_hint'), t.iban || '');
+    runLiveCalc();
+    renderCalcRepeat();
+    $('calc_orig_amount').focus();
+}
+
 // ================= البحث الذكي عن الزبون =================
 function setCustomerStatus(isExisting, text) {
     const el = $('cust-auto-status');
@@ -542,6 +615,7 @@ function onCustomerSearchInput() {
     }
     updateCustomerPhoneField('calc', customers.find(c => c.id === $('calc_customer_id').value) || exact, input.value);
     applyVipProfit();
+    renderCalcRepeat();
 
     pickerIndex = -1;
     dropdown.innerHTML = customerPickerHtml(input.value.trim(), 'select-customer');
@@ -588,6 +662,45 @@ function updateCustomerPhoneField(prefix, customer, name) {
     $(prefix + '_phone_label').textContent = customer
         ? `رقم الواتساب (اختياري) — ${customer.name} ما إله رقم`
         : 'رقم الواتساب (اختياري)';
+}
+
+// ---------- زبون جديد من USDT أو الجنيه: كيف بيستلم (بطلب عماد 2026-10-21) ----------
+// بس بالحركات اللي إحنا بندفع فيها (سحب USDT، استقبال جنيه)، ولاسم جديد. زي الحاسبة: بال باي أول، والرقم اختياري.
+// بينحفظ بملف الزبون (payout/provider/account)، فجاهزية الدفع بتحسبه على الحساب الصح والحاسبة بتعبّيه بعدين
+const newPayoutState = {};
+
+function setNewPayout(prefix, payout, provider) {
+    if (!PAYOUTS.includes(payout)) payout = 'محفظة';
+    const options = providerOptions(payout);
+    if (!options.includes(provider)) provider = options[0] || '';
+    newPayoutState[prefix] = { payout, provider };
+    $(prefix + '_np_payouts').querySelectorAll('[data-payout]').forEach(b => {
+        const on = b.dataset.payout === payout;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-checked', String(on));
+    });
+    $(prefix + '_np_providers').innerHTML = options.map(p => `
+        <button type="button" data-action="np-provider" data-prefix="${prefix}" data-provider="${escapeHtml(p)}" class="provider-chip${p === provider ? ' active' : ''}">${escapeHtml(p)}</button>`).join('');
+    $(prefix + '_np_providers').classList.toggle('hidden', !options.length);
+    const acc = $(prefix + '_np_account');
+    acc.classList.toggle('hidden', payout === 'كاش');
+    acc.placeholder = payout === 'بنكي' ? `رقم الجوال المربوط بـ ${provider || 'البنك'} (اختياري)` : `رقم محفظة ${provider || 'الزبون'} (اختياري)`;
+}
+
+function syncNewPayoutField(prefix, show) {
+    const wrap = $(prefix + '_np_wrap');
+    if (show && wrap.classList.contains('hidden')) {
+        setNewPayout(prefix, 'محفظة');
+        $(prefix + '_np_account').value = '';
+    }
+    wrap.classList.toggle('hidden', !show);
+}
+
+// للحفظ: null إذا الخانات مخفية (الزبون بيضل زي ما كان)
+function readNewPayout(prefix) {
+    if ($(prefix + '_np_wrap').classList.contains('hidden')) return null;
+    const st = newPayoutState[prefix] || { payout: 'محفظة', provider: 'بال باي' };
+    return { payout: st.payout, provider: st.provider, account: st.payout === 'كاش' ? '' : latinDigits($(prefix + '_np_account').value).trim() };
 }
 
 // الرقم المكتوب ('' إذا فارغ أو مخفي)، أو null إذا غلط (مع تنبيه)
@@ -656,6 +769,7 @@ function fillCustomerIntoCalc(c) {
     updateCustomerPhoneField('calc', customers.find(x => c.id && x.id === c.id) || null, c.name);
     setCustomerStatus(true, c.vipDiscount > 0 && sheetHas('vip') ? '⭐ زبون مميز' : '✓ زبون مسجل');
     applyVipProfit();
+    renderCalcRepeat();
 }
 
 function selectCustomerFromSearch(id) {

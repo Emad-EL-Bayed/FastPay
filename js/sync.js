@@ -13,7 +13,11 @@ async function postToSheets(payload, { noSession = false } = {}) {
 
     const extra = {};
     if (globalConfig.syncToken) extra.token = globalConfig.syncToken;
-    if (session?.token && !noSession) extra.session = session.token;
+    if (session?.token && !noSession) {
+        extra.session = session.token;
+        // اسم الجهاز لقائمة "الأجهزة المسجّلة" (السكربت بيكتبه للجلسة اللي ما إلها اسم، وآخر استعمال كل 10 دقايق)
+        if (!payload.device) extra.device = pushDeviceLabel();
+    }
     const body = JSON.stringify({ ...payload, ...extra });
     try {
         const res = await fetch(url, { method: 'POST', body });

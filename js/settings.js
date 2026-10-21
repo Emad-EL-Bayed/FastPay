@@ -4,7 +4,33 @@
 // الملفات تُحمَّل بالترتيب في index.html وتتشارك نفس المتغيرات العامة.
 
 // ================= الإعدادات =================
+// ---------- تابات الإعدادات (بطلب عماد 2026-10-21: الصفحة كانت طويلة كثير) ----------
+// كل كرت عليه data-stab (ممكن أكثر من تاب، زي زر الحفظ)، والتاب المفتوح بينحفظ على هالجهاز بس
+const SETTINGS_TABS = ['rates', 'security', 'receipt', 'link', 'look'];
+const settingsTab = () => SETTINGS_TABS.includes(globalConfig.settingsTab) ? globalConfig.settingsTab : 'rates';
+
+function setSettingsTab(tab, { remember = true, animate = false } = {}) {
+    if (!SETTINGS_TABS.includes(tab)) tab = 'rates';
+    document.querySelectorAll('#settings-tabs [data-stab]').forEach(b => {
+        const on = b.dataset.stab === tab;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', String(on));
+    });
+    document.querySelectorAll('#page-settings > [data-stab]').forEach(el => {
+        const was = !el.classList.contains('stab-off');
+        const on = el.dataset.stab.split(' ').includes(tab);
+        el.classList.toggle('stab-off', !on);
+        if (animate && on && !was && !motionReduced()) replayClass(el, 'stab-in');
+    });
+    if (tab === 'security') renderSessionsCard();
+    if (remember && globalConfig.settingsTab !== tab) {
+        globalConfig.settingsTab = tab;
+        try { localStorage.setItem(STORAGE.config, JSON.stringify(globalConfig)); } catch (e) { /* التخزين محظور: بيضل لهالجلسة */ }
+    }
+}
+
 function loadSettingsPage() {
+    setSettingsTab(settingsTab(), { remember: false });
     renderMonthlySettings();
     renderUsdtSettings();
     renderEgpTierSettings();
