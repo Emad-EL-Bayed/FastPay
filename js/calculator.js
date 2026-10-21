@@ -455,6 +455,9 @@ function renderRecentTx() {
     highlightTxId = null;
 }
 
+// الحوالة الجديدة دايماً "فحص" (بطلب عماد 2026-10-21)
+const CALC_DEFAULT_STATUS = 'فحص';
+
 function resetCalcForm() {
     $('calc_recipient').value = '';
     $('calc_customer_id').value = '';
@@ -463,7 +466,7 @@ function resetCalcForm() {
     setIbanField($('calc_iban'), $('calc_iban_hint'), '');
     $('calc_orig_amount').value = '';
     calcAdjust = 0;
-    $('calc_status').value = STATUSES[0];
+    $('calc_status').value = CALC_DEFAULT_STATUS;
     $('calc_date').value = localDateStr();
     $('calc_phone').value = '';
     updateCustomerPhoneField('calc', null, '');

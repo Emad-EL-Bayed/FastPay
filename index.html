@@ -28,41 +28,41 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=106">
+    <link rel="stylesheet" href="styles.css?v=108">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=106">
+    <link rel="stylesheet" href="tailwind.css?v=108">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=106" defer></script>
-    <script src="js/core.js?v=106" defer></script>
-    <script src="js/theme.js?v=106" defer></script>
-    <script src="js/logo-data.js?v=106" defer></script>
-    <script src="js/shell.js?v=106" defer></script>
-    <script src="js/calculator.js?v=106" defer></script>
-    <script src="js/reports.js?v=106" defer></script>
-    <script src="js/sync.js?v=106" defer></script>
-    <script src="js/conflicts.js?v=106" defer></script>
-    <script src="js/cache.js?v=106" defer></script>
-    <script src="js/bgsync.js?v=106" defer></script>
-    <script src="js/transactions.js?v=106" defer></script>
-    <script src="js/receipts.js?v=106" defer></script>
-    <script src="js/customers.js?v=106" defer></script>
-    <script src="js/countries.js?v=106" defer></script>
-    <script src="js/service-logos.js?v=106" defer></script>
-    <script src="js/traders.js?v=106" defer></script>
-    <script src="js/expenses.js?v=106" defer></script>
-    <script src="js/ready.js?v=106" defer></script>
-    <script src="js/settings.js?v=106" defer></script>
-    <script src="js/accounts.js?v=106" defer></script>
-    <script src="js/usdt.js?v=106" defer></script>
-    <script src="js/egp.js?v=106" defer></script>
-    <script src="js/closing.js?v=106" defer></script>
-    <script src="js/admin.js?v=106" defer></script>
-    <script src="js/position.js?v=106" defer></script>
-    <script src="js/search.js?v=106" defer></script>
-    <script src="js/notify.js?v=106" defer></script>
-    <script src="js/push.js?v=106" defer></script>
-    <script src="js/auth.js?v=106" defer></script>
-    <script src="js/main.js?v=106" defer></script>
+    <script src="js/endpoint.js?v=108" defer></script>
+    <script src="js/core.js?v=108" defer></script>
+    <script src="js/theme.js?v=108" defer></script>
+    <script src="js/logo-data.js?v=108" defer></script>
+    <script src="js/shell.js?v=108" defer></script>
+    <script src="js/calculator.js?v=108" defer></script>
+    <script src="js/reports.js?v=108" defer></script>
+    <script src="js/sync.js?v=108" defer></script>
+    <script src="js/conflicts.js?v=108" defer></script>
+    <script src="js/cache.js?v=108" defer></script>
+    <script src="js/bgsync.js?v=108" defer></script>
+    <script src="js/transactions.js?v=108" defer></script>
+    <script src="js/receipts.js?v=108" defer></script>
+    <script src="js/customers.js?v=108" defer></script>
+    <script src="js/countries.js?v=108" defer></script>
+    <script src="js/service-logos.js?v=108" defer></script>
+    <script src="js/traders.js?v=108" defer></script>
+    <script src="js/expenses.js?v=108" defer></script>
+    <script src="js/ready.js?v=108" defer></script>
+    <script src="js/settings.js?v=108" defer></script>
+    <script src="js/accounts.js?v=108" defer></script>
+    <script src="js/usdt.js?v=108" defer></script>
+    <script src="js/egp.js?v=108" defer></script>
+    <script src="js/closing.js?v=108" defer></script>
+    <script src="js/admin.js?v=108" defer></script>
+    <script src="js/position.js?v=108" defer></script>
+    <script src="js/search.js?v=108" defer></script>
+    <script src="js/notify.js?v=108" defer></script>
+    <script src="js/push.js?v=108" defer></script>
+    <script src="js/auth.js?v=108" defer></script>
+    <script src="js/main.js?v=108" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -251,7 +251,7 @@
             </div>
 
             <!-- ================= 1. الحاسبة ================= -->
-            <div id="page-calculator">
+            <div id="page-calculator" class="md:pb-36">
                 <input type="hidden" id="calc_payout_type" value="محفظة">
                 <input type="hidden" id="calc_provider" value="">
                 <input type="hidden" id="calc_currency" value="ILS">
@@ -381,7 +381,7 @@
                                     <label for="calc_status" class="calc-label-sm">حالة الطلب</label>
                                     <select id="calc_status" class="calc-input-sm">
                                         <option value="قيد الإنتظار">قيد الإنتظار</option>
-                                        <option value="فحص">فحص</option>
+                                        <option value="فحص" selected>فحص</option>
                                         <option value="جزئي">جزئي (دُفع جزء)</option>
                                         <option value="مكتمل">مكتمل</option>
                                         <option value="ملغي">ملغي</option>
@@ -1134,11 +1134,11 @@
                 </div>
                 <!-- تابات الإعدادات (settings.js setSettingsTab): كل كرت عليه data-stab، والتاب المفتوح بينحفظ على الجهاز -->
                 <div id="settings-tabs" class="stabs max-w-2xl" role="tablist" aria-label="أقسام الإعدادات">
-                    <button type="button" data-action="settings-tab" data-stab="rates" class="stab-btn" role="tab"><span class="stab-ic" aria-hidden="true">💱</span>الأسعار</button>
-                    <button type="button" data-action="settings-tab" data-stab="security" class="stab-btn" role="tab"><span class="stab-ic" aria-hidden="true">🛡️</span>الحماية</button>
-                    <button type="button" data-action="settings-tab" data-stab="receipt" class="stab-btn" role="tab"><span class="stab-ic" aria-hidden="true">🧾</span><span class="hidden sm:inline">الفاتورة وواتساب</span><span class="sm:hidden">الفاتورة</span></button>
-                    <button type="button" data-action="settings-tab" data-stab="link" class="stab-btn" role="tab"><span class="stab-ic" aria-hidden="true">🔗</span>الربط</button>
-                    <button type="button" data-action="settings-tab" data-stab="look" class="stab-btn" role="tab"><span class="stab-ic" aria-hidden="true">🎨</span>المظهر</button>
+                    <button type="button" data-action="settings-tab" data-stab="rates" class="stab-btn" role="tab">الأسعار</button>
+                    <button type="button" data-action="settings-tab" data-stab="security" class="stab-btn" role="tab">الحماية</button>
+                    <button type="button" data-action="settings-tab" data-stab="receipt" class="stab-btn" role="tab"><span class="hidden sm:inline">الفاتورة وواتساب</span><span class="sm:hidden">الفاتورة</span></button>
+                    <button type="button" data-action="settings-tab" data-stab="link" class="stab-btn" role="tab">الربط</button>
+                    <button type="button" data-action="settings-tab" data-stab="look" class="stab-btn" role="tab">المظهر</button>
                 </div>
 
                 <div data-stab="rates" class="section-card p-6 max-w-2xl space-y-5">
