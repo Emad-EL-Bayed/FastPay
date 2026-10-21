@@ -105,6 +105,12 @@ const CLICK_ACTIONS = {
     'cust-new-tx': customerNewTransaction,
     'cust-show-ledger': customerShowLedger,
     'cust-goto-usdt': (el) => customerGotoUsdt(el.dataset.id),
+    // كشف حساب الزبون
+    'cst-open': (el) => openCustomerStatement(el.dataset.id, el.dataset.name),
+    'cst-period': (el) => setCustomerStatementPeriod(el.dataset.period),
+    'cst-png': () => exportCustomerStatement('png'),
+    'cst-pdf': () => exportCustomerStatement('pdf'),
+    'cst-share': shareCustomerStatement,
     'select-source': (el) => selectSource(el.dataset.name, el.dataset.other === '1'),
     'open-receipt': (el) => openReceipt(toNum(el.dataset.id, NaN)),
     'open-last-receipt': () => lastSavedTxId && openReceipt(lastSavedTxId),
@@ -324,7 +330,7 @@ function bindGlobalEvents() {
 
 // النوافذ من فوق لتحت: Esc وزر الرجوع بيسكّروا اللي فوق بس
 // (الإشعار المهم و"مين عدّل قبلي" مش هون: ما بيتسكّروا إلا بالاختيار)
-const MODAL_ORDER = ['searchModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'readySendModal', 'readyModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'accountModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal'];
+const MODAL_ORDER = ['searchModal', 'custStatementModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'readySendModal', 'readyModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'accountModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal'];
 const topModalId = () => MODAL_ORDER.find(id => !$(id).classList.contains('hidden'));
 
 // ================= زر الرجوع بالجوال (بطلب عماد 2026-10-19) =================

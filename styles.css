@@ -1638,6 +1638,28 @@ html.motion-off .copy-menu { animation: none; }
 .daily-test-btn { padding: 0.45rem 0.7rem; border-radius: 0.6rem; font-size: 0.7rem; font-weight: 800; background: rgb(var(--b-white, 255 255 255)); border: 1px solid rgb(var(--c-slate-200, 226 232 240)); color: rgb(var(--t-slate-700, 51 65 85)); }
 .daily-test-btn:hover { border-color: rgb(var(--c-slate-400, 148 163 184)); }
 
+/* ================= كشف حساب الزبون (customers.js) ================= */
+.cst-cols { display: none; }
+/* الجوال: العنوان، وتحته المبلغ والمدفوع فوق بعض يمين، والباقي يسار */
+.cst-row { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "title title" "amt left" "paid left"; gap: 0.2rem 0.75rem; padding: 0.7rem 1.25rem; border-bottom: 1px solid rgb(var(--c-slate-100, 241 245 249)); font-size: 0.78rem; color: rgb(var(--t-slate-700, 51 65 85)); }
+.cst-row:last-child { border-bottom: 0; }
+.cst-c { white-space: nowrap; }
+.cst-c-amt { grid-area: amt; }
+.cst-c-paid { grid-area: paid; }
+.cst-c-left { grid-area: left; align-self: center; text-align: left; font-size: 0.82rem; }
+.cst-title { grid-area: title; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.25rem 0.75rem; }
+.cst-title b { color: rgb(var(--t-slate-900, 15 23 42)); font-weight: 800; }
+.cst-title span { font-size: 0.7rem; color: rgb(var(--t-slate-400, 148 163 184)); }
+.cst-lbl { color: rgb(var(--t-slate-400, 148 163 184)); font-size: 0.68rem; }
+@media (min-width: 640px) {
+    .cst-cols { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 0.75rem; padding: 0.55rem 1.25rem; font-size: 0.7rem; font-weight: 800; color: rgb(var(--t-slate-500, 100 116 139)); background: rgb(var(--b-slate-50, 248 250 252)); border-bottom: 1px solid rgb(var(--c-slate-200, 226 232 240)); }
+    .cst-row { grid-template-columns: 2fr 1fr 1fr 1fr; grid-template-areas: none; align-items: center; }
+    .cst-title, .cst-c-amt, .cst-c-paid, .cst-c-left { grid-area: auto; }
+    .cst-c-left { text-align: start; font-size: inherit; }
+    .cst-title { flex-direction: column; align-items: flex-start; justify-content: center; }
+    .cst-lbl { display: none; }
+}
+
 /* ================= الوضع الداكن ================= */
 /* الألوان نفسها متغيرات (build/tailwind.config.js) وبتتحول لحالها، وهون بس اللي إله شكل خاص بالداكن.
    <html data-theme="dark"> بيتحط من js/theme.js (ومن سكربت صغير بأول index.html قبل أول رسم) */

@@ -370,8 +370,9 @@ function profileMonthsHtml(s) {
 
 function profileActionsHtml(c, registered) {
     return `
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <button data-action="cust-new-tx" class="cp-action bg-slate-900 text-white">+ حوالة جديدة له</button>
+            <button data-action="cst-open" data-id="${escapeHtml(c.id || '')}" data-name="${escapeHtml(c.name)}" class="cp-action bg-blue-50 text-blue-800">📄 كشف حساب</button>
             <button data-action="cust-show-ledger" class="cp-action bg-slate-100 text-slate-800">عرض في سجل الحوالات</button>
             ${registered ? `<button data-action="edit-customer" data-id="${escapeHtml(c.id)}" class="cp-action bg-slate-100 text-slate-800">تعديل البيانات</button>` : ''}
         </div>`;
@@ -622,5 +623,171 @@ function deleteCustomerPrompt(id) {
         renderCustomersTable();
         const syncStatus = await flushOutbox();
         showToast('تم حذف الزبون', syncResultMessage(syncStatus), syncToastType(syncStatus));
+    });
+}
+
+// ================= كشف حساب الزبون (بطلب عماد 2026-10-21) =================
+// صورة/PDF زي كشف التاجر، بتنبعت للزبون على واتساب: حوالاته و USDT والجنيه، كل حركة بمبلغها والمدفوع والباقي
+// (عليك / إلك، من جهة الزبون لأنه هو اللي بيقرأها)، وتحت المجموع والصافي. "المفتوحة" = اللي لسا فيها باقي (للديون)
+let cstCustomer = null; // { id, name, phone }
+let cstPeriod = 'open'; // open | month | 3m | all
+
+const CST_PERIODS = [['open', 'المفتوحة'], ['month', 'هالشهر'], ['3m', 'آخر 3 أشهر'], ['all', 'كل الحركات']];
+
+// dir: 1 = عليه (إلنا)، −1 = إله (علينا)
+function customerStatementItems(c) {
+    const s = customerStats(c);
+    const items = [];
+    s.all.forEach(t => {
+        if (t.status === CANCELLED) return;
+        const due = txDue(t);
+        const done = t.status === 'مكتمل';
+        const paid = done ? due : txPaid(t);
+        items.push({ type: 'tx', id: t.id, date: t.date, dir: -1, cur: t.currency, due, paid, left: done ? 0 : Math.max(0, round2(due - paid)),
+            title: `حوالة ${receiptNo(t)}`, sub: `${t.country} · ${t.status}` });
+    });
+    s.usdt.forEach(m => {
+        const st = usdtPayState(m);
+        if (!st) return;
+        items.push({ type: 'usdt', id: m.id, date: m.date, dir: m.kind === 'deposit' ? 1 : -1, cur: m.currency, due: round2(m.total - m.settle), paid: st.paid, left: st.remaining,
+            title: `${USDT_KINDS[m.kind]} USDT ${receiptNo(m)}`, sub: `${fmtTrim(m.amount)} USDT` });
+    });
+    s.egp.forEach(m => {
+        const st = egpPayState(m);
+        if (!st) return;
+        items.push({ type: 'egp', id: m.id, date: m.date, dir: st.dir, cur: m.currency, due: round2(m.total - m.settle), paid: st.paid, left: st.remaining,
+            title: `${EGP_KINDS[m.kind]} ${receiptNo(m)}`, sub: `${fmtEgp(Math.abs(m.egp))} جنيه` });
+    });
+    return items.sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+}
+
+function customerStatementShown(items) {
+    if (cstPeriod === 'open') return items.filter(i => i.left > 0.004);
+    if (cstPeriod === 'all') return items;
+    const from = cstPeriod === 'month' ? localDateStr().slice(0, 8) + '01' : localDateStr(new Date(Date.now() - 90 * 86400000));
+    return items.filter(i => i.date >= from);
+}
+
+// الباقي لكل اتجاه وعملة
+function customerStatementTotals(items) {
+    const t = { owes: { ILS: 0, USD: 0 }, owed: { ILS: 0, USD: 0 } };
+    items.forEach(i => { if (i.left > 0.004) t[i.dir > 0 ? 'owes' : 'owed'][i.cur === 'USD' ? 'USD' : 'ILS'] += i.left; });
+    return t;
+}
+
+const cstMoney = (g) => [g.ILS > 0.004 ? moneyCur(round2(g.ILS), 'ILS') : '', g.USD > 0.004 ? moneyCur(round2(g.USD), 'USD') : ''].filter(Boolean).join(' + ') || '0';
+
+// الصافي لكل عملة: "عليك 300 ₪ · إلك 50 $"، أو مسكّر
+function customerNetText(t) {
+    const parts = ['ILS', 'USD'].map(cur => {
+        const net = round2(t.owes[cur] - t.owed[cur]);
+        if (Math.abs(net) < 0.005) return '';
+        return `${net > 0 ? 'عليك' : 'إلك'} ${moneyCur(Math.abs(net), cur)}`;
+    }).filter(Boolean);
+    return parts.length ? parts.join(' · ') : 'الحساب مسكّر ✓';
+}
+
+function openCustomerStatement(id, name) {
+    const c = customers.find(x => id && x.id === id) || customers.find(x => normName(x.name) === normName(name)) || { id: id || '', name: name || '', phone: '' };
+    if (!c.name) return;
+    cstCustomer = c;
+    // الافتراضي: المفتوحة إذا في، وإلا هالشهر، وإلا الكل
+    const items = customerStatementItems(c);
+    cstPeriod = items.some(i => i.left > 0.004) ? 'open' : items.some(i => i.date >= localDateStr().slice(0, 8) + '01') ? 'month' : 'all';
+    renderCustomerStatement();
+    openModal('custStatementModal');
+}
+
+function setCustomerStatementPeriod(p) {
+    if (!CST_PERIODS.some(([k]) => k === p)) return;
+    cstPeriod = p;
+    renderCustomerStatement();
+}
+
+function renderCustomerStatement() {
+    const c = cstCustomer;
+    if (!c) return;
+    $('cst-periods').innerHTML = CST_PERIODS.map(([k, label]) => `<button type="button" data-action="cst-period" data-period="${k}" class="tf-chip${cstPeriod === k ? ' active' : ''}">${label}</button>`).join('');
+    const items = customerStatementShown(customerStatementItems(c));
+    const t = customerStatementTotals(items);
+    const leftCell = (i) => i.left <= 0.004
+        ? '<span class="text-emerald-700">✓ مسكّرة</span>'
+        : `<span class="${i.dir > 0 ? 'text-rose-700' : 'text-emerald-700'}">${i.dir > 0 ? 'عليك' : 'إلك'} ${moneyCur(i.left, i.cur)}</span>`;
+    const periodLabel = CST_PERIODS.find(([k]) => k === cstPeriod)[1];
+    $('cst-body').innerHTML = `
+        <div id="customer-statement" class="statement-paper">
+            <div class="st-head">
+                <div class="st-party">
+                    <div class="st-logo">${logoHtml()}</div>
+                    <div class="min-w-0">
+                        <div class="font-black text-white text-sm truncate">${escapeHtml(globalConfig.companyName || 'فاست باي')}</div>
+                        <div class="text-[11px] text-slate-400 truncate">${escapeHtml(globalConfig.companySubtitle || '')}</div>
+                    </div>
+                </div>
+                <div class="st-party">
+                    <div class="min-w-0 text-left">
+                        <div class="font-black text-white text-sm truncate">${escapeHtml(c.name)}</div>
+                        <div class="text-[11px] text-slate-400 truncate">${hasWhatsapp(c) ? `<bdi class="ltr-num">+${escapeHtml(whatsappDigits(c.phone))}</bdi>` : 'الزبون'}</div>
+                    </div>
+                    <div class="st-logo">${escapeHtml(c.name.trim().charAt(0) || '؟')}</div>
+                </div>
+            </div>
+            <div class="st-title">
+                <b>كشف حساب</b>
+                <span>${escapeHtml(periodLabel)} · <bdi class="ltr-num">${localDateStr()}</bdi></span>
+            </div>
+            <div class="st-summary">
+                <div><span>عليك لسا</span><b class="${t.owes.ILS + t.owes.USD > 0.004 ? 'text-rose-700' : 'text-slate-400'}">${cstMoney(t.owes)}</b></div>
+                <div><span>إلك عندنا</span><b class="${t.owed.ILS + t.owed.USD > 0.004 ? 'text-emerald-700' : 'text-slate-400'}">${cstMoney(t.owed)}</b></div>
+                <div class="st-final"><span>الصافي</span><b class="text-slate-900">${escapeHtml(customerNetText(t))}</b></div>
+            </div>
+            ${items.length ? `
+            <div class="cst-cols"><span>الحركة</span><span>المبلغ</span><span>المدفوع</span><span>الباقي</span></div>
+            ${items.map(i => `
+            <div class="cst-row">
+                <div class="cst-title"><b>${escapeHtml(i.title)}</b><span><bdi class="ltr-num">${escapeHtml(i.date)}</bdi> · ${escapeHtml(i.sub)}</span></div>
+                <div class="cst-c cst-c-amt"><span class="cst-lbl">المبلغ </span>${moneyCur(i.due, i.cur)}</div>
+                <div class="cst-c cst-c-paid"><span class="cst-lbl">المدفوع </span>${i.paid > 0.004 ? moneyCur(i.paid, i.cur) : '<span class="text-slate-300">—</span>'}</div>
+                <div class="cst-c cst-c-left font-black">${leftCell(i)}</div>
+            </div>`).join('')}`
+            : `<div class="text-sm text-slate-400 text-center py-10">${cstPeriod === 'open' ? 'ما في حركات مفتوحة: الحساب مسكّر ✓' : 'ما في حركات بهالفترة'}</div>`}
+        </div>`;
+    $('cst-share-btn').classList.toggle('hidden', false);
+    // الصورة بتجهز من هلّق حتى المشاركة بالجوال تكون بنفس الكبسة
+    setTimeout(() => { if (!$('custStatementModal').classList.contains('hidden')) prepareShareImage(customerStatementKey(), $('customer-statement')); }, 60);
+}
+
+function customerStatementKey() {
+    const items = customerStatementShown(customerStatementItems(cstCustomer));
+    return `cst:${cstCustomer.id || cstCustomer.name}:${cstPeriod}:` + items.map(i => `${i.type}${i.id}/${i.left}/${i.paid}`).join(',');
+}
+
+const customerStatementFile = () => `كشف_${cstCustomer.name}_${localDateStr()}`;
+
+async function exportCustomerStatement(format) {
+    if (!cstCustomer || !$('customer-statement')) return;
+    const buttons = document.querySelectorAll('[data-action^="cst-"]');
+    buttons.forEach(b => { b.disabled = true; });
+    try {
+        await exportElement($('customer-statement'), format, customerStatementFile(), 2.5);
+        showToast('تم تحميل الكشف', (format === 'pdf' ? 'ملف PDF' : 'صورة PNG') + ' — ابعته للزبون على واتساب', 'info');
+    } catch (err) {
+        console.error('Customer statement export failed:', err);
+        showToast('تعذر إنشاء الصورة', 'تأكد من الاتصال بالإنترنت ثم حاول مجدداً', 'error');
+    } finally {
+        buttons.forEach(b => { b.disabled = false; });
+    }
+}
+
+function shareCustomerStatement() {
+    const c = cstCustomer;
+    if (!c || !$('customer-statement')) return;
+    const t = customerStatementTotals(customerStatementShown(customerStatementItems(c)));
+    shareToWhatsapp({
+        key: customerStatementKey(),
+        el: $('customer-statement'),
+        filename: customerStatementFile(),
+        phone: hasWhatsapp(c) ? c.phone : '',
+        text: `كشف حساب ${c.name} · ${customerNetText(t)}`
     });
 }

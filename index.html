@@ -28,40 +28,40 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=95">
+    <link rel="stylesheet" href="styles.css?v=97">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=95">
+    <link rel="stylesheet" href="tailwind.css?v=97">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/core.js?v=95" defer></script>
-    <script src="js/theme.js?v=95" defer></script>
-    <script src="js/logo-data.js?v=95" defer></script>
-    <script src="js/shell.js?v=95" defer></script>
-    <script src="js/calculator.js?v=95" defer></script>
-    <script src="js/reports.js?v=95" defer></script>
-    <script src="js/sync.js?v=95" defer></script>
-    <script src="js/conflicts.js?v=95" defer></script>
-    <script src="js/cache.js?v=95" defer></script>
-    <script src="js/bgsync.js?v=95" defer></script>
-    <script src="js/transactions.js?v=95" defer></script>
-    <script src="js/receipts.js?v=95" defer></script>
-    <script src="js/customers.js?v=95" defer></script>
-    <script src="js/countries.js?v=95" defer></script>
-    <script src="js/service-logos.js?v=95" defer></script>
-    <script src="js/traders.js?v=95" defer></script>
-    <script src="js/expenses.js?v=95" defer></script>
-    <script src="js/ready.js?v=95" defer></script>
-    <script src="js/settings.js?v=95" defer></script>
-    <script src="js/accounts.js?v=95" defer></script>
-    <script src="js/usdt.js?v=95" defer></script>
-    <script src="js/egp.js?v=95" defer></script>
-    <script src="js/closing.js?v=95" defer></script>
-    <script src="js/admin.js?v=95" defer></script>
-    <script src="js/position.js?v=95" defer></script>
-    <script src="js/search.js?v=95" defer></script>
-    <script src="js/notify.js?v=95" defer></script>
-    <script src="js/push.js?v=95" defer></script>
-    <script src="js/auth.js?v=95" defer></script>
-    <script src="js/main.js?v=95" defer></script>
+    <script src="js/core.js?v=97" defer></script>
+    <script src="js/theme.js?v=97" defer></script>
+    <script src="js/logo-data.js?v=97" defer></script>
+    <script src="js/shell.js?v=97" defer></script>
+    <script src="js/calculator.js?v=97" defer></script>
+    <script src="js/reports.js?v=97" defer></script>
+    <script src="js/sync.js?v=97" defer></script>
+    <script src="js/conflicts.js?v=97" defer></script>
+    <script src="js/cache.js?v=97" defer></script>
+    <script src="js/bgsync.js?v=97" defer></script>
+    <script src="js/transactions.js?v=97" defer></script>
+    <script src="js/receipts.js?v=97" defer></script>
+    <script src="js/customers.js?v=97" defer></script>
+    <script src="js/countries.js?v=97" defer></script>
+    <script src="js/service-logos.js?v=97" defer></script>
+    <script src="js/traders.js?v=97" defer></script>
+    <script src="js/expenses.js?v=97" defer></script>
+    <script src="js/ready.js?v=97" defer></script>
+    <script src="js/settings.js?v=97" defer></script>
+    <script src="js/accounts.js?v=97" defer></script>
+    <script src="js/usdt.js?v=97" defer></script>
+    <script src="js/egp.js?v=97" defer></script>
+    <script src="js/closing.js?v=97" defer></script>
+    <script src="js/admin.js?v=97" defer></script>
+    <script src="js/position.js?v=97" defer></script>
+    <script src="js/search.js?v=97" defer></script>
+    <script src="js/notify.js?v=97" defer></script>
+    <script src="js/push.js?v=97" defer></script>
+    <script src="js/auth.js?v=97" defer></script>
+    <script src="js/main.js?v=97" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -1528,6 +1528,22 @@
     </nav>
     <div id="mnav-more-menu" class="hidden mnav-more-menu md:hidden"></div>
 
+    <!-- ================= كشف حساب الزبون (customers.js، صورة/PDF/واتساب) ================= -->
+    <div id="custStatementModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[62] hidden flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="w-full max-w-2xl my-auto space-y-3">
+            <div class="section-card p-3 flex flex-wrap items-center gap-2">
+                <div id="cst-periods" class="tv-scroll min-w-0 flex-1"></div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button" data-action="cst-png" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 px-3 py-2 rounded-lg">صورة</button>
+                    <button type="button" data-action="cst-pdf" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 px-3 py-2 rounded-lg">PDF</button>
+                    <button type="button" id="cst-share-btn" data-action="cst-share" class="wa-btn"><svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 004.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2z"/></svg> واتساب</button>
+                    <button type="button" data-action="close-modal" data-modal="custStatementModal" class="text-slate-400 hover:text-slate-700 px-2 text-lg leading-none" aria-label="إغلاق">✕</button>
+                </div>
+            </div>
+            <div id="cst-body"></div>
+        </div>
+    </div>
+
     <!-- ================= الحسابات الجاهزة: إضافة وتعديل (ready.js) ================= -->
     <div id="readyModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4 overflow-y-auto">
         <div class="section-card max-w-lg w-full p-6 my-auto">
@@ -2518,6 +2534,7 @@
                 <div>
                     <label for="ew_alert" class="font-bold block mb-1 text-slate-700">نبّهني لما الرصيد ينزل تحت (جنيه، اختياري)</label>
                     <input type="text" inputmode="decimal" autocomplete="off" data-commas id="ew_alert" placeholder="مثلاً 2000" class="w-full field font-mono">
+                    <span class="text-[10px] text-slate-400 block mt-1">تنبيه بالبرنامج، وإشعار على جوال اللي معهم صلاحية الجنيه لما ينزل تحته</span>
                 </div>
                 <div>
                     <label for="ew_note" class="font-bold block mb-1 text-slate-700">ملاحظة</label>
@@ -2562,6 +2579,7 @@
                 <div>
                     <label for="acc_alert" class="font-bold block mb-1 text-slate-700">نبّهني لما رصيد الشيكل ينزل تحت (اختياري)</label>
                     <input type="text" inputmode="decimal" autocomplete="off" data-commas id="acc_alert" placeholder="مثلاً 500" class="w-full field font-bold">
+                    <span class="text-[10px] text-slate-400 block mt-1">تنبيه بالبرنامج، وإشعار على جوال اللي معهم صلاحية الحسابات لما ينزل تحته</span>
                 </div>
                 <div id="acc_opening" class="grid grid-cols-2 gap-3">
                     <div>

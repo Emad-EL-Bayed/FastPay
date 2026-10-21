@@ -143,6 +143,7 @@ function debtGroupHtml(g, side) {
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <b class="num ${side === 'owed' ? 'text-emerald-700' : 'text-rose-700'}">${amounts}</b>
+                <button data-action="cst-open" data-id="${escapeHtml(g.customerId || '')}" data-name="${escapeHtml(g.who || '')}" class="debt-chip" title="كشف حساب (صورة أو PDF) تبعته للزبون">📄 كشف</button>
                 ${side === 'owed' && c && hasWhatsapp(c) ? `<button data-action="debt-remind" data-key="${escapeHtml(g.key)}" class="wa-btn" title="تذكير على واتساب">${WA_ICON} تذكير</button>` : ''}
             </div>
         </div>
