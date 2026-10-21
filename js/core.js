@@ -67,6 +67,9 @@ const DEFAULT_CONFIG = {
     fraudSameNumber: 'yes',
     fraudNewIls: 3000,
     fraudDailyCount: 3,
+    // رابط التتبّع برسالة واتساب الحوالة: سويتش عام، وزبائن مستثنيين (أرقامهم)
+    trackLinkOn: 'yes',
+    trackLinkOff: [],
     // التقرير الشهري بالإيميل: '' = إيميل صاحب السكربت، 'off' = مسكّر، أو إيميل
     reportEmail: '',
     // حد الحوالة للموظف (بطلب عماد 2026-10-19): فوقه بتستنى موافقة المدير

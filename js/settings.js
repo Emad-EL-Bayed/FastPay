@@ -25,6 +25,7 @@ function loadSettingsPage() {
     $('set_company_subtitle').value = globalConfig.companySubtitle || '';
     $('set_receipt_footer').value = globalConfig.receiptFooter || '';
     renderWaMessageSettings();
+    renderTrackLinkSetting();
     updateSellBuyPreview();
 }
 
@@ -110,6 +111,8 @@ const SHARED_SETTINGS = {
     fraudSameNumber: { label: 'تنبيه: نفس الرقم انبعتله باسم ثاني (yes/no)', type: 'str' },
     fraudNewIls: { label: 'تنبيه: زبون جديد فوق هالمبلغ ₪ (0 = مسكّر)', type: 'num' },
     fraudDailyCount: { label: 'تنبيه: أكثر من هالعدد حوالات لنفس الزبون باليوم (0 = مسكّر)', type: 'num' },
+    trackLinkOn: { label: 'رابط التتبّع برسالة واتساب الحوالة (yes/no)', type: 'str' },
+    trackLinkOff: { label: 'زبائن ما بينبعتلهم رابط التتبّع (أرقامهم)', type: 'json' },
     reportEmail: { label: 'التقرير الشهري: الإيميل (فاضي = صاحب السكربت، off = مسكّر)', type: 'str' },
     txLimitOn: { label: 'حد الحوالة للموظف: yes شغّال / no مسكّر', type: 'str' },
     txLimit: { label: 'حد الحوالة للموظف ₪ (فوقه بتستنى موافقة المدير)', type: 'num' },
@@ -183,6 +186,30 @@ function applySharedSettings(rows, full) {
 let sharedFlushTimer = null;
 // إيميل صاحب السكربت (من list، لصاحب الإعدادات): التقرير الشهري بيروحله إذا ما في إيميل ثاني
 let scriptOwnerEmail = '';
+
+// ---------- رابط التتبّع برسالة الحوالة (سويتش عام trackLinkOn، والمستثنيين trackLinkOff من نافذة الزبون) ----------
+function renderTrackLinkSetting() {
+    const show = hasPerm('settings') && sheetHas('track');
+    $('track-link-row').classList.toggle('hidden', !show);
+    if (!show) return;
+    const on = globalConfig.trackLinkOn !== 'no';
+    const btn = $('track-link-toggle');
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', String(on));
+    btn.lastChild.textContent = on ? 'شغّال' : 'مسكّر';
+    const off = trackLinkOffIds().length;
+    $('track-link-note').textContent = on
+        ? `بينضاف لحاله "تابع حوالتك: …"${off ? ` · إلا ${off === 1 ? 'زبون واحد مستثنى' : off + ' زبائن مستثنيين'} (من نافذة الزبون)` : '. لزبون معيّن: من نافذة الزبون'}`
+        : 'ما بينضاف لأي رسالة. بتقدر تنسخه بإيدك من تفاصيل الحوالة';
+}
+
+function toggleTrackLink() {
+    globalConfig.trackLinkOn = globalConfig.trackLinkOn === 'no' ? 'yes' : 'no';
+    saveAll();
+    renderTrackLinkSetting();
+}
+
+const trackLinkOffIds = () => (Array.isArray(globalConfig.trackLinkOff) ? globalConfig.trackLinkOff : []).map(String).filter(Boolean);
 
 // ---------- التقرير الشهري بالإيميل (إعداد مشترك reportEmail: '' = صاحب السكربت، 'off' = مسكّر، أو إيميل) ----------
 function renderMonthlySettings() {

@@ -182,6 +182,7 @@ const CLICK_ACTIONS = {
     'txd-track-copy': copyTrackLink,
     'fraud-same-toggle': toggleFraudSame,
     'monthly-toggle': toggleMonthlyReport,
+    'track-link-toggle': toggleTrackLink,
     'monthly-save': saveReportEmail,
     'monthly-test': testMonthlyReport,
     'tx-limit-toggle': toggleTxLimit,

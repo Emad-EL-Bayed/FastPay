@@ -548,8 +548,10 @@ function txMessage(t) {
         'الاسم': t.recipient, 'الرقم': receiptNo(t), 'المبلغ': msgMoney(due, t.currency),
         'المدفوع': msgMoney(paid, t.currency), 'الباقي': msgMoney(Math.max(0, due - paid), t.currency)
     });
-    // رابط التتبّع بآخر الرسالة (إلا الملغية)
-    const url = t.status === CANCELLED ? '' : trackUrl(t);
+    // رابط التتبّع بآخر الرسالة: إلا الملغية، أو السويتش مسكّر، أو الزبون مستثنى (الإعدادات ونافذة الزبون)
+    const c = customerOfTx(t);
+    const skip = t.status === CANCELLED || globalConfig.trackLinkOn === 'no' || (c && trackLinkOffIds().includes(String(c.id)));
+    const url = skip ? '' : trackUrl(t);
     return url ? `${text}\nتابع حوالتك: ${url}` : text;
 }
 

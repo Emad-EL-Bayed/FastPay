@@ -521,6 +521,8 @@ function openCustomerModal(c = null) {
     $('m_cust_vip_wrap').classList.toggle('hidden', !(isManager() && sheetHas('vip')));
     $('m_cust_vip').value = c?.vipDiscount ? c.vipDiscount : '';
     $('m_cust_trusted').checked = c?.trusted === 'yes';
+    $('m_cust_notrack_wrap').classList.toggle('hidden', !(hasPerm('settings') && sheetHas('track')));
+    $('m_cust_notrack').checked = !!c?.id && trackLinkOffIds().includes(String(c.id));
     setIbanField($('m_cust_iban'), $('m_cust_iban_hint'), c?.iban);
     syncCustPayoutFields();
     openModal('custModal');
@@ -566,6 +568,13 @@ async function saveCustomerManual(e) {
 
     const existing = editId && customers.find(x => x.id === editId);
     let renamed = { ops: [], count: 0 };
+    // ما تبعتله رابط التتبّع: قائمة مشتركة بأرقام الزبائن (ما بدها عمود بالشيت)
+    if (hasPerm('settings') && sheetHas('track')) {
+        const ids = new Set(trackLinkOffIds());
+        const was = ids.has(String(data.id));
+        if ($('m_cust_notrack').checked) ids.add(String(data.id)); else ids.delete(String(data.id));
+        if (was !== ids.has(String(data.id))) { globalConfig.trackLinkOff = [...ids]; saveAll(); renderTrackLinkSetting(); }
+    }
     if (existing) {
         const oldName = existing.name;
         Object.assign(existing, { name: data.name, phone: data.phone, payout: data.payout, provider: data.provider, account: data.account, bankAccount: data.bankAccount, iban: data.iban, vipDiscount: data.vipDiscount, trusted: data.trusted });

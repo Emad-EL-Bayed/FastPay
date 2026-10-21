@@ -28,41 +28,41 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=98">
+    <link rel="stylesheet" href="styles.css?v=99">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=98">
+    <link rel="stylesheet" href="tailwind.css?v=99">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=98" defer></script>
-    <script src="js/core.js?v=98" defer></script>
-    <script src="js/theme.js?v=98" defer></script>
-    <script src="js/logo-data.js?v=98" defer></script>
-    <script src="js/shell.js?v=98" defer></script>
-    <script src="js/calculator.js?v=98" defer></script>
-    <script src="js/reports.js?v=98" defer></script>
-    <script src="js/sync.js?v=98" defer></script>
-    <script src="js/conflicts.js?v=98" defer></script>
-    <script src="js/cache.js?v=98" defer></script>
-    <script src="js/bgsync.js?v=98" defer></script>
-    <script src="js/transactions.js?v=98" defer></script>
-    <script src="js/receipts.js?v=98" defer></script>
-    <script src="js/customers.js?v=98" defer></script>
-    <script src="js/countries.js?v=98" defer></script>
-    <script src="js/service-logos.js?v=98" defer></script>
-    <script src="js/traders.js?v=98" defer></script>
-    <script src="js/expenses.js?v=98" defer></script>
-    <script src="js/ready.js?v=98" defer></script>
-    <script src="js/settings.js?v=98" defer></script>
-    <script src="js/accounts.js?v=98" defer></script>
-    <script src="js/usdt.js?v=98" defer></script>
-    <script src="js/egp.js?v=98" defer></script>
-    <script src="js/closing.js?v=98" defer></script>
-    <script src="js/admin.js?v=98" defer></script>
-    <script src="js/position.js?v=98" defer></script>
-    <script src="js/search.js?v=98" defer></script>
-    <script src="js/notify.js?v=98" defer></script>
-    <script src="js/push.js?v=98" defer></script>
-    <script src="js/auth.js?v=98" defer></script>
-    <script src="js/main.js?v=98" defer></script>
+    <script src="js/endpoint.js?v=99" defer></script>
+    <script src="js/core.js?v=99" defer></script>
+    <script src="js/theme.js?v=99" defer></script>
+    <script src="js/logo-data.js?v=99" defer></script>
+    <script src="js/shell.js?v=99" defer></script>
+    <script src="js/calculator.js?v=99" defer></script>
+    <script src="js/reports.js?v=99" defer></script>
+    <script src="js/sync.js?v=99" defer></script>
+    <script src="js/conflicts.js?v=99" defer></script>
+    <script src="js/cache.js?v=99" defer></script>
+    <script src="js/bgsync.js?v=99" defer></script>
+    <script src="js/transactions.js?v=99" defer></script>
+    <script src="js/receipts.js?v=99" defer></script>
+    <script src="js/customers.js?v=99" defer></script>
+    <script src="js/countries.js?v=99" defer></script>
+    <script src="js/service-logos.js?v=99" defer></script>
+    <script src="js/traders.js?v=99" defer></script>
+    <script src="js/expenses.js?v=99" defer></script>
+    <script src="js/ready.js?v=99" defer></script>
+    <script src="js/settings.js?v=99" defer></script>
+    <script src="js/accounts.js?v=99" defer></script>
+    <script src="js/usdt.js?v=99" defer></script>
+    <script src="js/egp.js?v=99" defer></script>
+    <script src="js/closing.js?v=99" defer></script>
+    <script src="js/admin.js?v=99" defer></script>
+    <script src="js/position.js?v=99" defer></script>
+    <script src="js/search.js?v=99" defer></script>
+    <script src="js/notify.js?v=99" defer></script>
+    <script src="js/push.js?v=99" defer></script>
+    <script src="js/auth.js?v=99" defer></script>
+    <script src="js/main.js?v=99" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -1471,6 +1471,14 @@
                                 <h4 class="text-sm font-bold text-slate-900">رسالة الفاتورة على واتساب</h4>
                                 <p class="text-[11px] text-slate-400 leading-5">بتنبعت مع صورة الفاتورة حسب حالتها. الكلمات بين { } بتتعبّى لحالها: {الاسم} {المبلغ} {المدفوع} {الباقي} {الرقم} {العملية} {الشركة}. الخانة الفاضية = الجملة الافتراضية المكتوبة فيها. بتنحفظ مع زر حفظ الإعدادات.</p>
                             </div>
+                            <!-- رابط التتبّع برسالة الحوالة: سويتش عام (trackLinkOn) واستثناء لزبائن (trackLinkOff، من نافذة الزبون) -->
+                            <div id="track-link-row" class="hidden flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                                <div class="min-w-0 flex-1">
+                                    <b class="block text-xs text-slate-800">رابط التتبّع برسالة الحوالة</b>
+                                    <span id="track-link-note" class="block text-[11px] text-slate-400"></span>
+                                </div>
+                                <button type="button" id="track-link-toggle" data-action="track-link-toggle" class="status-toggle" style="--c:#10b981" aria-pressed="false"><span class="sw"></span>شغّال</button>
+                            </div>
                             <div id="wa-messages-list" class="space-y-3"></div>
                         </div>
                     </div>
@@ -1763,6 +1771,10 @@
                         زبون موثوق <span class="font-medium text-amber-700/80 text-[10px]">(بدون تنبيهات)</span>
                     </label>
                     <span class="col-span-2 text-[10px] text-amber-800/80">الخصم بينزل من نسبة ربح الدولة لما تختاره بالحاسبة: دولة ربحها 5% وخصمه 1% = 4%</span>
+                    <label id="m_cust_notrack_wrap" class="col-span-2 flex items-center gap-2 font-bold text-amber-900 cursor-pointer select-none">
+                        <input type="checkbox" id="m_cust_notrack" class="w-4 h-4 accent-slate-900">
+                        ما تبعتله رابط التتبّع <span class="font-medium text-amber-700/80 text-[10px]">(برسالة واتساب الحوالة)</span>
+                    </label>
                 </div>
                 <div id="m_cust_bank_wrap" class="hidden space-y-3">
                     <div>
