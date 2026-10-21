@@ -315,6 +315,7 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
     if (data.serverTime) notifyCursor = data.serverTime;
     if ('notifications' in data) applyNotifications(data.notifications, { full: !data.incremental });
     if ('dailyPush' in data) dailyPushState = data.dailyPush;
+    if ('ownerEmail' in data) scriptOwnerEmail = data.ownerEmail || '';
     if ('push' in data) applyPushState(data.push, !data.incremental);
     else renderNotifyBadge();
     if ('lastBackup' in data) { lastBackupAt = data.lastBackup || ''; renderBackupStatus(); }
@@ -564,10 +565,11 @@ function applyWriteResult(op, res) {
         if (opIsDelete(op)) rowStamps.delete(key);
         else if (res.updatedAt) rowStamps.set(key, String(res.updatedAt));
     }
-    // الحوالة: الموافقة والحالة زي ما قرر السكربت (حد الموظف)
-    if (op.action === 'upsert' && 'approval' in res) {
+    // الحوالة: الموافقة والحالة زي ما قرر السكربت (حد الموظف)، ورمز رابط التتبّع
+    if (op.action === 'upsert' && ('approval' in res || res.trackToken)) {
         const t = ledger.find(x => x.id === toNum(op.id, NaN));
-        if (t) {
+        if (t && res.trackToken) t.trackToken = String(res.trackToken);
+        if (t && 'approval' in res) {
             t.approval = res.approval === 'pending' || res.approval === 'approved' ? res.approval : '';
             if (res.status && STATUSES.includes(res.status)) t.status = res.status;
             setTimeout(renderLedgerTable, 0);

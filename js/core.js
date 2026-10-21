@@ -25,7 +25,7 @@ const STORAGE = {
 // مفاتيح قديمة كانت تحفظ الزبائن والحوالات داخل المتصفح، تُمسح عند الفتح
 const LEGACY_DATA_KEYS = ['fastpay_v8_customers', 'fastpay_v8_ledger', 'fastpay_v8_sync_queue'];
 
-const DEFAULT_WEBHOOK = 'https://script.google.com/macros/s/AKfycbwzexyVRnAVWFHHzlzwR5BFiCZOFZ0bvUCkEVClSJtVS_77Wj65N3pLrRpPp6EK23q37Q/exec';
+// رابط السكربت (DEFAULT_WEBHOOK) بـ js/endpoint.js: صفحة تتبّع الحوالة (track.html) كمان بتستعمله
 // مصادر سعر السوق بالترتيب (الدولار بالشيكل والجنيه من نفس الطلب):
 // Coinbase سعر مباشر بيتحدث كل كم دقيقة. open.er-api احتياط بس: بيتحدث مرة باليوم (00:00 UTC)، فخلال النهار بيكون سعر إمبارح
 // الأول قبلهم: السكربت بيجيب سوق العملات (Yahoo، زي الشاشة) من سيرفرات جوجل (ميزة market، shell.js loadMarketRates).
@@ -63,6 +63,12 @@ const DEFAULT_CONFIG = {
     expenseCategories: [],
     // بنود مقترحة انشالت بالـ × (حتى الثابتة واللي انكتبت بمصاريف قبل)
     expenseCategoriesHidden: [],
+    // تنبيهات الاحتيال لحظة الحفظ (بطلب عماد 2026-10-21): نفس الرقم لاسم ثاني، زبون جديد فوق مبلغ، كثير حوالات باليوم (0 = مسكّر)
+    fraudSameNumber: 'yes',
+    fraudNewIls: 3000,
+    fraudDailyCount: 3,
+    // التقرير الشهري بالإيميل: '' = إيميل صاحب السكربت، 'off' = مسكّر، أو إيميل
+    reportEmail: '',
     // حد الحوالة للموظف (بطلب عماد 2026-10-19): فوقه بتستنى موافقة المدير
     txLimitOn: 'yes',
     txLimit: 5000,
@@ -481,6 +487,9 @@ function normalizeCustomer(c) {
         account: String(c?.account ?? '').trim(),
         bankAccount: latinDigits(String(c?.bankAccount ?? '')).trim(),
         iban: cleanIban(c?.iban),
+        // زبون مميز: خصم على نسبة ربح الدولة بالحاسبة (%)، وموثوق = بدون تنبيهات احتيال (المدير بس بيغيّرهم)
+        vipDiscount: Math.max(0, round2(toNum(c?.vipDiscount, 0))),
+        trusted: c?.trusted === 'yes' || c?.trusted === true ? 'yes' : 'no',
         createdAt: String(c?.createdAt ?? '').slice(0, 10)
     };
 }
@@ -533,6 +542,9 @@ function normalizeTx(t) {
         // حد الحوالة للموظف: '' | pending (بتستنى المدير) | approved
         approval: t?.approval === 'pending' || t?.approval === 'approved' ? t.approval : '',
         approvedBy: String(t?.approvedBy ?? '').trim(),
+        // ⚠️ تنبيه احتيال (الموظف كمّل رغمه)، ورمز رابط التتبّع (السكربت بيعطيه)
+        flag: String(t?.flag ?? '').trim(),
+        trackToken: String(t?.trackToken ?? '').trim(),
         createdBy: String(t?.createdBy ?? '').trim(),
         updatedBy: String(t?.updatedBy ?? '').trim()
     };

@@ -139,7 +139,7 @@ function staleStatusText(offline) {
 // ---------- قفل تعديل الموجود لحد ما يتحدث ----------
 // تعديل/حذف حركة موجودة، الدفع على حوالة أو USDT أو جنيه، التصفير، والاسترجاع من المحذوفات.
 // (المستخدمين مش من النسخة، فمش مقفولين)
-const STALE_EDIT_ACTIONS = /^(edit|delete)-(?!user$)|^(txd-edit|service-edit|tx-pay|usdt-pay|egp-pay|settle-trader|restore-deleted)$/;
+const STALE_EDIT_ACTIONS = /^(edit|delete)-(?!user$)|^(txd-edit|service-edit|tx-pay|usdt-pay|egp-pay|settle-trader|restore-deleted|tx-approve|tx-flag-ok)$/;
 const staleBlocks = (action) => dataState === 'stale' && STALE_EDIT_ACTIONS.test(String(action || ''));
 
 function warnStale() {

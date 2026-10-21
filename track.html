@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#0f172a">
+    <title>تتبّع حوالتك · فاست باي</title>
+    <!-- معاينة الرابط بواتساب -->
+    <meta property="og:title" content="تتبّع حوالتك · فاست باي">
+    <meta property="og:description" content="شوف وين صارت حوالتك، والصفحة بتتحدث لحالها">
+    <meta property="og:image" content="https://emad-el-bayed.github.io/FastPay/assets/icon-512.png">
+    <link rel="icon" href="assets/icon-192.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    <!--
+        فاست باي — صفحة تتبّع الحوالة للزبون (بطلب عماد 2026-10-21). رابط عام track.html?t=<رمز>، بدون دخول:
+        السكربت (action: track) بيرجّع القليل بس: رقم الإيصال، التاريخ، المبلغ، الحالة (والمدفوع للجزئي)، طريقة الاستلام،
+        والاسم الأول. الصفحة بتتحدث كل 45 ثانية، ولما الحالة تتغير بتتحرك (وانصرفت = احتفال صغير).
+        لحالها: ما بتحمّل ملفات البرنامج، بس js/endpoint.js (رابط السكربت) والشعار والخط.
+    -->
+    <style>
+        :root {
+            --bg: #eef2f7; --card: rgba(255, 255, 255, 0.86); --line: #e2e8f0; --ink: #0f172a; --muted: #64748b; --soft: #f1f5f9;
+            --gold: #d4a017; --amber: #f59e0b; --amber-soft: #fef3c7; --sky: #0ea5e9; --sky-soft: #e0f2fe;
+            --green: #10b981; --green-soft: #d1fae5; --rose: #f43f5e; --rose-soft: #ffe4e6; --shadow: 0 30px 60px -30px rgba(15, 23, 42, 0.35);
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0b1120; --card: rgba(17, 24, 39, 0.82); --line: #1f2a3d; --ink: #f1f5f9; --muted: #94a3b8; --soft: #162033;
+                --amber-soft: rgba(245, 158, 11, 0.16); --sky-soft: rgba(14, 165, 233, 0.16); --green-soft: rgba(16, 185, 129, 0.16); --rose-soft: rgba(244, 63, 94, 0.16);
+                --shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.8);
+            }
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; }
+        body {
+            min-height: 100vh; font-family: 'Cairo', system-ui, sans-serif; color: var(--ink); background: var(--bg);
+            -webkit-font-smoothing: antialiased; overflow-x: hidden;
+        }
+        /* خلفية حيّة: بقع لون بتتحرك ببطء */
+        .blobs { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+        .blobs i { position: absolute; width: 60vmax; height: 60vmax; border-radius: 50%; filter: blur(70px); opacity: 0.45; animation: drift 22s ease-in-out infinite alternate; }
+        .blobs i:nth-child(1) { background: #93c5fd; top: -25vmax; right: -20vmax; }
+        .blobs i:nth-child(2) { background: #6ee7b7; bottom: -30vmax; left: -25vmax; animation-delay: -8s; }
+        .blobs i:nth-child(3) { background: #fcd34d; top: 30%; left: 40%; width: 35vmax; height: 35vmax; opacity: 0.3; animation-delay: -14s; }
+        @media (prefers-color-scheme: dark) { .blobs i { opacity: 0.18; } }
+        @keyframes drift { to { transform: translate(-6vmax, 5vmax) scale(1.08); } }
+
+        .wrap { position: relative; z-index: 1; max-width: 460px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 16px 32px; }
+
+        .brand { display: flex; align-items: center; gap: 12px; margin: 6px 4px 18px; animation: rise 0.6s ease both; }
+        .logo { width: 52px; height: 52px; border-radius: 16px; background: #0f172a; display: grid; place-items: center; overflow: hidden; box-shadow: 0 0 0 0 rgba(212, 160, 23, 0.5); animation: glow 3.2s ease-in-out infinite; flex-shrink: 0; }
+        .logo img { width: 100%; height: 100%; object-fit: contain; }
+        @keyframes glow { 50% { box-shadow: 0 0 0 8px rgba(212, 160, 23, 0); } 0%, 100% { box-shadow: 0 0 0 0 rgba(212, 160, 23, 0.35); } }
+        .brand h1 { margin: 0; font-size: 19px; font-weight: 900; line-height: 1.2; }
+        .brand p { margin: 2px 0 0; font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.08em; }
+
+        .card {
+            position: relative; background: var(--card); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+            border: 1px solid var(--line); border-radius: 28px; padding: 26px 22px 22px; box-shadow: var(--shadow); overflow: hidden;
+            animation: rise 0.7s 0.08s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+        @keyframes rise { from { opacity: 0; transform: translateY(18px) scale(0.98); } }
+
+        /* أيقونة الحالة */
+        .status-icon { position: relative; width: 104px; height: 104px; margin: 2px auto 14px; }
+        .status-icon .disc { position: absolute; inset: 10px; border-radius: 50%; display: grid; place-items: center; animation: pop 0.6s 0.25s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+        .status-icon svg.glyph { width: 42px; height: 42px; }
+        @keyframes pop { from { transform: scale(0.3); opacity: 0; } }
+        .ring { position: absolute; inset: 0; border-radius: 50%; }
+        .ring.spin { background: conic-gradient(from 0deg, transparent 0 55%, var(--tone) 100%); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); animation: spin 1.4s linear infinite; }
+        .ring.track { border: 6px solid var(--tone-soft); }
+        .ring.progress { background: conic-gradient(var(--tone) calc(var(--p) * 1%), transparent 0); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); transition: --p 1.2s ease; animation: fill 1.4s 0.3s cubic-bezier(0.3, 0.9, 0.3, 1) both; }
+        @property --p { syntax: '<number>'; inherits: false; initial-value: 0; }
+        @keyframes fill { from { --p: 0; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .pulse { position: absolute; inset: 10px; border-radius: 50%; background: var(--tone); opacity: 0.25; animation: pulse 2s ease-out infinite; }
+        @keyframes pulse { from { transform: scale(0.9); opacity: 0.35; } to { transform: scale(1.45); opacity: 0; } }
+        .check path { stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw 0.55s 0.7s ease forwards; }
+        @keyframes draw { to { stroke-dashoffset: 0; } }
+        .hourglass { animation: tilt 2.4s ease-in-out infinite; transform-origin: 50% 50%; }
+        @keyframes tilt { 0%, 40% { transform: rotate(0); } 50%, 90% { transform: rotate(180deg); } 100% { transform: rotate(180deg); } }
+
+        .tone-amber { --tone: var(--amber); --tone-soft: var(--amber-soft); }
+        .tone-sky { --tone: var(--sky); --tone-soft: var(--sky-soft); }
+        .tone-green { --tone: var(--green); --tone-soft: var(--green-soft); }
+        .tone-rose { --tone: var(--rose); --tone-soft: var(--rose-soft); }
+        .disc { background: var(--tone-soft); color: var(--tone); }
+
+        .hello { text-align: center; font-size: 14px; font-weight: 700; color: var(--muted); margin: 0; animation: rise 0.6s 0.3s both; }
+        .title { text-align: center; font-size: 25px; font-weight: 900; margin: 2px 0 6px; line-height: 1.35; animation: rise 0.6s 0.38s both; }
+        .text { text-align: center; font-size: 14px; color: var(--muted); margin: 0 auto; max-width: 320px; line-height: 1.8; animation: rise 0.6s 0.45s both; }
+
+        .amount { margin: 20px 0 6px; padding: 16px; border-radius: 20px; background: var(--soft); text-align: center; animation: rise 0.6s 0.5s both; }
+        .amount span { display: block; font-size: 12px; font-weight: 800; color: var(--muted); }
+        .amount b { display: block; font-size: 34px; font-weight: 900; letter-spacing: -0.01em; direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
+        .bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; margin: 12px 4px 6px; }
+        .bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, var(--sky), #38bdf8); transition: width 1.4s cubic-bezier(0.3, 0.9, 0.3, 1); }
+        .bar-text { font-size: 12px; font-weight: 700; color: var(--muted); }
+
+        /* الخطوات */
+        .steps { position: relative; margin: 22px 4px 4px; padding: 0; list-style: none; animation: rise 0.6s 0.58s both; }
+        .steps::before, .steps .fillline { content: ''; position: absolute; right: 15px; top: 16px; width: 3px; border-radius: 3px; }
+        .steps::before { bottom: 16px; background: var(--line); }
+        .steps .fillline { height: 0; background: linear-gradient(180deg, var(--green), var(--tone, var(--green))); transition: height 1.2s 0.6s cubic-bezier(0.3, 0.9, 0.3, 1); }
+        .step { position: relative; display: flex; gap: 14px; align-items: flex-start; padding: 6px 0 14px; }
+        .step:last-child { padding-bottom: 0; }
+        .dot { position: relative; z-index: 1; width: 33px; height: 33px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; background: var(--card); border: 3px solid var(--line); color: #fff; transition: all 0.4s ease; }
+        .step.done .dot { background: var(--green); border-color: var(--green); }
+        .step.now .dot { border-color: var(--tone); background: var(--card); }
+        .step.now .dot::after { content: ''; width: 11px; height: 11px; border-radius: 50%; background: var(--tone); animation: blink 1.4s ease-in-out infinite; }
+        .step.now .dot::before { content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--tone); opacity: 0; animation: ring 1.8s ease-out infinite; }
+        @keyframes blink { 50% { transform: scale(0.6); opacity: 0.5; } }
+        @keyframes ring { from { transform: scale(0.8); opacity: 0.6; } to { transform: scale(1.35); opacity: 0; } }
+        .step.done .dot svg { width: 16px; height: 16px; }
+        .step b { display: block; font-size: 15px; font-weight: 800; line-height: 1.5; }
+        .step small { display: block; font-size: 12px; color: var(--muted); font-weight: 600; }
+        .step.todo b { color: var(--muted); font-weight: 700; }
+
+        .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 20px; animation: rise 0.6s 0.65s both; }
+        .chip { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 99px; background: var(--soft); font-size: 12px; font-weight: 700; color: var(--muted); }
+        .chip bdi { color: var(--ink); }
+
+        .live { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 18px; font-size: 11px; font-weight: 700; color: var(--muted); }
+        .live i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); animation: live 2s infinite; }
+        @keyframes live { 70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+
+        .foot { text-align: center; margin-top: 18px; font-size: 13px; font-weight: 700; color: var(--muted); animation: rise 0.6s 0.75s both; }
+        .foot small { display: block; font-size: 11px; font-weight: 600; opacity: 0.7; margin-top: 2px; }
+
+        /* التحميل والأخطاء */
+        .skel { height: 14px; border-radius: 8px; background: linear-gradient(100deg, var(--soft) 30%, var(--line) 50%, var(--soft) 70%); background-size: 300% 100%; animation: shimmer 1.3s ease-in-out infinite; margin: 10px auto; }
+        @keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+        .btn { display: inline-flex; align-items: center; justify-content: center; margin-top: 16px; padding: 11px 22px; border-radius: 14px; border: 0; background: var(--ink); color: var(--bg); font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+
+        /* احتفال صغير لما تنصرف */
+        .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; }
+        .confetti i { position: absolute; top: -12px; width: 8px; height: 14px; border-radius: 2px; opacity: 0.95; animation: fall var(--d) var(--delay) cubic-bezier(0.25, 0.6, 0.4, 1) forwards; }
+        @keyframes fall { to { transform: translate(var(--x), 105vh) rotate(var(--r)); opacity: 0.2; } }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
+            .check path { stroke-dashoffset: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="blobs" aria-hidden="true"><i></i><i></i><i></i></div>
+    <main class="wrap">
+        <header class="brand">
+            <div class="logo"><img src="assets/logo.png" alt=""></div>
+            <div><h1 id="company">فاست باي</h1><p id="subtitle">FAST PAY</p></div>
+        </header>
+        <section id="card" class="card" aria-live="polite">
+            <div class="status-icon"><div class="disc" style="background:var(--soft)"></div></div>
+            <div class="skel" style="width:40%"></div>
+            <div class="skel" style="width:70%;height:22px"></div>
+            <div class="skel" style="width:85%"></div>
+            <div class="skel" style="width:100%;height:70px;border-radius:20px;margin-top:22px"></div>
+        </section>
+        <div id="foot" class="foot"></div>
+    </main>
+    <script src="js/endpoint.js"></script>
+    <script>
+        'use strict';
+        (function () {
+            const token = (new URLSearchParams(location.search).get('t') || '').trim();
+            const card = document.getElementById('card');
+            const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            let last = null; // آخر حالة انعرضت (حتى نحرّك بس لما تتغير)
+            let lastFetch = 0;
+
+            const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+            const money = (v, cur) => (cur === 'USD' ? '$ ' : '') + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (cur === 'USD' ? '' : ' ₪');
+            const dateText = (d) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? d.split('-').reverse().join('/') : d);
+
+            const ICON = {
+                wait: '<svg class="glyph hourglass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12M6 22h12M7 2v4a5 5 0 0 0 10 0V2M7 22v-4a5 5 0 0 1 10 0v4"/></svg>',
+                check: '<svg class="glyph check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+                half: '<svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 12h9M10 8l4 4-4 4"/><path d="M18 5v14" opacity="0.5"/></svg>',
+                x: '<svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>',
+                tick: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
+            };
+
+            function payoutText(tx) {
+                if (tx.payout === 'كاش') return 'استلام كاش من المكتب';
+                if (tx.payout === 'بنكي') return 'تحويل بنكي' + (tx.provider ? ' · ' + tx.provider : '');
+                return 'على محفظة' + (tx.provider ? ' ' + tx.provider : '');
+            }
+
+            function doneText(tx) {
+                if (tx.payout === 'كاش') return 'المبلغ جاهز للاستلام من المكتب.';
+                if (tx.payout === 'بنكي') return 'انبعت المبلغ على حسابك' + (tx.provider ? ' ب' + tx.provider : ' بالبنك') + '.';
+                return 'وصل المبلغ على محفظة' + (tx.provider ? ' ' + tx.provider : 'ك') + '.';
+            }
+
+            // الحالة من جهة الزبون: الخطوة (1 استلمنا، 2 عم نجهّز، 3 انصرفت) واللون والكلام
+            function view(tx) {
+                if (tx.status === 'ملغي') return { tone: 'rose', icon: 'x', step: 0, title: 'الحوالة انلغت', text: 'إذا عندك أي سؤال تواصل معنا، ومنساعدك.' };
+                if (tx.status === 'مكتمل') return { tone: 'green', icon: 'check', step: 3, title: 'حوالتك انصرفت ✓', text: doneText(tx) + ' شكراً لثقتك.' };
+                if (tx.status === 'جزئي') return { tone: 'sky', icon: 'half', step: 2, title: 'انصرف جزء من حوالتك', text: 'الباقي عم يتجهز، ورح يوصلك بأقرب وقت.' };
+                if (tx.status === 'فحص') return { tone: 'amber', icon: 'wait', step: 2, title: 'حوالتك قيد المراجعة', text: 'عم نتأكد من التفاصيل، وبعدها بتنصرف مباشرة.' };
+                return { tone: 'amber', icon: 'wait', step: 2, title: 'عم نجهّز حوالتك', text: 'استلمنا طلبك وعم نجهّزه، ورح تنصرف بأقرب وقت.' };
+            }
+
+            function render(data) {
+                const tx = data.tx;
+                const v = view(tx);
+                const changed = last && last !== tx.status + '|' + tx.paid;
+                last = tx.status + '|' + tx.paid;
+                document.getElementById('company').textContent = data.company.name || 'فاست باي';
+                document.getElementById('subtitle').textContent = data.company.subtitle || '';
+                document.title = v.title + ' · ' + (data.company.name || 'فاست باي');
+                const pct = tx.amount > 0 ? Math.min(100, Math.round(tx.paid / tx.amount * 100)) : 0;
+                const ring = v.icon === 'wait' ? '<div class="ring track"></div><div class="ring spin"></div>'
+                    : v.icon === 'half' ? `<div class="ring track"></div><div class="ring progress" style="--p:${pct}"></div>`
+                    : v.icon === 'check' ? '<div class="pulse"></div>' : '';
+                const steps = [
+                    ['استلمنا حوالتك', dateText(tx.date)],
+                    v.step === 3 ? ['جهّزناها', 'تأكدنا من كل التفاصيل'] : [tx.status === 'فحص' ? 'قيد المراجعة' : 'عم نجهّزها', tx.status === 'جزئي' ? 'انصرف ' + money(tx.paid, tx.currency) + ' من ' + money(tx.amount, tx.currency) : 'بنتأكد من كل التفاصيل'],
+                    ['انصرفت', payoutText(tx)]
+                ];
+                const stepCls = (i) => (v.step === 0 ? (i === 0 ? 'done' : 'todo') : i + 1 < v.step || v.step === 3 ? 'done' : i + 1 === v.step ? 'now' : 'todo');
+                card.className = 'card tone-' + v.tone;
+                card.innerHTML = `
+                    <div class="status-icon">${ring}<div class="disc">${ICON[v.icon]}</div></div>
+                    ${tx.name ? `<p class="hello">أهلاً ${esc(tx.name)} 👋</p>` : ''}
+                    <h2 class="title">${esc(v.title)}</h2>
+                    <p class="text">${esc(v.text)}</p>
+                    <div class="amount"><span>مبلغ الحوالة</span><b id="amount">${money(reduced ? tx.amount : 0, tx.currency)}</b>
+                        ${tx.status === 'جزئي' ? `<div class="bar"><i id="bar"></i></div><div class="bar-text">انصرف ${esc(money(tx.paid, tx.currency))} من ${esc(money(tx.amount, tx.currency))}</div>` : ''}
+                    </div>
+                    ${v.step ? `<ul class="steps"><span class="fillline" id="fill"></span>${steps.map((s, i) => `
+                        <li class="step ${stepCls(i)}"><span class="dot">${stepCls(i) === 'done' ? ICON.tick : ''}</span><div><b>${esc(s[0])}</b><small>${esc(s[1])}</small></div></li>`).join('')}</ul>` : ''}
+                    <div class="chips">
+                        ${tx.no ? `<span class="chip">إيصال <bdi>#${esc(tx.no)}</bdi></span>` : ''}
+                        <span class="chip">📅 <bdi>${esc(dateText(tx.date))}</bdi></span>
+                        <span class="chip">${esc(payoutText(tx))}</span>
+                    </div>
+                    ${tx.status === 'مكتمل' || tx.status === 'ملغي' ? '' : '<div class="live"><i></i>الصفحة بتتحدث لحالها</div>'}`;
+                document.getElementById('foot').innerHTML = `${esc(data.company.footer || 'شكراً لتعاملكم معنا')}<small>${esc(data.company.name || 'فاست باي')}</small>`;
+                // الحركات: المبلغ بيعدّ، الخط بيتعبّى لحد الخطوة، والشريط للجزئي
+                requestAnimationFrame(() => {
+                    const fill = document.getElementById('fill');
+                    if (fill) {
+                        const items = card.querySelectorAll('.step');
+                        const upto = v.step === 3 ? items[2] : items[Math.max(0, v.step - 1)];
+                        // من أول نقطة لنص نقطة الخطوة الحالية (النقطة 33px، والسطر بيبلش 16px من فوق)
+                        const h = upto ? upto.offsetTop + 6 : 0;
+                        fill.style.height = h + 'px';
+                    }
+                    const bar = document.getElementById('bar');
+                    if (bar) setTimeout(() => { bar.style.width = pct + '%'; }, 120);
+                    if (!reduced) countUp(document.getElementById('amount'), tx.amount, tx.currency);
+                });
+                if (tx.status === 'مكتمل' && (changed || !sessionStorage.getItem('fp-confetti-' + token))) {
+                    sessionStorage.setItem('fp-confetti-' + token, '1');
+                    setTimeout(confetti, 650);
+                }
+            }
+
+            function countUp(el, to, cur) {
+                const start = performance.now(), dur = 1100;
+                const step = (now) => {
+                    const k = Math.min(1, (now - start) / dur);
+                    const e = 1 - Math.pow(1 - k, 3);
+                    el.textContent = money(to * e, cur);
+                    if (k < 1) requestAnimationFrame(step);
+                };
+                requestAnimationFrame(step);
+            }
+
+            function confetti() {
+                if (reduced) return;
+                const box = document.createElement('div');
+                box.className = 'confetti';
+                const colors = ['#10b981', '#fbbf24', '#38bdf8', '#f472b6', '#a78bfa', '#d4a017'];
+                for (let i = 0; i < 70; i++) {
+                    const p = document.createElement('i');
+                    p.style.left = Math.random() * 100 + 'vw';
+                    p.style.background = colors[i % colors.length];
+                    p.style.setProperty('--x', (Math.random() * 30 - 15) + 'vw');
+                    p.style.setProperty('--r', (Math.random() * 720 - 360) + 'deg');
+                    p.style.setProperty('--d', (1.8 + Math.random() * 1.4) + 's');
+                    p.style.setProperty('--delay', (Math.random() * 0.4) + 's');
+                    box.appendChild(p);
+                }
+                document.body.appendChild(box);
+                setTimeout(() => box.remove(), 3800);
+            }
+
+            function message(icon, tone, title, text, retry) {
+                card.className = 'card tone-' + tone;
+                card.innerHTML = `<div class="status-icon"><div class="disc">${ICON[icon]}</div></div>
+                    <h2 class="title">${esc(title)}</h2><p class="text">${esc(text)}</p>
+                    ${retry ? '<div style="text-align:center"><button class="btn" id="retry">جرّب مرة ثانية</button></div>' : ''}`;
+                if (retry) document.getElementById('retry').onclick = () => { card.classList.add('loading'); load(); };
+            }
+
+            async function load() {
+                lastFetch = Date.now();
+                if (!token || typeof DEFAULT_WEBHOOK !== 'string') return message('x', 'rose', 'الرابط مش كامل', 'تأكد إنك فتحت الرابط كامل زي ما وصلك.');
+                let data = null;
+                try {
+                    const res = await fetch(DEFAULT_WEBHOOK, { method: 'POST', body: JSON.stringify({ action: 'track', t: token }), cache: 'no-store' });
+                    data = JSON.parse(await res.text());
+                } catch (e) {
+                    if (last) return; // في حالة معروضة: بنضل عليها وبنجرب بعدين
+                    return message('wait', 'amber', 'ما قدرنا نوصل', 'تأكد من الإنترنت وجرّب كمان مرة.', true);
+                }
+                if (data && data.ok) return render(data);
+                if (data && data.error === 'expired') return message('wait', 'amber', 'الرابط انتهى', 'روابط التتبّع بتضل شغّالة 30 يوم. إذا بدك تعرف عن الحوالة تواصل معنا.');
+                return message('x', 'rose', 'ما لقينا الحوالة', 'الرابط مش صحيح أو الحوالة انحذفت. تواصل معنا ومنساعدك.');
+            }
+
+            load();
+            // بتتحدث لحالها، وأول ما ترجع للصفحة
+            setInterval(() => { if (!document.hidden && last && !/^(مكتمل|ملغي)\|/.test(last)) load(); }, 45000);
+            document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - lastFetch > 15000) load(); });
+        })();
+    </script>
+</body>
+</html>

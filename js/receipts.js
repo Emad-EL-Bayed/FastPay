@@ -544,10 +544,22 @@ function fillWaMessage(key, values) {
 function txMessage(t) {
     const due = txDue(t);
     const paid = txPaid(t);
-    return fillWaMessage(TX_STATUS_MESSAGE[t.status] || 'txPending', {
+    const text = fillWaMessage(TX_STATUS_MESSAGE[t.status] || 'txPending', {
         'الاسم': t.recipient, 'الرقم': receiptNo(t), 'المبلغ': msgMoney(due, t.currency),
         'المدفوع': msgMoney(paid, t.currency), 'الباقي': msgMoney(Math.max(0, due - paid), t.currency)
     });
+    // رابط التتبّع بآخر الرسالة (إلا الملغية)
+    const url = t.status === CANCELLED ? '' : trackUrl(t);
+    return url ? `${text}\nتابع حوالتك: ${url}` : text;
+}
+
+// ================= رابط تتبّع الحوالة للزبون (track.html، بطلب عماد 2026-10-21) =================
+// من الموقع المرفوع (https) بنفس عنوانه، ومن الملف على الماك عنوان الموقع على جيت هب
+const TRACK_PAGE = 'https://emad-el-bayed.github.io/FastPay/track.html';
+function trackUrl(t) {
+    if (!t?.trackToken || !sheetHas('track')) return '';
+    const base = location.protocol === 'https:' ? new URL('track.html', location.href).href : TRACK_PAGE;
+    return base + '?t=' + encodeURIComponent(t.trackToken);
 }
 
 // USDT والجنيه: حسب الدفع. {العملية} مثل "إيداع 500 USDT" أو "إرسال 10,000 جنيه"

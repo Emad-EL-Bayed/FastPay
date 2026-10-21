@@ -28,40 +28,41 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=97">
+    <link rel="stylesheet" href="styles.css?v=98">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=97">
+    <link rel="stylesheet" href="tailwind.css?v=98">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/core.js?v=97" defer></script>
-    <script src="js/theme.js?v=97" defer></script>
-    <script src="js/logo-data.js?v=97" defer></script>
-    <script src="js/shell.js?v=97" defer></script>
-    <script src="js/calculator.js?v=97" defer></script>
-    <script src="js/reports.js?v=97" defer></script>
-    <script src="js/sync.js?v=97" defer></script>
-    <script src="js/conflicts.js?v=97" defer></script>
-    <script src="js/cache.js?v=97" defer></script>
-    <script src="js/bgsync.js?v=97" defer></script>
-    <script src="js/transactions.js?v=97" defer></script>
-    <script src="js/receipts.js?v=97" defer></script>
-    <script src="js/customers.js?v=97" defer></script>
-    <script src="js/countries.js?v=97" defer></script>
-    <script src="js/service-logos.js?v=97" defer></script>
-    <script src="js/traders.js?v=97" defer></script>
-    <script src="js/expenses.js?v=97" defer></script>
-    <script src="js/ready.js?v=97" defer></script>
-    <script src="js/settings.js?v=97" defer></script>
-    <script src="js/accounts.js?v=97" defer></script>
-    <script src="js/usdt.js?v=97" defer></script>
-    <script src="js/egp.js?v=97" defer></script>
-    <script src="js/closing.js?v=97" defer></script>
-    <script src="js/admin.js?v=97" defer></script>
-    <script src="js/position.js?v=97" defer></script>
-    <script src="js/search.js?v=97" defer></script>
-    <script src="js/notify.js?v=97" defer></script>
-    <script src="js/push.js?v=97" defer></script>
-    <script src="js/auth.js?v=97" defer></script>
-    <script src="js/main.js?v=97" defer></script>
+    <script src="js/endpoint.js?v=98" defer></script>
+    <script src="js/core.js?v=98" defer></script>
+    <script src="js/theme.js?v=98" defer></script>
+    <script src="js/logo-data.js?v=98" defer></script>
+    <script src="js/shell.js?v=98" defer></script>
+    <script src="js/calculator.js?v=98" defer></script>
+    <script src="js/reports.js?v=98" defer></script>
+    <script src="js/sync.js?v=98" defer></script>
+    <script src="js/conflicts.js?v=98" defer></script>
+    <script src="js/cache.js?v=98" defer></script>
+    <script src="js/bgsync.js?v=98" defer></script>
+    <script src="js/transactions.js?v=98" defer></script>
+    <script src="js/receipts.js?v=98" defer></script>
+    <script src="js/customers.js?v=98" defer></script>
+    <script src="js/countries.js?v=98" defer></script>
+    <script src="js/service-logos.js?v=98" defer></script>
+    <script src="js/traders.js?v=98" defer></script>
+    <script src="js/expenses.js?v=98" defer></script>
+    <script src="js/ready.js?v=98" defer></script>
+    <script src="js/settings.js?v=98" defer></script>
+    <script src="js/accounts.js?v=98" defer></script>
+    <script src="js/usdt.js?v=98" defer></script>
+    <script src="js/egp.js?v=98" defer></script>
+    <script src="js/closing.js?v=98" defer></script>
+    <script src="js/admin.js?v=98" defer></script>
+    <script src="js/position.js?v=98" defer></script>
+    <script src="js/search.js?v=98" defer></script>
+    <script src="js/notify.js?v=98" defer></script>
+    <script src="js/push.js?v=98" defer></script>
+    <script src="js/auth.js?v=98" defer></script>
+    <script src="js/main.js?v=98" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -414,6 +415,7 @@
                             <p id="calc-adjust-note" class="calc-adjust-note hidden"></p>
                             <!-- الموظف فوق الحد: بتنحفظ وبتستنى موافقة المدير (transactions.js applyTxLimit) -->
                             <p id="calc-limit-note" class="calc-limit-note hidden"></p>
+                            <p id="calc-vip-note" class="calc-vip-note hidden"></p>
                             <div class="flex flex-wrap gap-1.5 mt-3 text-[11px] font-bold">
                                 <span class="rate-pill">الشاشة <b id="res_rate_screen" class="num">3.000</b></span>
                                 <span class="rate-pill">البيع <b id="res_rate_sell" class="num">2.990</b></span>
@@ -1286,6 +1288,28 @@
                         </div>
                         <p id="tx-limit-note" class="hidden text-[11px] font-bold text-amber-700">انشر سكربت Google Sheets الجديد حتى يشتغل الحد</p>
                     </div>
+                    <!-- تنبيهات الاحتيال (transactions.js fraudReasons) -->
+                    <div id="fraud-section" class="space-y-2 pt-4 border-t border-slate-100">
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-900">تنبيهات الاحتيال</h4>
+                            <p class="text-[11px] text-slate-400 leading-5">بتطلع لحظة حفظ الحوالة. إذا إنت كمّلت ("الزبون طبيعي") بيصير موثوق وما بيطلعله تنبيه بعدها. إذا موظف كمّل، الحوالة بتنعلّم ⚠️ وبيوصلك إشعار تراجعها.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-xs font-bold text-slate-700">نفس رقم المحفظة / الحساب / IBAN انبعتله قبل باسم ثاني</span>
+                            <button type="button" id="fraud-same-toggle" data-action="fraud-same-toggle" class="status-toggle" style="--c:#10b981" aria-pressed="false"><span class="sw"></span>شغّال</button>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
+                            <span>زبون جديد ومبلغه فوق</span>
+                            <input type="text" inputmode="decimal" autocomplete="off" data-commas id="fraud_new_ils" class="field w-24 text-xs font-bold num">
+                            <span>₪</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
+                            <span>أكثر من</span>
+                            <input type="number" min="0" step="1" id="fraud_daily" class="field w-16 text-xs font-bold num">
+                            <span>حوالات لنفس الزبون باليوم</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400">0 = مسكّر. <span id="fraud-script-note" class="hidden font-bold text-amber-700">انشر سكربت Google Sheets الجديد حتى تشتغل التنبيهات</span></p>
+                    </div>
                     <div class="flex flex-wrap justify-between items-center gap-2 pt-4 border-t border-slate-100">
                         <div>
                             <h4 class="text-sm font-bold text-slate-900">سجل التعديلات</h4>
@@ -1301,6 +1325,29 @@
                         <button id="reset-open-btn" data-action="open-reset" class="text-xs font-bold bg-rose-50 hover:bg-rose-100 disabled:opacity-50 text-rose-700 px-3 py-2 rounded-lg">مسح البيانات التجريبية</button>
                         <p id="reset-done" class="hidden text-xs font-bold text-emerald-700"></p>
                     </div>
+                </div>
+
+                <!-- التقرير الشهري بالإيميل (settings.js، السكربت hourlyPushJobs ← sendMonthlyReport) -->
+                <div id="monthly-settings" class="hidden section-card p-6 max-w-2xl space-y-4">
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <h3 class="text-base font-bold text-slate-900">📧 التقرير الشهري بالإيميل</h3>
+                            <p class="text-xs text-slate-400 leading-5">أول كل شهر الساعة 8 الصبح: الربح لكل مصدر ودولة، المصاريف، الصافي، المقارنة مع الشهر اللي قبله، أكثر الزبائن ربح، وشغل الموظفين.</p>
+                        </div>
+                        <button type="button" id="monthly-toggle" data-action="monthly-toggle" class="status-toggle" style="--c:#10b981" aria-pressed="false"><span class="sw"></span>شغّال</button>
+                    </div>
+                    <div id="monthly-fields" class="space-y-3">
+                        <div>
+                            <label for="report_email" class="block text-[11px] font-bold text-slate-500 mb-1">الإيميل</label>
+                            <div class="flex gap-2">
+                                <input type="email" id="report_email" dir="ltr" autocomplete="off" class="flex-1 min-w-0 field text-xs font-bold text-left">
+                                <button type="button" data-action="monthly-save" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg">حفظ</button>
+                            </div>
+                            <span class="text-[10px] text-slate-400 block mt-1">فاضي = إيميل حساب جوجل اللي عليه السكربت</span>
+                        </div>
+                        <button type="button" id="monthly-test-btn" data-action="monthly-test" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-800 px-4 py-2.5 rounded-lg">جرّب هلّق (تقرير الشهر اللي فات)</button>
+                    </div>
+                    <p id="monthly-note" class="text-[11px] text-slate-400 leading-5"></p>
                 </div>
 
                 <!-- إشعارات الجوال (push.js، Firebase): للمدير (الإعدادات + المستخدمين). خطوات فاير بيز والإعداد -->
@@ -1528,6 +1575,25 @@
     </nav>
     <div id="mnav-more-menu" class="hidden mnav-more-menu md:hidden"></div>
 
+    <!-- ================= تنبيه احتيال لحظة الحفظ (transactions.js checkFraudThenCommit) ================= -->
+    <div id="fraudModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[66] hidden flex items-center justify-center p-4">
+        <div class="section-card max-w-md w-full p-6 space-y-4">
+            <div class="flex items-start gap-3">
+                <span class="fraud-icon" aria-hidden="true">⚠️</span>
+                <div class="min-w-0">
+                    <h3 class="text-base font-black text-slate-900">انتبه قبل ما تكمّل</h3>
+                    <p class="text-[11px] text-slate-500">البرنامج لاحظ إشي غريب بهالحوالة:</p>
+                </div>
+            </div>
+            <ul id="fraud-reasons" class="fraud-reasons"></ul>
+            <p id="fraud-note" class="text-[11px] text-slate-500 leading-5"></p>
+            <div class="flex gap-2">
+                <button type="button" id="fraud-ok-btn" data-action="fraud-ok" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm py-2.5 rounded-xl">كمّل</button>
+                <button type="button" data-action="fraud-cancel" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ================= كشف حساب الزبون (customers.js، صورة/PDF/واتساب) ================= -->
     <div id="custStatementModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[62] hidden flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
         <div class="w-full max-w-2xl my-auto space-y-3">
@@ -1685,6 +1751,18 @@
                 <div>
                     <label for="m_cust_account" id="m_cust_account_label" class="font-bold block mb-1 text-slate-700">رقم المحفظة</label>
                     <input type="text" id="m_cust_account" data-latin class="w-full field font-mono">
+                </div>
+                <!-- المدير بس: خصم VIP على نسبة الربح، وموثوق = بدون تنبيهات احتيال (customers.js) -->
+                <div id="m_cust_vip_wrap" class="hidden grid grid-cols-2 gap-3 items-end p-3 rounded-xl bg-amber-50 border border-amber-200">
+                    <div>
+                        <label for="m_cust_vip" class="font-bold block mb-1 text-amber-900">⭐ خصم VIP على الربح %</label>
+                        <input type="number" step="0.1" min="0" id="m_cust_vip" placeholder="0" class="w-full field font-bold">
+                    </div>
+                    <label class="flex items-center gap-2 font-bold text-amber-900 cursor-pointer select-none pb-2">
+                        <input type="checkbox" id="m_cust_trusted" class="w-4 h-4 accent-slate-900">
+                        زبون موثوق <span class="font-medium text-amber-700/80 text-[10px]">(بدون تنبيهات)</span>
+                    </label>
+                    <span class="col-span-2 text-[10px] text-amber-800/80">الخصم بينزل من نسبة ربح الدولة لما تختاره بالحاسبة: دولة ربحها 5% وخصمه 1% = 4%</span>
                 </div>
                 <div id="m_cust_bank_wrap" class="hidden space-y-3">
                     <div>

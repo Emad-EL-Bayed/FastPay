@@ -176,6 +176,14 @@ const CLICK_ACTIONS = {
         if (tx && walletsReady()) openTxPayModal(tx, 'مكتمل', { afterCreate: true });
     },
     'tx-approve': (el) => approveTx(toNum(el.dataset.id, NaN)),
+    'tx-flag-ok': (el) => clearTxFlag(toNum(el.dataset.id, NaN)),
+    'fraud-ok': confirmFraud,
+    'fraud-cancel': () => { fraudPending = null; closeModal('fraudModal'); },
+    'txd-track-copy': copyTrackLink,
+    'fraud-same-toggle': toggleFraudSame,
+    'monthly-toggle': toggleMonthlyReport,
+    'monthly-save': saveReportEmail,
+    'monthly-test': testMonthlyReport,
     'tx-limit-toggle': toggleTxLimit,
     'daily-test': (el) => testDailyPush(el.dataset.job),
     // USDT
@@ -330,7 +338,7 @@ function bindGlobalEvents() {
 
 // النوافذ من فوق لتحت: Esc وزر الرجوع بيسكّروا اللي فوق بس
 // (الإشعار المهم و"مين عدّل قبلي" مش هون: ما بيتسكّروا إلا بالاختيار)
-const MODAL_ORDER = ['searchModal', 'custStatementModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'readySendModal', 'readyModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'accountModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal'];
+const MODAL_ORDER = ['searchModal', 'fraudModal', 'custStatementModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'readySendModal', 'readyModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'accountModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal'];
 const topModalId = () => MODAL_ORDER.find(id => !$(id).classList.contains('hidden'));
 
 // ================= زر الرجوع بالجوال (بطلب عماد 2026-10-19) =================
@@ -510,6 +518,8 @@ function bindUserEvents() {
 // الإعدادات وتسعير الدول
 function bindSettingsEvents() {
     $('tx_limit').addEventListener('change', saveTxLimit);
+    ['fraud_new_ils', 'fraud_daily'].forEach(id => $(id).addEventListener('change', saveFraudLimits));
+    $('report_email').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveReportEmail(); } });
     $('push_debts_hour').addEventListener('change', () => saveDailyPushHour('pushDebtsHour', $('push_debts_hour').value));
     $('push_summary_hour').addEventListener('change', () => saveDailyPushHour('pushSummaryHour', $('push_summary_hour').value));
     ['set_screen_rate', 'set_sell_offset', 'set_buy_offset'].forEach(id => $(id).addEventListener('input', updateSellBuyPreview));

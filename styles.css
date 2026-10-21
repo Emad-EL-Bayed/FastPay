@@ -1660,6 +1660,23 @@ html.motion-off .copy-menu { animation: none; }
     .cst-lbl { display: none; }
 }
 
+/* ================= الدفعة الثالثة (2026-10-21): التتبّع، VIP، تنبيهات الاحتيال ================= */
+.txd-track { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.7rem; border-radius: 0.7rem; background: rgb(var(--b-slate-50, 248 250 252)); border: 1px solid rgb(var(--c-slate-200, 226 232 240)); }
+.txd-track bdi { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.72rem; color: rgb(var(--t-slate-600, 71 85 105)); }
+.txd-track-open { font-size: 0.72rem; font-weight: 800; color: rgb(var(--t-blue-700, 29 78 216)); padding: 0.2rem 0.5rem; border-radius: 0.5rem; }
+.txd-track-open:hover { background: rgb(var(--b-blue-50, 239 246 255)); }
+.calc-vip-note { margin-top: 0.45rem; font-size: 0.74rem; font-weight: 800; color: #fcd34d; }
+.flag-chip { display: inline-flex; align-items: center; gap: 0.2rem; margin-top: 0.3rem; padding: 0.15rem 0.55rem; border-radius: 9999px; font-size: 0.66rem; font-weight: 800; background: rgb(var(--b-rose-100, 255 228 230)); color: rgb(var(--t-rose-700, 190 18 60)); }
+.flag-chip.manager { cursor: pointer; }
+.flag-chip.manager:hover { filter: brightness(0.96); }
+.flag-box { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.6rem; padding: 0.5rem 0.7rem; border-radius: 0.7rem; font-size: 0.72rem; font-weight: 700; background: rgb(var(--b-rose-50, 255 241 242)); color: rgb(var(--t-rose-800, 159 18 57)); border: 1px solid rgb(var(--c-rose-200, 254 205 211)); }
+.flag-box .flag-chip { margin-top: 0; background: rgb(var(--b-white, 255 255 255)); }
+.fraud-icon { font-size: 1.9rem; line-height: 1; animation: fraud-shake 0.6s ease 0.15s both; }
+@keyframes fraud-shake { 20%, 60% { transform: rotate(-10deg); } 40%, 80% { transform: rotate(10deg); } }
+.fraud-reasons { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+.fraud-reasons li { padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.8rem; font-weight: 700; line-height: 1.6; background: rgb(var(--b-amber-50, 255 251 235)); color: rgb(var(--t-amber-900, 120 53 15)); border: 1px solid rgb(var(--c-amber-200, 253 230 138)); }
+html.motion-off .fraud-icon { animation: none; }
+
 /* ================= الوضع الداكن ================= */
 /* الألوان نفسها متغيرات (build/tailwind.config.js) وبتتحول لحالها، وهون بس اللي إله شكل خاص بالداكن.
    <html data-theme="dark"> بيتحط من js/theme.js (ومن سكربت صغير بأول index.html قبل أول رسم) */

@@ -108,7 +108,41 @@ function applySourceRates() {
     const src = calcSource && !calcSource.other ? calcSource : null;
     setCostMode(src ? src.costMode : 'pct', false);
     $('calc_cost_pct').value = src ? src.costValue : globalConfig.costPct;
-    $('calc_profit_pct').value = src ? src.profitPct : globalConfig.profitPct;
+    // زبون VIP: أقل من نسبة الدولة بخصمه
+    calcVipApplied = calcVipDiscount();
+    $('calc_profit_pct').value = round2(Math.max(0, baseProfitPct() - calcVipApplied));
+}
+
+// ---------- زبون VIP: خصم على نسبة ربح الدولة (بطلب عماد 2026-10-21) ----------
+// الخصم من نافذة الزبون (المدير بس)، وبينزل لحاله لما تختار الزبون؛ ما بيكتب فوق نسبة عدّلتها بإيدك إلا إذا تغيّر الزبون
+let calcVipApplied = 0;
+
+function calcCustomer() {
+    return customers.find(c => c.id && c.id === $('calc_customer_id').value) || customers.find(c => normName(c.name) === normName($('calc_recipient').value));
+}
+
+function calcVipDiscount() {
+    if (typeof sheetHas !== 'function' || !sheetHas('vip')) return 0;
+    return Math.max(0, toNum(calcCustomer()?.vipDiscount, 0));
+}
+
+function baseProfitPct() {
+    const src = calcSource && !calcSource.other ? calcSource : null;
+    return src ? src.profitPct : globalConfig.profitPct;
+}
+
+function applyVipProfit() {
+    const vip = calcVipDiscount();
+    if (vip === calcVipApplied) return;
+    calcVipApplied = vip;
+    $('calc_profit_pct').value = round2(Math.max(0, baseProfitPct() - vip));
+    runLiveCalc();
+}
+
+function renderCalcVipNote(input) {
+    const vip = calcVipApplied > 0 && input.orig > 0;
+    $('calc-vip-note').classList.toggle('hidden', !vip);
+    if (vip) $('calc-vip-note').innerHTML = `⭐ زبون مميز<span class="profit-only"> · الربح ${escapeHtml(String(input.profitPct))}% بدل ${escapeHtml(String(baseProfitPct()))}%</span>`;
 }
 
 function setCostMode(mode, recalc = true) {
@@ -349,6 +383,7 @@ function runLiveCalc() {
             ? 'يُسلَّم بالدولار، شامل خصم التكلفة وربحك'
             : 'شامل خصم التكلفة وربحك';
     renderCalcAdjust(input, r);
+    renderCalcVipNote(input);
     // الموظف فوق حد الحوالة
     const over = input.orig > 0 && txLimitActive() && (isUsd ? r.clientUsd * input.screenRate : r.clientIls) > txLimitIls() + 0.004;
     $('calc-limit-note').classList.toggle('hidden', !over);
@@ -506,6 +541,7 @@ function onCustomerSearchInput() {
         setCustomerStatus(!!exact, exact ? '✓ زبون مسجل' : (query ? '+ زبون جديد' : 'عميل جديد'));
     }
     updateCustomerPhoneField('calc', customers.find(c => c.id === $('calc_customer_id').value) || exact, input.value);
+    applyVipProfit();
 
     pickerIndex = -1;
     dropdown.innerHTML = customerPickerHtml(input.value.trim(), 'select-customer');
@@ -536,7 +572,7 @@ function customerPickerHtml(rawQuery, action) {
         <div data-action="${action}" data-id="${escapeHtml(c.id)}" role="option" class="cust-option">
             <span class="cust-avatar">${escapeHtml(c.name.trim().charAt(0) || '؟')}</span>
             <span class="min-w-0 flex-1">
-                <span class="font-bold text-slate-800 block truncate">${highlightMatch(c.name, rawQuery)}</span>
+                <span class="font-bold text-slate-800 block truncate">${c.vipDiscount > 0 ? '<span title="زبون مميز">⭐</span> ' : ''}${highlightMatch(c.name, rawQuery)}</span>
                 <span class="text-[11px] text-slate-400 truncate block">${escapeHtml(payoutLabel(c))}${c.account ? ` · <bdi class="ltr-num font-mono">${escapeHtml(c.account)}</bdi>` : ''}</span>
             </span>
             ${lastOf(c) ? `<span class="text-[10px] text-slate-400 shrink-0">${relativeDays(lastOf(c))}</span>` : ''}
@@ -618,7 +654,8 @@ function fillCustomerIntoCalc(c) {
     setIbanField($('calc_iban'), $('calc_iban_hint'), c.iban);
     $('calc_phone').value = '';
     updateCustomerPhoneField('calc', customers.find(x => c.id && x.id === c.id) || null, c.name);
-    setCustomerStatus(true, '✓ زبون مسجل');
+    setCustomerStatus(true, c.vipDiscount > 0 && sheetHas('vip') ? '⭐ زبون مميز' : '✓ زبون مسجل');
+    applyVipProfit();
 }
 
 function selectCustomerFromSearch(id) {

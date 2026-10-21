@@ -74,6 +74,33 @@ function renderAdminTools() {
     $('restore-section').classList.toggle('hidden', !admin);
     $('restore-open-btn').disabled = !sheetHas('restore');
     renderTxLimitSettings();
+    renderFraudSettings();
+}
+
+// ---------- تنبيهات الاحتيال (إعدادات مشتركة fraudSameNumber / fraudNewIls / fraudDailyCount) ----------
+function renderFraudSettings() {
+    const on = globalConfig.fraudSameNumber !== 'no';
+    const btn = $('fraud-same-toggle');
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', String(on));
+    btn.lastChild.textContent = on ? 'شغّال' : 'مسكّر';
+    if (document.activeElement !== $('fraud_new_ils')) $('fraud_new_ils').value = toNum(globalConfig.fraudNewIls, 0);
+    if (document.activeElement !== $('fraud_daily')) $('fraud_daily').value = toNum(globalConfig.fraudDailyCount, 0);
+    $('fraud-script-note').classList.toggle('hidden', sheetHas('fraud'));
+}
+
+function toggleFraudSame() {
+    globalConfig.fraudSameNumber = globalConfig.fraudSameNumber === 'no' ? 'yes' : 'no';
+    saveAll();
+    renderFraudSettings();
+}
+
+function saveFraudLimits() {
+    globalConfig.fraudNewIls = Math.max(0, round2(toNum($('fraud_new_ils').value, 0)));
+    globalConfig.fraudDailyCount = Math.max(0, Math.round(toNum($('fraud_daily').value, 0)));
+    saveAll();
+    renderFraudSettings();
+    showToast('انحفظ', 'حدود تنبيهات الاحتيال اتحدّثت لكل الأجهزة', 'success');
 }
 
 // ---------- حد الحوالة للموظف (إعداد مشترك txLimitOn / txLimit) ----------

@@ -5,6 +5,7 @@
 
 // ================= الإعدادات =================
 function loadSettingsPage() {
+    renderMonthlySettings();
     renderUsdtSettings();
     renderEgpTierSettings();
     renderBackupStatus();
@@ -106,6 +107,10 @@ const SHARED_SETTINGS = {
     lockedThrough: { label: 'قفل الأيام: الحركات لحد هاد التاريخ ما بتتعدل (بيتحدث مع كل جرد)', type: 'str' },
     expenseCategories: { label: 'المصاريف: بنود مقترحة زيادة (زر + بند)', type: 'json' },
     expenseCategoriesHidden: { label: 'المصاريف: بنود انشالت من الاقتراحات (×)', type: 'json' },
+    fraudSameNumber: { label: 'تنبيه: نفس الرقم انبعتله باسم ثاني (yes/no)', type: 'str' },
+    fraudNewIls: { label: 'تنبيه: زبون جديد فوق هالمبلغ ₪ (0 = مسكّر)', type: 'num' },
+    fraudDailyCount: { label: 'تنبيه: أكثر من هالعدد حوالات لنفس الزبون باليوم (0 = مسكّر)', type: 'num' },
+    reportEmail: { label: 'التقرير الشهري: الإيميل (فاضي = صاحب السكربت، off = مسكّر)', type: 'str' },
     txLimitOn: { label: 'حد الحوالة للموظف: yes شغّال / no مسكّر', type: 'str' },
     txLimit: { label: 'حد الحوالة للموظف ₪ (فوقه بتستنى موافقة المدير)', type: 'num' },
     pushDebtsHour: { label: 'إشعار تذكير الديون: الساعة (0-23) أو off', type: 'str' },
@@ -176,6 +181,59 @@ function applySharedSettings(rows, full) {
 }
 
 let sharedFlushTimer = null;
+// إيميل صاحب السكربت (من list، لصاحب الإعدادات): التقرير الشهري بيروحله إذا ما في إيميل ثاني
+let scriptOwnerEmail = '';
+
+// ---------- التقرير الشهري بالإيميل (إعداد مشترك reportEmail: '' = صاحب السكربت، 'off' = مسكّر، أو إيميل) ----------
+function renderMonthlySettings() {
+    const card = $('monthly-settings');
+    const show = hasPerm('settings') && sheetHas('monthlyEmail');
+    card.classList.toggle('hidden', !show);
+    if (!show) return;
+    const v = String(globalConfig.reportEmail || '').trim();
+    const on = v !== 'off';
+    const btn = $('monthly-toggle');
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', String(on));
+    btn.lastChild.textContent = on ? 'شغّال' : 'مسكّر';
+    $('monthly-fields').classList.toggle('hidden', !on);
+    if (document.activeElement !== $('report_email')) $('report_email').value = on ? v : '';
+    $('report_email').placeholder = scriptOwnerEmail || 'إيميل حساب جوجل تبع السكربت';
+    const to = v && on ? v : scriptOwnerEmail;
+    $('monthly-note').innerHTML = !on ? 'مسكّر: ما في تقرير بالإيميل.'
+        : dailyPushState && dailyPushState.trigger === false
+            ? '<span class="text-amber-700 font-bold">مش شغّال لسا:</span> افتح محرر السكربت، اختار الدالة <b>فعّل_الإشعارات_اليومية</b> واكبس Run مرة وحدة.'
+            : `بيوصل أول كل شهر الساعة 8 الصبح${to ? ` على <bdi class="ltr-num font-bold">${escapeHtml(to)}</bdi>` : ''}. أول مرة جوجل بيطلب سماح "إرسال إيميل".`;
+}
+
+function toggleMonthlyReport() {
+    globalConfig.reportEmail = String(globalConfig.reportEmail || '').trim() === 'off' ? '' : 'off';
+    saveAll();
+    renderMonthlySettings();
+}
+
+function saveReportEmail() {
+    const v = $('report_email').value.trim();
+    if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return showToast('الإيميل مش صحيح', 'مثل name@gmail.com، أو خليه فاضي لإيميل صاحب السكربت', 'warning');
+    globalConfig.reportEmail = v;
+    saveAll();
+    renderMonthlySettings();
+    showToast('انحفظ', `التقرير الشهري بيوصل على ${v || scriptOwnerEmail || 'إيميل صاحب السكربت'}`, 'success');
+}
+
+async function testMonthlyReport() {
+    $('monthly-test-btn').disabled = true;
+    try {
+        // إعداد لسا ما وصل الشيت: بنبعته أول
+        await flushOutbox();
+        const r = await postToSheets({ action: 'monthly_test' });
+        if (r.status === 'ok') return showToast('انبعت التقرير ✓', `تقرير ${r.data.month} على ${r.data.to}. شوف الإيميل (وإذا مش موجود شوف الـ Spam)`, 'success');
+        const why = r.error === 'unknown_action' ? 'انشر السكربت الجديد أول' : r.error === 'no_email' ? 'ما في إيميل: اكتب إيميل أو شغّل التقرير' : r.error === 'send_failed' ? 'جوجل ما بعته: شغّل أي دالة من محرر السكربت ووافق على سماح الإيميل' : 'تأكد من الاتصال';
+        showToast('ما انبعت', why, 'error');
+    } finally {
+        $('monthly-test-btn').disabled = false;
+    }
+}
 
 // يُستدعى من saveAll: أي إعداد مشترك تغيّر عن قيمة الشيت يُرسل له
 function syncSharedSettings() {

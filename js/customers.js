@@ -155,7 +155,7 @@ function renderCustomersTable() {
             <td class="p-3.5">
                 <span class="flex items-center gap-2.5">
                     <span class="cust-avatar">${escapeHtml(c.name.trim().charAt(0) || '؟')}</span>
-                    <span class="font-bold text-slate-900 whitespace-nowrap">${escapeHtml(c.name)}</span>
+                    <span class="font-bold text-slate-900 whitespace-nowrap">${c.vipDiscount > 0 ? '<span title="زبون مميز">⭐</span> ' : ''}${escapeHtml(c.name)}</span>
                 </span>
             </td>
             <td class="p-3.5 whitespace-nowrap">${whatsappButton(c)}</td>
@@ -517,6 +517,10 @@ function openCustomerModal(c = null) {
     $('m_cust_account').value = c ? c.account : '';
     $('m_cust_bank_account').value = c ? c.bankAccount : '';
     syncBankAccountField($('m_cust_bank_account'));
+    // VIP والموثوق: المدير بس (السكربت كمان بيمنع غيره)
+    $('m_cust_vip_wrap').classList.toggle('hidden', !(isManager() && sheetHas('vip')));
+    $('m_cust_vip').value = c?.vipDiscount ? c.vipDiscount : '';
+    $('m_cust_trusted').checked = c?.trusted === 'yes';
     setIbanField($('m_cust_iban'), $('m_cust_iban_hint'), c?.iban);
     syncCustPayoutFields();
     openModal('custModal');
@@ -547,7 +551,9 @@ async function saveCustomerManual(e) {
         provider: $('m_cust_provider').value,
         account: $('m_cust_account').value,
         bankAccount,
-        iban: sheetHas('iban') ? iban : existingIban
+        iban: sheetHas('iban') ? iban : existingIban,
+        vipDiscount: isManager() && sheetHas('vip') ? toNum($('m_cust_vip').value, 0) : before.vipDiscount,
+        trusted: isManager() && sheetHas('vip') ? ($('m_cust_trusted').checked ? 'yes' : 'no') : before.trusted
     });
     if (!data.name) return showToast('تنبيه', 'اسم الزبون مطلوب', 'warning');
     if (data.phone && !hasWhatsapp(data)) {
@@ -562,7 +568,7 @@ async function saveCustomerManual(e) {
     let renamed = { ops: [], count: 0 };
     if (existing) {
         const oldName = existing.name;
-        Object.assign(existing, { name: data.name, phone: data.phone, payout: data.payout, provider: data.provider, account: data.account, bankAccount: data.bankAccount, iban: data.iban });
+        Object.assign(existing, { name: data.name, phone: data.phone, payout: data.payout, provider: data.provider, account: data.account, bankAccount: data.bankAccount, iban: data.iban, vipDiscount: data.vipDiscount, trusted: data.trusted });
         if (existing.name !== oldName) renamed = renameCustomerOps(existing, oldName);
         queueOps({ action: 'upsert_customer', customer: existing }, ...renamed.ops);
     } else {

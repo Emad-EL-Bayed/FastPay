@@ -25,10 +25,10 @@ function saveNewTransaction() {
         const mins = Math.max(1, Math.round((Date.now() - same.id) / 60000));
         showAppConfirm('هاي الحوالة انحفظت قبل شوي',
             `${same.recipient} — ${txAmountText(same)} ${receiptNo(same)} انحفظت قبل ${mins === 1 ? 'دقيقة' : mins + ' دقايق'}. بدك تحفظها كمان مرة؟`,
-            () => commitNewTransaction(form));
+            () => checkFraudThenCommit(form));
         return;
     }
-    commitNewTransaction(form);
+    checkFraudThenCommit(form);
 }
 
 const txAmountText = (tx) => (tx.currency === 'USD' ? `$${fmt(tx.clientUsd)}` : `${fmt(tx.clientIls)} ₪`);
@@ -41,12 +41,15 @@ function recentSameTx({ recipient, input }) {
         && t.currency === input.currency && Math.abs(t.orig - input.orig) < 0.005);
 }
 
-async function commitNewTransaction(form) {
+// opts: trust = المدير قال "الزبون طبيعي" (بيصير موثوق)، flag = الموظف كمّل رغم التنبيه (⚠️ وإشعار للمدير)
+async function commitNewTransaction(form, opts = {}) {
     txSaving = true;
     let tx;
     try {
         const customer = upsertTxCustomer(form);
+        if (opts.trust) customer.trusted = 'yes';
         tx = buildNewTx(form, customer);
+        if (opts.flag) tx.flag = opts.flag;
         // فوق حد الموظف: بتنحفظ وبتستنى موافقة المدير
         const held = applyTxLimit(tx, null);
         ledger.unshift(tx);
@@ -277,6 +280,7 @@ function renderLedgerTable() {
                     </span>
                     ${t.status === 'جزئي' ? `<div class="text-[10px] text-sky-700 mt-1">مدفوع ${fmt(txPaid(t))} من ${fmt(txDue(t))} ${CUR_SYM[t.currency]} <button data-action="tx-pay" data-id="${t.id}" class="font-bold underline mr-1">+ دفعة</button></div>` : ''}
                     ${approvalChip(t)}
+                    ${flagChip(t)}
                 </td>
                 <td class="p-3.5 text-center whitespace-nowrap">
                     <button data-action="open-receipt" data-id="${t.id}" class="text-slate-700 hover:text-slate-900 font-bold text-xs px-2.5 py-1 bg-slate-100 rounded-lg">فاتورة</button>
@@ -441,6 +445,7 @@ function renderTxDetails() {
                 <span class="badge border ${statusSelectClass(t.status)}">${escapeHtml(t.status)}</span>
             </div>
             ${approvalDetailsHtml(t)}
+            ${flagDetailsHtml(t)}
             ${t.status === 'جزئي' ? `<div class="text-[11px] text-sky-700 mt-2">مدفوع ${fmt(paid)} من ${fmt(txDue(t))} ${CUR_SYM[t.currency]} <button data-action="tx-pay" data-id="${t.id}" class="font-bold underline mr-1">+ دفعة</button></div>` : ''}
         </div>
         <div class="txd-body">
@@ -449,6 +454,15 @@ function renderTxDetails() {
                 ${receive.join('')}
                 ${txCopyItems(t).some(i => i.all) ? `<button type="button" data-action="txd-copy" data-id="${t.id}" data-field="all" class="txd-copy-all">${COPY_ICON} نسخ الكل (الاسم والأرقام والمبلغ)</button>` : ''}
             </section>
+            ${trackUrl(t) && !cancelled ? `<section>
+                <h4 class="txd-title">رابط التتبّع للزبون</h4>
+                <div class="txd-track">
+                    <bdi class="ltr-num">${escapeHtml(trackUrl(t).replace(/^https?:\/\//, ''))}</bdi>
+                    <button type="button" data-action="txd-track-copy" data-id="${t.id}" class="copy-btn" title="نسخ الرابط" aria-label="نسخ رابط التتبّع">${COPY_ICON}</button>
+                    <a href="${escapeHtml(trackUrl(t))}" target="_blank" rel="noopener" class="txd-track-open">فتح</a>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-1">بينبعت لحاله مع رسالة الواتساب. الزبون بيشوف الحالة والمبلغ بس، وبيضل شغّال 30 يوم</p>
+            </section>` : ''}
             <section>
                 <h4 class="txd-title">الحساب</h4>
                 ${calc.join('')}
@@ -592,6 +606,95 @@ async function approveTx(id) {
     refreshTxDetails();
     const status = await flushOutbox();
     showToast('تمت الموافقة ✓', `${tx.recipient} — ${txAmountText(tx)}: الموظف بيقدر يكمّلها هلّق`, syncToastType(status));
+}
+
+// ================= تنبيهات الاحتيال (بطلب عماد 2026-10-21) =================
+// لحظة حفظ الحوالة: (أ) نفس رقم المحفظة/الحساب/IBAN انبعتله قبل باسم ثاني، (ب) زبون جديد ومبلغه فوق حد، (ج) كثير حوالات
+// لنفس الزبون باليوم. الحدود إعدادات مشتركة (الرقابة والأمان). المدير لما يكمّل: "الزبون طبيعي" (بيصير موثوق، وما بيطلعله
+// تنبيه بعدها، وما في ⚠️). الموظف لما يكمّل: الحوالة عليها ⚠️ وبيوصل المدير إشعار، والمدير بيشيلها بـ "✓ طبيعي"
+let fraudPending = null;
+
+function fraudReasons(form) {
+    if (!sheetHas('fraud') || form.customer?.trusted === 'yes') return [];
+    const c = form.customer;
+    const mineTx = (t) => (c && t.customerId && t.customerId === c.id) || normName(t.recipient) === normName(form.recipient);
+    const mineCust = (x) => (c && x.id === c.id) || normName(x.name) === normName(form.recipient);
+    const reasons = [];
+    if (globalConfig.fraudSameNumber !== 'no') {
+        const nums = [[form.account, normPhone(form.account || '')], [form.bankAccount, normPhone(form.bankAccount || '')], [formatIban(form.iban || ''), cleanIban(form.iban || '')]]
+            .filter(([, n]) => n.length >= 6);
+        const has = (x, n) => [normPhone(x.account || ''), normPhone(x.bankAccount || ''), cleanIban(x.iban || '')].includes(n);
+        for (const [shown, n] of nums) {
+            const hit = ledger.find(t => t.status !== CANCELLED && !mineTx(t) && has(t, n)) || customers.find(x => !mineCust(x) && has(x, n));
+            if (hit) { reasons.push(`الرقم ${shown} انبعتله قبل باسم «${hit.recipient || hit.name}»`); break; }
+        }
+    }
+    const prev = ledger.filter(t => t.status !== CANCELLED && mineTx(t));
+    const r = computeTransfer(form.input);
+    const value = form.input.currency === 'USD' ? r.clientUsd * form.input.screenRate : r.clientIls;
+    const limitNew = toNum(globalConfig.fraudNewIls, 0);
+    if (limitNew > 0 && !prev.length && value > limitNew) reasons.push(`زبون جديد (أول حوالة إله) والمبلغ ${fmt(value, 0)} ₪`);
+    const maxDay = toNum(globalConfig.fraudDailyCount, 0);
+    const todayCount = prev.filter(t => t.date === form.date).length;
+    if (maxDay > 0 && todayCount >= maxDay) reasons.push(`هاي الحوالة رقم ${todayCount + 1} لنفس الزبون اليوم`);
+    return reasons;
+}
+
+function checkFraudThenCommit(form) {
+    const reasons = fraudReasons(form);
+    if (!reasons.length) return commitNewTransaction(form);
+    fraudPending = { form, reasons };
+    const mgr = isManager();
+    $('fraud-reasons').innerHTML = reasons.map(x => `<li>${escapeHtml(x)}</li>`).join('');
+    $('fraud-ok-btn').textContent = mgr ? '✓ كمّل، الزبون طبيعي' : 'كمّل وبلّغ المدير';
+    $('fraud-note').textContent = mgr
+        ? 'الزبون بيصير موثوق: ما بيطلعله تنبيه بعدها، وما بتبين ⚠️ على حوالته للموظفين'
+        : 'الحوالة بتنحفظ وعليها ⚠️، وبيوصل المدير إشعار يراجعها';
+    openModal('fraudModal');
+}
+
+function confirmFraud() {
+    const p = fraudPending;
+    fraudPending = null;
+    closeModal('fraudModal');
+    if (!p) return;
+    commitNewTransaction(p.form, isManager() ? { trust: true } : { flag: p.reasons.join(' · ') });
+}
+
+function flagChip(t) {
+    if (!t.flag) return '';
+    return isManager()
+        ? `<button data-action="tx-flag-ok" data-id="${t.id}" class="flag-chip manager" title="${escapeHtml(t.flag)}">⚠️ تنبيه · ✓ طبيعي</button>`
+        : `<span class="flag-chip" title="${escapeHtml(t.flag)}">⚠️ تنبيه</span>`;
+}
+
+function flagDetailsHtml(t) {
+    if (!t.flag) return '';
+    return `<div class="flag-box"><span>⚠️ ${escapeHtml(t.flag)}${t.createdBy ? ` · سجّلها ${escapeHtml(personName(t.createdBy))}` : ''}</span>${isManager() ? `<button data-action="tx-flag-ok" data-id="${t.id}" class="flag-chip manager">✓ الزبون طبيعي</button>` : ''}</div>`;
+}
+
+// المدير راجعها: العلامة بتنشال والزبون بيصير موثوق
+async function clearTxFlag(id) {
+    const tx = ledger.find(x => x.id === id);
+    if (!tx || !isManager() || !tx.flag) return;
+    tx.flag = '';
+    const ops = [{ action: 'upsert', ...tx }];
+    const c = customerOfTx(tx);
+    if (c && c.trusted !== 'yes') {
+        c.trusted = 'yes';
+        ops.push({ action: 'upsert_customer', customer: c });
+    }
+    queueOps(...ops);
+    renderLedgerTable();
+    refreshTxDetails();
+    const status = await flushOutbox();
+    showToast('تمام ✓', `${tx.recipient}: انشال التنبيه${c ? ' وصار زبون موثوق' : ''}`, syncToastType(status));
+}
+
+function copyTrackLink(btn) {
+    const t = ledger.find(x => x.id === toNum(btn.dataset.id, NaN));
+    const url = t && trackUrl(t);
+    if (url) copyWithFlash(btn, { label: 'رابط التتبّع', shown: url.replace(/^https?:\/\//, ''), value: url });
 }
 
 // ================= تعديل الحوالة =================
