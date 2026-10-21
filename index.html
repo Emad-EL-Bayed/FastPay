@@ -28,41 +28,41 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=108">
+    <link rel="stylesheet" href="styles.css?v=109">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=108">
+    <link rel="stylesheet" href="tailwind.css?v=109">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=108" defer></script>
-    <script src="js/core.js?v=108" defer></script>
-    <script src="js/theme.js?v=108" defer></script>
-    <script src="js/logo-data.js?v=108" defer></script>
-    <script src="js/shell.js?v=108" defer></script>
-    <script src="js/calculator.js?v=108" defer></script>
-    <script src="js/reports.js?v=108" defer></script>
-    <script src="js/sync.js?v=108" defer></script>
-    <script src="js/conflicts.js?v=108" defer></script>
-    <script src="js/cache.js?v=108" defer></script>
-    <script src="js/bgsync.js?v=108" defer></script>
-    <script src="js/transactions.js?v=108" defer></script>
-    <script src="js/receipts.js?v=108" defer></script>
-    <script src="js/customers.js?v=108" defer></script>
-    <script src="js/countries.js?v=108" defer></script>
-    <script src="js/service-logos.js?v=108" defer></script>
-    <script src="js/traders.js?v=108" defer></script>
-    <script src="js/expenses.js?v=108" defer></script>
-    <script src="js/ready.js?v=108" defer></script>
-    <script src="js/settings.js?v=108" defer></script>
-    <script src="js/accounts.js?v=108" defer></script>
-    <script src="js/usdt.js?v=108" defer></script>
-    <script src="js/egp.js?v=108" defer></script>
-    <script src="js/closing.js?v=108" defer></script>
-    <script src="js/admin.js?v=108" defer></script>
-    <script src="js/position.js?v=108" defer></script>
-    <script src="js/search.js?v=108" defer></script>
-    <script src="js/notify.js?v=108" defer></script>
-    <script src="js/push.js?v=108" defer></script>
-    <script src="js/auth.js?v=108" defer></script>
-    <script src="js/main.js?v=108" defer></script>
+    <script src="js/endpoint.js?v=109" defer></script>
+    <script src="js/core.js?v=109" defer></script>
+    <script src="js/theme.js?v=109" defer></script>
+    <script src="js/logo-data.js?v=109" defer></script>
+    <script src="js/shell.js?v=109" defer></script>
+    <script src="js/calculator.js?v=109" defer></script>
+    <script src="js/reports.js?v=109" defer></script>
+    <script src="js/sync.js?v=109" defer></script>
+    <script src="js/conflicts.js?v=109" defer></script>
+    <script src="js/cache.js?v=109" defer></script>
+    <script src="js/bgsync.js?v=109" defer></script>
+    <script src="js/transactions.js?v=109" defer></script>
+    <script src="js/receipts.js?v=109" defer></script>
+    <script src="js/customers.js?v=109" defer></script>
+    <script src="js/countries.js?v=109" defer></script>
+    <script src="js/service-logos.js?v=109" defer></script>
+    <script src="js/traders.js?v=109" defer></script>
+    <script src="js/expenses.js?v=109" defer></script>
+    <script src="js/ready.js?v=109" defer></script>
+    <script src="js/settings.js?v=109" defer></script>
+    <script src="js/accounts.js?v=109" defer></script>
+    <script src="js/usdt.js?v=109" defer></script>
+    <script src="js/egp.js?v=109" defer></script>
+    <script src="js/closing.js?v=109" defer></script>
+    <script src="js/admin.js?v=109" defer></script>
+    <script src="js/position.js?v=109" defer></script>
+    <script src="js/search.js?v=109" defer></script>
+    <script src="js/notify.js?v=109" defer></script>
+    <script src="js/push.js?v=109" defer></script>
+    <script src="js/auth.js?v=109" defer></script>
+    <script src="js/main.js?v=109" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -1528,6 +1528,21 @@
                             <span class="text-[11px] text-slate-400">دخول الصفحات والنوافذ، عدّ الأرقام، والخلفية المتحركة. وقّفها إذا الجهاز بطيء.</span>
                         </div>
                         <button type="button" id="motion-toggle" data-action="toggle-motion" class="status-toggle on" style="--c:#10b981" aria-pressed="true"><span class="sw"></span>الحركات</button>
+                    </div>
+                </div>
+
+                <!-- أقسام الصفحات: بتبين أو بتنخفى عند كل الأجهزة (إعدادات مشتركة، settings.js renderSectionToggles) -->
+                <div data-stab="look" class="section-card p-6 max-w-2xl space-y-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">أقسام الصفحات</h3>
+                        <p class="text-xs text-slate-400">بتبين أو بتنخفى عند كل الموظفين، مش بس على هالجهاز.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="min-w-0">
+                            <b class="block text-xs text-slate-800">جاهزية الدفع</b>
+                            <span class="text-[11px] text-slate-400">بصفحة الحسابات والمحافظ: اللي لسا لازم تدفعه للزبائن مقابل رصيد حساباتك.</span>
+                        </div>
+                        <button type="button" id="payout-ready-toggle" data-action="toggle-payout-ready" class="status-toggle on" style="--c:#10b981" aria-pressed="true"><span class="sw"></span>ظاهرة</button>
                     </div>
                 </div>
 

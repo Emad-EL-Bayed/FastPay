@@ -114,7 +114,8 @@ function payoutItemLabel(i) {
 function renderPayoutReadiness() {
     const box = $('payout-readiness');
     if (!box) return;
-    if (dataState === 'loading') { box.innerHTML = ''; box.classList.add('hidden'); return; }
+    // سويتش مشترك بالإعدادات ← المظهر ← أقسام الصفحات
+    if (dataState === 'loading' || globalConfig.payoutReadyOn === 'no') { box.innerHTML = ''; box.classList.add('hidden'); return; }
     box.classList.remove('hidden');
     const rows = payoutReadiness();
     const shorts = rows.filter(r => r.type && r.short > 0.004).length;
@@ -122,7 +123,7 @@ function renderPayoutReadiness() {
     const head = `
         <div class="flex flex-wrap items-start justify-between gap-2">
             <div>
-                <h3 class="text-sm font-bold text-slate-900">💸 جاهزية الدفع</h3>
+                <h3 class="text-sm font-bold text-slate-900">جاهزية الدفع</h3>
                 <p class="text-[11px] text-slate-400">اللي لسا لازم تدفعه للزبائن، مقابل رصيد حساباتك من نفس النوع</p>
             </div>
             ${!rows.length ? '' : shorts

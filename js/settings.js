@@ -52,6 +52,7 @@ function loadSettingsPage() {
     $('set_receipt_footer').value = globalConfig.receiptFooter || '';
     renderWaMessageSettings();
     renderTrackLinkSetting();
+    renderSectionToggles();
     updateSellBuyPreview();
 }
 
@@ -138,6 +139,7 @@ const SHARED_SETTINGS = {
     fraudNewIls: { label: 'تنبيه: زبون جديد فوق هالمبلغ ₪ (0 = مسكّر)', type: 'num' },
     fraudDailyCount: { label: 'تنبيه: أكثر من هالعدد حوالات لنفس الزبون باليوم (0 = مسكّر)', type: 'num' },
     trackLinkOn: { label: 'رابط التتبّع برسالة واتساب الحوالة (yes/no)', type: 'str' },
+    payoutReadyOn: { label: 'جاهزية الدفع بصفحة الحسابات (yes/no)', type: 'str' },
     trackLinkOff: { label: 'زبائن ما بينبعتلهم رابط التتبّع (أرقامهم)', type: 'json' },
     reportEmail: { label: 'التقرير الشهري: الإيميل (فاضي = صاحب السكربت، off = مسكّر)', type: 'str' },
     txLimitOn: { label: 'حد الحوالة للموظف: yes شغّال / no مسكّر', type: 'str' },
@@ -236,6 +238,22 @@ function toggleTrackLink() {
 }
 
 const trackLinkOffIds = () => (Array.isArray(globalConfig.trackLinkOff) ? globalConfig.trackLinkOff : []).map(String).filter(Boolean);
+
+// ---------- أقسام الصفحات: بتبين أو بتنخفى عند الكل (إعدادات مشتركة، بطلب عماد 2026-10-21) ----------
+function renderSectionToggles() {
+    const on = globalConfig.payoutReadyOn !== 'no';
+    const btn = $('payout-ready-toggle');
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', String(on));
+    btn.lastChild.textContent = on ? 'ظاهرة' : 'مخفية';
+}
+
+function togglePayoutReady() {
+    globalConfig.payoutReadyOn = globalConfig.payoutReadyOn === 'no' ? 'yes' : 'no';
+    saveAll();
+    renderSectionToggles();
+    renderPayoutReadiness();
+}
 
 // ---------- التقرير الشهري بالإيميل (إعداد مشترك reportEmail: '' = صاحب السكربت، 'off' = مسكّر، أو إيميل) ----------
 function renderMonthlySettings() {

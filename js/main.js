@@ -239,6 +239,7 @@ const CLICK_ACTIONS = {
     'calc-repeat': (el) => applyCalcRepeat(el.dataset.id),
     'np-payout': (el) => setNewPayout(el.dataset.prefix, el.dataset.payout),
     'sessions-refresh': () => loadSessions(),
+    'toggle-payout-ready': togglePayoutReady,
     'session-revoke': (el) => askRevokeSession(el.dataset.sid),
     'np-provider': (el) => setNewPayout(el.dataset.prefix, newPayoutState[el.dataset.prefix]?.payout, el.dataset.provider),
     'set-cost-mode': (el) => setCostMode(el.dataset.mode),
