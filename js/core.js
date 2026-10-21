@@ -59,6 +59,8 @@ const DEFAULT_CONFIG = {
     // سعر البيع والشراء: فرق شبه ثابت عن سعر الشاشة (للعرض فقط)
     sellOffset: -0.01,
     buyOffset: 0.03,
+    // بنود مصاريف مقترحة زيادة عن الثابتة (زر "+ بند"، بطلب عماد 2026-10-21)
+    expenseCategories: [],
     // حد الحوالة للموظف (بطلب عماد 2026-10-19): فوقه بتستنى موافقة المدير
     txLimitOn: 'yes',
     txLimit: 5000,
@@ -123,7 +125,7 @@ const OTHER_SOURCE = { name: 'أخرى', type: 'direct_percent', factor: 0, othe
 const ADDED_SOURCES_V2 = ['🇪🇬 جنيه مصري', '🟡 ويسترن يونيون', '🅿️ باي بال', '₮ USDT'];
 const ADDED_SOURCES_V3 = ['🎵 سحب تيك توك'];
 
-const DEFAULT_EXPENSE_CATEGORIES = ['كهرباء', 'إيجار', 'مكالمات', 'ضيافة', 'إنترنت', 'أخرى'];
+const DEFAULT_EXPENSE_CATEGORIES = ['كهرباء', 'إيجار', 'مكالمات', 'ضيافة', 'مشاريب', 'إنترنت', 'أخرى'];
 
 const TYPE_SYMBOL = { div: '÷', mul: '×', direct_percent: '%' };
 const TYPE_LABEL = { div: 'تقسيم', mul: 'ضرب', direct_percent: 'نسبة' };

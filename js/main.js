@@ -222,6 +222,10 @@ const CLICK_ACTIONS = {
     'set-cost-mode': (el) => setCostMode(el.dataset.mode),
     'edit-country': (el) => openCountryModal(toNum(el.dataset.index, -1)),
     'pick-category': (el) => { $('exp_category').value = el.dataset.category; $('exp_amount').focus(); },
+    'exp-cat-open': () => { $('exp-cat-add').classList.remove('hidden'); $('exp_cat_new').focus(); },
+    'exp-cat-save': addExpenseCategory,
+    'exp-cat-cancel': () => { $('exp_cat_new').value = ''; $('exp-cat-add').classList.add('hidden'); },
+    'exp-cat-remove': (el) => removeExpenseCategory(el.dataset.category),
     'edit-expense': (el) => editExpense(toNum(el.dataset.id, NaN)),
     'delete-expense': (el) => deleteExpensePrompt(toNum(el.dataset.id, NaN)),
     'cancel-expense-edit': resetExpenseForm,
@@ -460,7 +464,7 @@ function bindUsdtEvents() {
     ['input', 'focus', 'click'].forEach(ev => $('us_customer').addEventListener(ev, onUsdtCustomerInput));
     $('us_customer').addEventListener('keydown', onUsdtCustomerKey);
     $('usdt_search').addEventListener('input', (e) => { usdtSearch = e.target.value; renderUsdtPage(); });
-    ['usdt_kind_filter', 'usdt_month_filter'].forEach(id => $(id).addEventListener('change', renderUsdtPage));
+    ['usdt_kind_filter', 'usdt_month_filter', 'usdt_date_filter'].forEach(id => $(id).addEventListener('change', renderUsdtPage));
     $('usdt-settings').addEventListener('change', (e) => onUsdtSettingInput(e.target));
 }
 
@@ -509,6 +513,12 @@ function bindSettingsEvents() {
 // المصاريف
 function bindExpenseEvents() {
     $('expenseForm').addEventListener('submit', saveExpense);
+    // Enter بخانة البند الجديد بيضيفه (مش بيحفظ المصروف)
+    $('exp_cat_new').addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        addExpenseCategory();
+    });
     ['exp_month_filter', 'exp_category_filter'].forEach(id => $(id).addEventListener('change', renderExpenses));
 }
 

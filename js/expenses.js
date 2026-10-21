@@ -4,9 +4,36 @@
 // الملفات تُحمَّل بالترتيب في index.html وتتشارك نفس المتغيرات العامة.
 
 // ================= المصاريف =================
+// البنود الثابتة + اللي انضافت بزر "+ بند" (مشتركة) + أي بند انكتب بمصروف قبل
+const customExpenseCategories = () => (Array.isArray(globalConfig.expenseCategories) ? globalConfig.expenseCategories : []).map(c => String(c || '').trim()).filter(Boolean);
+
 function expenseCategories() {
     const used = expenses.map(e => e.category).filter(Boolean);
-    return [...new Set([...DEFAULT_EXPENSE_CATEGORIES, ...used])];
+    return [...new Set([...DEFAULT_EXPENSE_CATEGORIES, ...customExpenseCategories(), ...used])];
+}
+
+// "+ بند": بيضل اقتراح لكل الأجهزة (إعداد مشترك، فلصاحب صلاحية الإعدادات). غيره بيكتب البند الجديد بالخانة وبيصير اقتراح بعد أول مصروف
+function addExpenseCategory() {
+    const name = $('exp_cat_new').value.trim().replace(/\s+/g, ' ');
+    if (!name) return $('exp_cat_new').focus();
+    if (expenseCategories().some(c => normName(c) === normName(name))) {
+        showToast('موجود', `"${name}" موجود بالاقتراحات`, 'info');
+    } else {
+        globalConfig.expenseCategories = [...customExpenseCategories(), name];
+        saveAll();
+        showToast('انضاف البند', `"${name}" صار بالاقتراحات لكل الأجهزة`, 'success');
+    }
+    $('exp_cat_new').value = '';
+    $('exp-cat-add').classList.add('hidden');
+    $('exp_category').value = name;
+    renderExpenses();
+    $('exp_amount').focus();
+}
+
+function removeExpenseCategory(name) {
+    globalConfig.expenseCategories = customExpenseCategories().filter(c => c !== name);
+    saveAll();
+    renderExpenses();
 }
 
 function filteredExpenses() {
@@ -23,9 +50,14 @@ function renderExpenses() {
 
     // اقتراحات البنود
     $('expense-categories').innerHTML = categories.map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
+    const custom = customExpenseCategories();
+    const canAdd = hasPerm('settings');
     $('expense-category-chips').innerHTML = categories.map(c =>
-        `<button type="button" data-action="pick-category" data-category="${escapeHtml(c)}" class="px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 text-[11px] font-bold text-slate-600 transition">${escapeHtml(c)}</button>`
-    ).join('');
+        `<span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 transition">
+            <button type="button" data-action="pick-category" data-category="${escapeHtml(c)}" class="px-2.5 py-1 text-[11px] font-bold text-slate-600">${escapeHtml(c)}</button>${canAdd && custom.includes(c) && !DEFAULT_EXPENSE_CATEGORIES.includes(c)
+                ? `<button type="button" data-action="exp-cat-remove" data-category="${escapeHtml(c)}" class="pl-2 -mr-1 text-[11px] text-slate-400 hover:text-rose-600" title="شيله من الاقتراحات" aria-label="شيل ${escapeHtml(c)} من الاقتراحات">×</button>` : ''}
+        </span>`
+    ).join('') + (canAdd ? '<button type="button" data-action="exp-cat-open" class="px-2.5 py-1 rounded-full border border-dashed border-slate-300 hover:border-blue-300 text-[11px] font-bold text-slate-500 hover:text-blue-700 transition">+ بند</button>' : '');
 
     const filterSelect = $('exp_category_filter');
     const currentFilter = filterSelect.value || 'ALL';

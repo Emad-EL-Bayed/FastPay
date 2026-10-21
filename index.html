@@ -28,40 +28,40 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=93">
+    <link rel="stylesheet" href="styles.css?v=94">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=93">
+    <link rel="stylesheet" href="tailwind.css?v=94">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/core.js?v=93" defer></script>
-    <script src="js/theme.js?v=93" defer></script>
-    <script src="js/logo-data.js?v=93" defer></script>
-    <script src="js/shell.js?v=93" defer></script>
-    <script src="js/calculator.js?v=93" defer></script>
-    <script src="js/reports.js?v=93" defer></script>
-    <script src="js/sync.js?v=93" defer></script>
-    <script src="js/conflicts.js?v=93" defer></script>
-    <script src="js/cache.js?v=93" defer></script>
-    <script src="js/bgsync.js?v=93" defer></script>
-    <script src="js/transactions.js?v=93" defer></script>
-    <script src="js/receipts.js?v=93" defer></script>
-    <script src="js/customers.js?v=93" defer></script>
-    <script src="js/countries.js?v=93" defer></script>
-    <script src="js/service-logos.js?v=93" defer></script>
-    <script src="js/traders.js?v=93" defer></script>
-    <script src="js/expenses.js?v=93" defer></script>
-    <script src="js/ready.js?v=93" defer></script>
-    <script src="js/settings.js?v=93" defer></script>
-    <script src="js/accounts.js?v=93" defer></script>
-    <script src="js/usdt.js?v=93" defer></script>
-    <script src="js/egp.js?v=93" defer></script>
-    <script src="js/closing.js?v=93" defer></script>
-    <script src="js/admin.js?v=93" defer></script>
-    <script src="js/position.js?v=93" defer></script>
-    <script src="js/search.js?v=93" defer></script>
-    <script src="js/notify.js?v=93" defer></script>
-    <script src="js/push.js?v=93" defer></script>
-    <script src="js/auth.js?v=93" defer></script>
-    <script src="js/main.js?v=93" defer></script>
+    <script src="js/core.js?v=94" defer></script>
+    <script src="js/theme.js?v=94" defer></script>
+    <script src="js/logo-data.js?v=94" defer></script>
+    <script src="js/shell.js?v=94" defer></script>
+    <script src="js/calculator.js?v=94" defer></script>
+    <script src="js/reports.js?v=94" defer></script>
+    <script src="js/sync.js?v=94" defer></script>
+    <script src="js/conflicts.js?v=94" defer></script>
+    <script src="js/cache.js?v=94" defer></script>
+    <script src="js/bgsync.js?v=94" defer></script>
+    <script src="js/transactions.js?v=94" defer></script>
+    <script src="js/receipts.js?v=94" defer></script>
+    <script src="js/customers.js?v=94" defer></script>
+    <script src="js/countries.js?v=94" defer></script>
+    <script src="js/service-logos.js?v=94" defer></script>
+    <script src="js/traders.js?v=94" defer></script>
+    <script src="js/expenses.js?v=94" defer></script>
+    <script src="js/ready.js?v=94" defer></script>
+    <script src="js/settings.js?v=94" defer></script>
+    <script src="js/accounts.js?v=94" defer></script>
+    <script src="js/usdt.js?v=94" defer></script>
+    <script src="js/egp.js?v=94" defer></script>
+    <script src="js/closing.js?v=94" defer></script>
+    <script src="js/admin.js?v=94" defer></script>
+    <script src="js/position.js?v=94" defer></script>
+    <script src="js/search.js?v=94" defer></script>
+    <script src="js/notify.js?v=94" defer></script>
+    <script src="js/push.js?v=94" defer></script>
+    <script src="js/auth.js?v=94" defer></script>
+    <script src="js/main.js?v=94" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -698,6 +698,7 @@
                     </div>
                     <div class="flex flex-wrap gap-2 w-full sm:w-auto items-center">
                         <input type="search" id="usdt_search" placeholder="ابحث بالاسم أو الرقم #..." class="flex-1 min-w-[9rem] sm:w-48 text-xs field">
+                        <input type="date" id="usdt_date_filter" class="text-xs border border-slate-200 rounded-lg p-2 bg-white" title="فلترة حسب يوم محدد">
                         <input type="month" id="usdt_month_filter" class="text-xs border border-slate-200 rounded-lg p-2 bg-white" title="فلترة حسب الشهر">
                         <select id="usdt_kind_filter" class="text-xs border border-slate-200 rounded-lg p-2 bg-white font-semibold">
                             <option value="ALL">الكل</option>
@@ -898,6 +899,12 @@
                             <input type="text" id="exp_category" list="expense-categories" required placeholder="كهرباء، إيجار، مكالمات..." class="w-full field font-bold">
                             <datalist id="expense-categories"></datalist>
                             <div id="expense-category-chips" class="flex flex-wrap gap-1.5 mt-2"></div>
+                            <!-- بند مقترح جديد (إعداد مشترك expenseCategories، لصاحب صلاحية الإعدادات) -->
+                            <div id="exp-cat-add" class="hidden flex gap-1.5 mt-2">
+                                <input type="text" id="exp_cat_new" maxlength="30" placeholder="مثلاً: مواصلات" autocomplete="off" class="flex-1 min-w-0 field text-xs font-bold">
+                                <button type="button" data-action="exp-cat-save" class="px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold">إضافة</button>
+                                <button type="button" data-action="exp-cat-cancel" class="px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold" aria-label="إلغاء">✕</button>
+                            </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>

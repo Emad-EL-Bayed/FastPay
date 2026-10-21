@@ -383,6 +383,7 @@ function gotoRef(type, id) {
         if (!hasPerm('usdt')) return showToast('لا توجد صلاحية', 'صفحة USDT غير متاحة لك', 'warning');
         $('usdt_kind_filter').value = 'ALL';
         $('usdt_month_filter').value = '';
+        $('usdt_date_filter').value = '';
         $('usdt_search').value = no;
         usdtSearch = no;
         switchTab('usdt');

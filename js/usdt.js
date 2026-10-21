@@ -182,8 +182,10 @@ function renderUsdtPage() {
     const serialHit = /^\d+$/.test(qNo) && usdtMoves.some(m => String(m.serial) === qNo);
     const kindFilter = $('usdt_kind_filter').value;
     const monthFilter = $('usdt_month_filter').value;
+    // يوم محدد (بطلب عماد 2026-10-21)
+    const dateFilter = $('usdt_date_filter').value;
     const list = usdtMoves
-        .filter(m => (kindFilter === 'ALL' || m.kind === kindFilter) && (!monthFilter || m.date.startsWith(monthFilter)))
+        .filter(m => (kindFilter === 'ALL' || m.kind === kindFilter) && (!monthFilter || m.date.startsWith(monthFilter)) && (!dateFilter || m.date === dateFilter))
         .filter(m => !q || (serialHit ? String(m.serial) === qNo : normName(m.customerName).includes(q) || String(m.id).includes(qNo) || normName(m.address).includes(q)))
         .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id)
         .slice(0, 300);

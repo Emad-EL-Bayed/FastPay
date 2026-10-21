@@ -104,6 +104,7 @@ const SHARED_SETTINGS = {
     egpSendTiers: { label: 'الجنيه: شرائح نسبة الإرسال فوق أول شريحة [{min: من كم شيكل, pct}]', type: 'json' },
     egpReceiveTiers: { label: 'الجنيه: شرائح نسبة الاستقبال فوق أول شريحة [{min: من كم شيكل, pct}]', type: 'json' },
     lockedThrough: { label: 'قفل الأيام: الحركات لحد هاد التاريخ ما بتتعدل (بيتحدث مع كل جرد)', type: 'str' },
+    expenseCategories: { label: 'المصاريف: بنود مقترحة زيادة (زر + بند)', type: 'json' },
     txLimitOn: { label: 'حد الحوالة للموظف: yes شغّال / no مسكّر', type: 'str' },
     txLimit: { label: 'حد الحوالة للموظف ₪ (فوقه بتستنى موافقة المدير)', type: 'num' },
     pushDebtsHour: { label: 'إشعار تذكير الديون: الساعة (0-23) أو off', type: 'str' },
@@ -135,9 +136,11 @@ function applySharedSettings(rows, full) {
     const oldMode = globalConfig.rateMode;
     const oldEgpMode = globalConfig.egpRateMode;
     const got = {};
+    // إعداد لسا بالانتظار (عدّلته هلّق): القراءة اللي كانت بالطريق قديمة، فما بتكتب فوقه (كان يرجع لحظة للقديم)
+    const pending = new Set(outbox.filter(op => op.action === 'upsert_setting').map(op => op.setting?.id));
     rows.forEach(r => {
         const key = String(r?.id ?? '').trim();
-        if (SHARED_SETTINGS[key]) got[key] = String(r.value ?? '');
+        if (SHARED_SETTINGS[key] && !pending.has(key)) got[key] = String(r.value ?? '');
     });
     const modeOf = (key) => (got[key] !== undefined ? got[key] : globalConfig[key]);
     Object.entries(got).forEach(([key, text]) => {
@@ -164,6 +167,8 @@ function applySharedSettings(rows, full) {
         renderLedgerTable();
         renderUsdtPage();
         renderAccountsPage();
+        // بنود المصاريف المقترحة من جهاز ثاني
+        renderExpenses();
     }
     // أول جهاز يتصل بشيت فارغ يرفع إعداداته
     if (full) syncSharedSettings();
