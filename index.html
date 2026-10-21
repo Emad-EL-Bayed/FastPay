@@ -28,40 +28,40 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=94">
+    <link rel="stylesheet" href="styles.css?v=95">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=94">
+    <link rel="stylesheet" href="tailwind.css?v=95">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/core.js?v=94" defer></script>
-    <script src="js/theme.js?v=94" defer></script>
-    <script src="js/logo-data.js?v=94" defer></script>
-    <script src="js/shell.js?v=94" defer></script>
-    <script src="js/calculator.js?v=94" defer></script>
-    <script src="js/reports.js?v=94" defer></script>
-    <script src="js/sync.js?v=94" defer></script>
-    <script src="js/conflicts.js?v=94" defer></script>
-    <script src="js/cache.js?v=94" defer></script>
-    <script src="js/bgsync.js?v=94" defer></script>
-    <script src="js/transactions.js?v=94" defer></script>
-    <script src="js/receipts.js?v=94" defer></script>
-    <script src="js/customers.js?v=94" defer></script>
-    <script src="js/countries.js?v=94" defer></script>
-    <script src="js/service-logos.js?v=94" defer></script>
-    <script src="js/traders.js?v=94" defer></script>
-    <script src="js/expenses.js?v=94" defer></script>
-    <script src="js/ready.js?v=94" defer></script>
-    <script src="js/settings.js?v=94" defer></script>
-    <script src="js/accounts.js?v=94" defer></script>
-    <script src="js/usdt.js?v=94" defer></script>
-    <script src="js/egp.js?v=94" defer></script>
-    <script src="js/closing.js?v=94" defer></script>
-    <script src="js/admin.js?v=94" defer></script>
-    <script src="js/position.js?v=94" defer></script>
-    <script src="js/search.js?v=94" defer></script>
-    <script src="js/notify.js?v=94" defer></script>
-    <script src="js/push.js?v=94" defer></script>
-    <script src="js/auth.js?v=94" defer></script>
-    <script src="js/main.js?v=94" defer></script>
+    <script src="js/core.js?v=95" defer></script>
+    <script src="js/theme.js?v=95" defer></script>
+    <script src="js/logo-data.js?v=95" defer></script>
+    <script src="js/shell.js?v=95" defer></script>
+    <script src="js/calculator.js?v=95" defer></script>
+    <script src="js/reports.js?v=95" defer></script>
+    <script src="js/sync.js?v=95" defer></script>
+    <script src="js/conflicts.js?v=95" defer></script>
+    <script src="js/cache.js?v=95" defer></script>
+    <script src="js/bgsync.js?v=95" defer></script>
+    <script src="js/transactions.js?v=95" defer></script>
+    <script src="js/receipts.js?v=95" defer></script>
+    <script src="js/customers.js?v=95" defer></script>
+    <script src="js/countries.js?v=95" defer></script>
+    <script src="js/service-logos.js?v=95" defer></script>
+    <script src="js/traders.js?v=95" defer></script>
+    <script src="js/expenses.js?v=95" defer></script>
+    <script src="js/ready.js?v=95" defer></script>
+    <script src="js/settings.js?v=95" defer></script>
+    <script src="js/accounts.js?v=95" defer></script>
+    <script src="js/usdt.js?v=95" defer></script>
+    <script src="js/egp.js?v=95" defer></script>
+    <script src="js/closing.js?v=95" defer></script>
+    <script src="js/admin.js?v=95" defer></script>
+    <script src="js/position.js?v=95" defer></script>
+    <script src="js/search.js?v=95" defer></script>
+    <script src="js/notify.js?v=95" defer></script>
+    <script src="js/push.js?v=95" defer></script>
+    <script src="js/auth.js?v=95" defer></script>
+    <script src="js/main.js?v=95" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -896,8 +896,7 @@
                         <input type="hidden" id="exp_id">
                         <div>
                             <label for="exp_category" class="font-bold block mb-1 text-slate-700">البند *</label>
-                            <input type="text" id="exp_category" list="expense-categories" required placeholder="كهرباء، إيجار، مكالمات..." class="w-full field font-bold">
-                            <datalist id="expense-categories"></datalist>
+                            <input type="text" id="exp_category" required autocomplete="off" placeholder="كهرباء، إيجار، مكالمات..." class="w-full field font-bold">
                             <div id="expense-category-chips" class="flex flex-wrap gap-1.5 mt-2"></div>
                             <!-- بند مقترح جديد (إعداد مشترك expenseCategories، لصاحب صلاحية الإعدادات) -->
                             <div id="exp-cat-add" class="hidden flex gap-1.5 mt-2">
