@@ -735,7 +735,7 @@ function traderPanelToolbarHtml() {
             <div class="flex gap-1.5">
                 <button data-action="statement-pdf" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg">PDF</button>
                 <button data-action="statement-png" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 rounded-lg">صورة</button>
-                <button data-action="share-statement" class="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg">واتساب</button>
+                <button data-action="share-statement" class="inline-flex items-center gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg">${WA_ICON}<span>واتساب</span></button>
             </div>
         </div>`;
 }
