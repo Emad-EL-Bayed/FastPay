@@ -931,7 +931,15 @@ function updateEgpPreview() {
     $('eg_preview').innerHTML = lines;
 }
 
-async function saveEgp(e) {
+// نفس الحركة انسجلت قبل شوي؟ (زي USDT recentSameUsdt): نفس النوع والزبون (أو المحفظة بلا زبون) والجنيه والعملة خلال دقيقتين
+function recentSameEgp(f, customerId, name, trade) {
+    const now = Date.now();
+    return latestById(egpMoves.filter(m => now - m.id < SAME_MOVE_MS && m.id <= now && m.kind === f.kind && m.currency === f.currency
+        && Math.abs(Math.abs(m.egp) - Math.abs(f.egp)) < 0.005
+        && (trade ? (customerId && m.customerId ? m.customerId === customerId : normName(m.customerName) === normName(name)) : m.walletId === f.walletId)));
+}
+
+async function saveEgp(e, sameOk = false) {
     e.preventDefault();
     if (!egpReady()) return;
     const f = resolvedEgpForm();
@@ -950,6 +958,16 @@ async function saveEgp(e) {
     if (trade && f.currency === 'ILS' && !(f.usdRate > 0)) return warn('سعر الدولار غير صحيح', 'eg_usd_rate');
     // رقم المستلم بالإرسال اختياري (بطلب عماد 2026-10-16)
     if (f.kind === 'topup' && !(f.total > 0)) return warn('اكتب المبلغ اللي دفعته أو قبضته', 'eg_total');
+    if (!editingEgpId && !sameOk) {
+        const known = trade ? customers.find(c => c.id === $('eg_customer_id').value) || customers.find(c => normName(c.name) === normName(name)) : null;
+        const same = recentSameEgp(f, known?.id || '', name, trade);
+        if (same) {
+            showAppConfirm('هاي الحركة انسجلت قبل شوي',
+                `${EGP_KINDS[same.kind].replace(/\s*جنيه$/, '')} ${fmtTrim(Math.abs(same.egp))} جنيه${same.customerName ? ' · ' + same.customerName : ''} ${receiptNo(same)} انسجلت قبل ${sameMoveAgo(same)}. بدك تسجلها كمان مرة؟`,
+                () => saveEgp({ preventDefault() {} }, true));
+            return;
+        }
+    }
     const existing = egpMoves.find(m => m.id === editingEgpId);
     // الزبون المختار من القائمة، أو بنفس الاسم، أو زبون جديد (مثل الحاسبة و USDT)
     const ops = [];

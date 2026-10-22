@@ -464,7 +464,21 @@ function fixedNote(f, diff) {
     return `<div class="flex justify-between text-emerald-700"><span>تقريب الـ USDT لـ ${fmt(f.amount)} (لصالحنا)</span><b>+ ${moneyCur(Math.max(0, round2(diff)), f.currency)}</b></div>`;
 }
 
-async function saveUsdt(e) {
+// نفس الحركة انسجلت قبل شوي؟ (بطلب عماد 2026-10-22: سحب لؤي انسجل 4 مرات ورا بعض)
+// نفس النوع والزبون والكمية والعملة خلال دقيقتين (رقم الحركة = وقت إنشائها)، زي الحاسبة recentSameTx
+const SAME_MOVE_MS = 2 * 60000;
+const sameMoveAgo = (m) => { const mins = Math.max(1, Math.round((Date.now() - m.id) / 60000)); return mins === 1 ? 'دقيقة' : mins + ' دقايق'; };
+
+function recentSameUsdt(f, customerId, name) {
+    const now = Date.now();
+    return latestById(usdtMoves.filter(m => now - m.id < SAME_MOVE_MS && m.id <= now && m.kind === f.kind && m.currency === f.currency
+        && Math.abs(Math.abs(m.amount) - Math.abs(f.amount)) < 0.005
+        && (f.kind === 'adjust' || (customerId && m.customerId ? m.customerId === customerId : normName(m.customerName) === normName(name)))));
+}
+
+const latestById = (list) => list.reduce((best, m) => (!best || m.id > best.id ? m : best), null);
+
+async function saveUsdt(e, sameOk = false) {
     e.preventDefault();
     if (!walletsReady()) return;
     const f = resolvedUsdtForm();
@@ -472,6 +486,16 @@ async function saveUsdt(e) {
     const name = $('us_customer').value.trim();
     if (f.kind !== 'adjust' && !name) return showToast('تنبيه', 'اكتب اسم الزبون', 'warning');
     if (f.kind !== 'adjust' && f.currency === 'ILS' && !(f.rate > 0)) return showToast('تنبيه', 'سعر الدولار غير صحيح', 'warning');
+    if (!editingUsdtId && !sameOk) {
+        const known = customers.find(c => c.id === $('us_customer_id').value) || customers.find(c => normName(c.name) === normName(name));
+        const same = recentSameUsdt(f, known?.id || '', name);
+        if (same) {
+            showAppConfirm('هاي الحركة انسجلت قبل شوي',
+                `${USDT_KINDS[same.kind]} ${fmtTrim(Math.abs(same.amount))} USDT${same.customerName ? ' · ' + same.customerName : ''} ${receiptNo(same)} انسجلت قبل ${sameMoveAgo(same)}. بدك تسجلها كمان مرة؟`,
+                () => saveUsdt({ preventDefault() {} }, true));
+            return;
+        }
+    }
     const existing = usdtMoves.find(m => m.id === editingUsdtId);
     // الزبون المختار من القائمة، أو بنفس الاسم، أو زبون جديد (مثل الحاسبة)
     const ops = [];
