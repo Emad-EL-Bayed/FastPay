@@ -244,8 +244,14 @@ const CLICK_ACTIONS = {
     'track-expire-toggle': toggleTrackExpire,
     'session-revoke': (el) => askRevokeSession(el.dataset.sid),
     'np-provider': (el) => setNewPayout(el.dataset.prefix, newPayoutState[el.dataset.prefix]?.payout, el.dataset.provider),
-    'set-cost-mode': (el) => setCostMode(el.dataset.mode),
+    'set-cost-mode': (el) => {
+        calcRatesTouched = true;
+        setCostMode(el.dataset.mode);
+    },
+    'calc-tier-reset': () => resetCalcTier(),
     'edit-country': (el) => openCountryModal(toNum(el.dataset.index, -1)),
+    'country-tier-add': () => addCountryTier(),
+    'country-tier-remove': (el) => removeCountryTier(el.dataset.i),
     'pick-category': (el) => { $('exp_category').value = el.dataset.category; $('exp_amount').focus(); },
     'exp-cat-open': () => { $('exp-cat-add').classList.remove('hidden'); $('exp_cat_new').focus(); },
     'exp-cat-save': addExpenseCategory,
@@ -397,6 +403,8 @@ function bindCalculatorEvents() {
     $('calc_recipient').addEventListener('keydown', onCustomerPickerKey);
     $('source-search').addEventListener('input', renderSourceGrid);
     $('calc_other_name').addEventListener('input', updateSourceBadge);
+    // كتابة التكلفة أو الربح بإيدك بتوقف شريحة المبلغ لهالحوالة (قبل runLiveCalc)
+    ['calc_cost_pct', 'calc_profit_pct'].forEach(id => $(id).addEventListener('input', () => { calcRatesTouched = true; }));
     ['calc_orig_amount', 'calc_factor', 'calc_cost_pct', 'calc_profit_pct'].forEach(id => $(id).addEventListener('input', runLiveCalc));
     $('calc_screen_rate').addEventListener('input', () => {
         calcRateTouched = true;
@@ -536,6 +544,9 @@ function bindSettingsEvents() {
     $('push_summary_hour').addEventListener('change', () => saveDailyPushHour('pushSummaryHour', $('push_summary_hour').value));
     ['set_screen_rate', 'set_sell_offset', 'set_buy_offset'].forEach(id => $(id).addEventListener('input', updateSellBuyPreview));
     $('countryForm').addEventListener('submit', saveCountry);
+    $('c_tier_rows').addEventListener('input', onCountryTierInput);
+    ['c_cost_value', 'c_profit_pct'].forEach(id => $(id).addEventListener('input', updateCountryTierHints));
+    $('c_cost_mode').addEventListener('change', updateCountryTierHints);
 }
 
 // المصاريف

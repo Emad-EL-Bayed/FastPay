@@ -28,41 +28,41 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=114">
+    <link rel="stylesheet" href="styles.css?v=117">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=114">
+    <link rel="stylesheet" href="tailwind.css?v=117">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=114" defer></script>
-    <script src="js/core.js?v=114" defer></script>
-    <script src="js/theme.js?v=114" defer></script>
-    <script src="js/logo-data.js?v=114" defer></script>
-    <script src="js/shell.js?v=114" defer></script>
-    <script src="js/calculator.js?v=114" defer></script>
-    <script src="js/reports.js?v=114" defer></script>
-    <script src="js/sync.js?v=114" defer></script>
-    <script src="js/conflicts.js?v=114" defer></script>
-    <script src="js/cache.js?v=114" defer></script>
-    <script src="js/bgsync.js?v=114" defer></script>
-    <script src="js/transactions.js?v=114" defer></script>
-    <script src="js/receipts.js?v=114" defer></script>
-    <script src="js/customers.js?v=114" defer></script>
-    <script src="js/countries.js?v=114" defer></script>
-    <script src="js/service-logos.js?v=114" defer></script>
-    <script src="js/traders.js?v=114" defer></script>
-    <script src="js/expenses.js?v=114" defer></script>
-    <script src="js/ready.js?v=114" defer></script>
-    <script src="js/settings.js?v=114" defer></script>
-    <script src="js/accounts.js?v=114" defer></script>
-    <script src="js/usdt.js?v=114" defer></script>
-    <script src="js/egp.js?v=114" defer></script>
-    <script src="js/closing.js?v=114" defer></script>
-    <script src="js/admin.js?v=114" defer></script>
-    <script src="js/position.js?v=114" defer></script>
-    <script src="js/search.js?v=114" defer></script>
-    <script src="js/notify.js?v=114" defer></script>
-    <script src="js/push.js?v=114" defer></script>
-    <script src="js/auth.js?v=114" defer></script>
-    <script src="js/main.js?v=114" defer></script>
+    <script src="js/endpoint.js?v=117" defer></script>
+    <script src="js/core.js?v=117" defer></script>
+    <script src="js/theme.js?v=117" defer></script>
+    <script src="js/logo-data.js?v=117" defer></script>
+    <script src="js/shell.js?v=117" defer></script>
+    <script src="js/calculator.js?v=117" defer></script>
+    <script src="js/reports.js?v=117" defer></script>
+    <script src="js/sync.js?v=117" defer></script>
+    <script src="js/conflicts.js?v=117" defer></script>
+    <script src="js/cache.js?v=117" defer></script>
+    <script src="js/bgsync.js?v=117" defer></script>
+    <script src="js/transactions.js?v=117" defer></script>
+    <script src="js/receipts.js?v=117" defer></script>
+    <script src="js/customers.js?v=117" defer></script>
+    <script src="js/countries.js?v=117" defer></script>
+    <script src="js/service-logos.js?v=117" defer></script>
+    <script src="js/traders.js?v=117" defer></script>
+    <script src="js/expenses.js?v=117" defer></script>
+    <script src="js/ready.js?v=117" defer></script>
+    <script src="js/settings.js?v=117" defer></script>
+    <script src="js/accounts.js?v=117" defer></script>
+    <script src="js/usdt.js?v=117" defer></script>
+    <script src="js/egp.js?v=117" defer></script>
+    <script src="js/closing.js?v=117" defer></script>
+    <script src="js/admin.js?v=117" defer></script>
+    <script src="js/position.js?v=117" defer></script>
+    <script src="js/search.js?v=117" defer></script>
+    <script src="js/notify.js?v=117" defer></script>
+    <script src="js/push.js?v=117" defer></script>
+    <script src="js/auth.js?v=117" defer></script>
+    <script src="js/main.js?v=117" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -417,6 +417,8 @@
                             <p id="calc-adjust-note" class="calc-adjust-note hidden"></p>
                             <!-- الموظف فوق الحد: بتنحفظ وبتستنى موافقة المدير (transactions.js applyTxLimit) -->
                             <p id="calc-limit-note" class="calc-limit-note hidden"></p>
+                            <!-- شريحة المبلغ للمصدر اللي إله شرائح (calculator.js renderCalcTierNote) -->
+                            <p id="calc-tier-note" class="calc-tier-note hidden"></p>
                             <p id="calc-vip-note" class="calc-vip-note hidden"></p>
                             <div class="flex flex-wrap gap-1.5 mt-3 text-[11px] font-bold">
                                 <span class="rate-pill">الشاشة <b id="res_rate_screen" class="num">3.000</b></span>
@@ -3036,23 +3038,36 @@
                     <label for="c_factor" class="font-bold block mb-1 text-slate-700">المعامل الرقمي</label>
                     <input type="number" step="any" min="0" id="c_factor" required class="w-full field font-bold">
                 </div>
-                <div class="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <div class="col-span-2 text-[11px] text-slate-500">تُعبَّأ في الحاسبة عند اختيار هذه الدولة، ويمكن تغييرها لحوالة واحدة من هناك.</div>
-                    <div>
-                        <label for="c_cost_value" class="font-bold block mb-1 text-slate-700">التكلفة</label>
-                        <div class="flex gap-1">
-                            <input type="number" step="any" min="0" id="c_cost_value" class="w-full field font-bold">
-                            <select id="c_cost_mode" class="border border-slate-200 rounded-lg px-2 bg-white font-bold" aria-label="نوع التكلفة">
+                <!-- التكلفة والربح، ومعهم شرائح حسب المبلغ (countries.js renderCountryTiers). بدون شرائح بيضل عمودين زي قبل -->
+                <div id="c_rates_box" class="ct-box p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div class="text-[11px] text-slate-500 mb-2">تُعبَّأ في الحاسبة عند اختيار هذه الدولة، ويمكن تغييرها لحوالة واحدة من هناك.</div>
+                    <!-- مع الشرائح: نوع التكلفة بينتقل لهون (لكل الشرائح)، وخانة الشريحة الأولى بتصير زي الباقي -->
+                    <div class="ct-mode-line">نوع التكلفة لكل الشرائح <span id="c_cost_mode_slot"></span></div>
+                    <div class="ct-grid">
+                        <span class="ct-from ct-h">من كم $</span>
+                        <label for="c_cost_value" class="ct-h">التكلفة</label>
+                        <label for="c_profit_pct" class="ct-h">الربح %</label>
+                        <span class="ct-del"></span>
+                        <span class="ct-from ct-first">من 0</span>
+                        <div id="c_cost_cell" class="relative flex gap-1 min-w-0">
+                            <input type="number" step="any" min="0" id="c_cost_value" class="w-full min-w-0 field font-bold">
+                            <span class="ct-suffix ct-cost-unit ct-unit0"></span>
+                            <select id="c_cost_mode" class="ct-mode border border-slate-200 rounded-lg px-1.5 bg-white font-bold" aria-label="نوع التكلفة">
                                 <option value="pct">%</option>
                                 <option value="fixed">$ ثابت</option>
                             </select>
                         </div>
-                        <span class="text-[10px] text-slate-400 block mt-1">ضع 0 إذا لا توجد تكلفة</span>
+                        <input type="number" step="any" min="0" id="c_profit_pct" class="w-full min-w-0 field font-bold text-emerald-700">
+                        <span class="ct-del"></span>
+                        <div id="c_tier_rows" class="contents"></div>
                     </div>
-                    <div>
-                        <label for="c_profit_pct" class="font-bold block mb-1 text-slate-700">الربح %</label>
-                        <input type="number" step="any" min="0" id="c_profit_pct" class="w-full field font-bold text-emerald-700">
+                    <span id="c_cost_zero_hint" class="text-[10px] text-slate-400 block mt-1">ضع 0 إذا لا توجد تكلفة</span>
+                    <div id="c_tiers_wrap" class="mt-2.5 pt-2.5 border-t border-dashed border-slate-200">
+                        <button type="button" data-action="country-tier-add" class="text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg px-2.5 py-1.5">+ شريحة حسب المبلغ</button>
+                        <p id="c_tiers_hint" class="text-[10px] text-slate-400 mt-1.5 leading-relaxed">مثلاً: لحد 99$ ربح 10%، ومن 100$ ربح 8%. الحاسبة بتختار الشريحة لحالها حسب المبلغ بالدولار.</p>
+                        <p id="c_tiers_warn" class="text-[11px] font-bold text-amber-700 mt-1.5 hidden"></p>
                     </div>
+                    <p id="c_tiers_old" class="text-[10px] text-slate-400 mt-2 hidden">الشرائح حسب المبلغ بدها نسخة السكربت الجديدة.</p>
                 </div>
                 <div class="pt-2 flex gap-2">
                     <button type="submit" id="countrySaveBtn" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg shadow-sm transition">حفظ الدولة</button>

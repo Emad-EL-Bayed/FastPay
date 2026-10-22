@@ -466,9 +466,50 @@ function normalizeCountry(c) {
         factor: toNum(c?.factor, 1),
         costMode: c?.costMode === 'fixed' ? 'fixed' : 'pct',
         costValue: Math.max(0, toNum(c?.costValue, globalConfig.costPct)),
-        profitPct: Math.max(0, toNum(c?.profitPct, globalConfig.profitPct))
+        profitPct: Math.max(0, toNum(c?.profitPct, globalConfig.profitPct)),
+        tiers: normalizeCountryTiers(c?.tiers)
     };
 }
+
+// ---------- شرائح الدولة حسب المبلغ بالدولار (بطلب عماد 2026-10-22) ----------
+// tiers = الشرائح بعد الأولى [{min $, cost, profit}]؛ الأولى (من 0) = costValue و profitPct.
+// التكلفة بنوع تكلفة الدولة (نسبة أو ثابت $). بالشيت نص JSON بعمود "الشرائح" (نفس تنظيف السكربت cleanCountryTiers)
+// (دالة مش const: normalizeCountry بتنادى وقت التحميل فوق بالملف)
+function tierNum(v) {
+    return Math.round(Math.max(0, toNum(v, 0)) * 10000) / 10000;
+}
+
+function normalizeCountryTiers(raw) {
+    let list = raw;
+    if (typeof raw === 'string') { try { list = JSON.parse(raw || '[]'); } catch (e) { list = []; } }
+    const seen = new Set();
+    return (Array.isArray(list) ? list : [])
+        .map(t => ({ min: tierNum(t?.min), cost: tierNum(t?.cost), profit: tierNum(t?.profit) }))
+        .filter(t => t.min > 0 && !seen.has(t.min) && seen.add(t.min))
+        .sort((a, b) => a.min - b.min)
+        .slice(0, 20);
+}
+
+// كل الشرائح مع الأولى
+const countryTierList = (c) => [{ min: 0, cost: c.costValue, profit: c.profitPct }, ...(c.tiers || [])];
+
+// الشريحة اللي بيقع فيها المبلغ (الحد نفسه من الشريحة الجديدة: 100$ = "من 100")
+function countryTierAt(c, usd) {
+    const list = countryTierList(c);
+    let idx = 0;
+    list.forEach((t, i) => { if (usd + 1e-9 >= t.min) idx = i; });
+    return { list, idx, tier: list[idx] };
+}
+
+// المبلغ بالدولار اللي بتنحسب عليه الشريحة: الخصم المباشر المبلغ أصلاً بالدولار، والباقي بعد المعامل
+function sourceUsdAmount(type, orig, factor) {
+    if (type === 'direct_percent') return Math.max(0, orig);
+    if (type === 'mul') return Math.max(0, orig * factor);
+    return factor > 0 ? Math.max(0, orig / factor) : 0;
+}
+
+// للشيت: الشرائح نص JSON (والفاضي = بدون شرائح)
+const countryOp = (c) => ({ action: 'upsert_country', country: { ...c, tiers: c.tiers?.length ? JSON.stringify(c.tiers) : '' } });
 
 function costLabel(mode, value) {
     if (!toNum(value)) return 'بدون تكلفة';

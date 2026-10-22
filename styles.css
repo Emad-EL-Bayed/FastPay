@@ -1728,6 +1728,30 @@ html.motion-off .copy-menu { animation: none; }
 .txd-track-open { font-size: 0.72rem; font-weight: 800; color: rgb(var(--t-blue-700, 29 78 216)); padding: 0.2rem 0.5rem; border-radius: 0.5rem; }
 .txd-track-open:hover { background: rgb(var(--b-blue-50, 239 246 255)); }
 .calc-vip-note { margin-top: 0.45rem; font-size: 0.74rem; font-weight: 800; color: #fcd34d; }
+
+/* ================= شرائح الدولة حسب المبلغ (countries.js + calculator.js) ================= */
+.calc-tier-note { margin-top: 0.45rem; font-size: 0.72rem; font-weight: 700; color: #cbd5e1; }
+.calc-tier-reset { margin-inline-start: 0.35rem; padding: 0.1rem 0.5rem; border-radius: 9999px; font-size: 0.68rem; font-weight: 800; color: #0f172a; background: #fcd34d; }
+.calc-tier-reset:hover { filter: brightness(1.06); }
+.ct-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.4rem 0.75rem; align-items: center; }
+.ct-grid .ct-from, .ct-grid .ct-del { display: none; }
+.ct-h { font-weight: 700; color: rgb(var(--t-slate-700, 51 65 85)); }
+.ct-box.has-tiers .ct-grid { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr) minmax(0, 1fr) 1.6rem; gap: 0.4rem; }
+.ct-box.has-tiers .ct-from, .ct-box.has-tiers .ct-del { display: block; }
+.ct-box.has-tiers .ct-h { font-size: 0.66rem; color: rgb(var(--t-slate-500, 100 116 139)); }
+.ct-first { font-weight: 700; color: rgb(var(--t-slate-500, 100 116 139)); padding-inline-start: 0.6rem; white-space: nowrap; }
+.ct-mode { flex: none; width: 4.4rem; }
+.ct-mode-line { display: none; }
+.ct-box.has-tiers .ct-mode-line { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; font-weight: 700; color: rgb(var(--t-slate-700, 51 65 85)); }
+.ct-box.has-tiers .ct-mode-line .ct-mode { padding-block: 0.3rem; }
+.ct-unit0 { display: none; }
+.ct-box.has-tiers .ct-unit0 { display: block; }
+.ct-box.has-tiers #c_cost_value { padding-inline-end: 1.35rem; }
+.ct-grid .ct-in { padding-inline-end: 1.35rem; }
+.ct-suffix { position: absolute; inset-inline-end: 0.55rem; top: 50%; transform: translateY(-50%); font-size: 0.7rem; font-weight: 700; color: rgb(var(--t-slate-400, 148 163 184)); pointer-events: none; }
+.ct-x { width: 1.6rem; height: 1.6rem; border-radius: 0.5rem; color: rgb(var(--t-slate-400, 148 163 184)); font-size: 0.75rem; }
+.ct-x:hover { color: rgb(var(--t-rose-600, 225 29 72)); background: rgb(var(--b-rose-50, 255 241 242)); }
+.ct-chip { display: inline-block; margin-inline-start: 0.4rem; padding: 0.05rem 0.45rem; border-radius: 9999px; font-size: 0.62rem; font-weight: 800; vertical-align: middle; background: rgb(var(--b-blue-50, 239 246 255)); color: rgb(var(--t-blue-700, 29 78 216)); cursor: help; }
 .flag-chip { display: inline-flex; align-items: center; gap: 0.2rem; margin-top: 0.3rem; padding: 0.15rem 0.55rem; border-radius: 9999px; font-size: 0.66rem; font-weight: 800; background: rgb(var(--b-rose-100, 255 228 230)); color: rgb(var(--t-rose-700, 190 18 60)); }
 .flag-chip.manager { cursor: pointer; }
 .flag-chip.manager:hover { filter: brightness(0.96); }

@@ -103,11 +103,14 @@ function applySourceToInputs() {
     updateSourceBadge();
 }
 
-// تعبئة التكلفة والربح من تسعير الدولة المختارة (أو الافتراضي لخيار "أخرى")
+// تعبئة التكلفة والربح من تسعير الدولة المختارة (أو الافتراضي لخيار "أخرى")، ومن شريحة المبلغ إذا إلها شرائح
 function applySourceRates() {
     const src = calcSource && !calcSource.other ? calcSource : null;
+    const info = calcTierInfo();
+    calcRatesTouched = false;
+    calcTierKey = tierKeyOf(info);
     setCostMode(src ? src.costMode : 'pct', false);
-    $('calc_cost_pct').value = src ? src.costValue : globalConfig.costPct;
+    $('calc_cost_pct').value = info ? info.tier.cost : (src ? src.costValue : globalConfig.costPct);
     // زبون VIP: أقل من نسبة الدولة بخصمه
     calcVipApplied = calcVipDiscount();
     $('calc_profit_pct').value = round2(Math.max(0, baseProfitPct() - calcVipApplied));
@@ -128,7 +131,53 @@ function calcVipDiscount() {
 
 function baseProfitPct() {
     const src = calcSource && !calcSource.other ? calcSource : null;
-    return src ? src.profitPct : globalConfig.profitPct;
+    if (!src) return globalConfig.profitPct;
+    const info = calcTierInfo();
+    return info ? info.tier.profit : src.profitPct;
+}
+
+// ---------- شرائح الدولة حسب المبلغ (بطلب عماد 2026-10-22؛ الشرائح نفسها بـ core.js وتعديلها بـ countries.js) ----------
+// المصدر اللي إله شرائح: التكلفة والربح بيتعبّوا لحالهم حسب المبلغ بالدولار. كتابتهم بإيدك (أو تغيير نوع التكلفة)
+// بتوقف الشريحة لهالحوالة، و"↺ نسب الشريحة" بيرجّعها. تغيير المصدر وحوالة جديدة بيرجّعوها كمان (applySourceRates)
+let calcRatesTouched = false;
+let calcTierKey = '';
+
+function calcTierInfo() {
+    const src = calcSource && !calcSource.other ? calcSource : null;
+    if (!src || !src.tiers?.length) return null;
+    const usd = sourceUsdAmount(src.type, toNum($('calc_orig_amount').value, 0), toNum($('calc_factor').value, 0));
+    return { src, usd, ...countryTierAt(src, usd) };
+}
+
+const tierKeyOf = (info) => (info ? `${info.src.id}:${info.idx}:${info.tier.cost}:${info.tier.profit}` : '');
+
+// أول runLiveCalc: المبلغ دخل شريحة ثانية ← نسبها (مع خصم VIP)
+function applyCalcTier() {
+    const info = calcTierInfo();
+    const key = tierKeyOf(info);
+    if (!info || calcRatesTouched || key === calcTierKey) return;
+    calcTierKey = key;
+    $('calc_cost_pct').value = info.tier.cost;
+    $('calc_profit_pct').value = round2(Math.max(0, info.tier.profit - calcVipApplied));
+}
+
+function renderCalcTierNote(input) {
+    const info = input.orig > 0 ? calcTierInfo() : null;
+    const el = $('calc-tier-note');
+    el.classList.toggle('hidden', !info);
+    if (!info) return;
+    const range = tierRangeText(info.list, info.tier.min, '$');
+    const cost = input.costMode === 'fixed' ? input.costFixed : input.costPct;
+    const profit = round2(Math.max(0, info.tier.profit - calcVipApplied));
+    const off = input.costMode !== info.src.costMode || Math.abs(cost - info.tier.cost) > 1e-9 || Math.abs(input.profitPct - profit) > 1e-9;
+    el.innerHTML = off
+        ? `شريحة ${escapeHtml(range)} · النسب معدّلة بإيدك <button type="button" data-action="calc-tier-reset" class="calc-tier-reset">↺ نسب الشريحة</button>`
+        : `شريحة ${escapeHtml(range)}<span class="profit-only"> · تكلفة ${escapeHtml(costLabel(info.src.costMode, info.tier.cost))} · ربح ${escapeHtml(fmtTrim(info.tier.profit))}%</span>`;
+}
+
+function resetCalcTier() {
+    applySourceRates();
+    runLiveCalc();
 }
 
 function applyVipProfit() {
@@ -357,6 +406,7 @@ let lastResultValue = null;
 
 function runLiveCalc() {
     syncCalcRepeatActive();
+    applyCalcTier();
     const input = calcInputsWithAdjust();
     const r = computeTransfer(input);
     const isUsd = input.currency === 'USD';
@@ -385,6 +435,7 @@ function runLiveCalc() {
             ? 'يُسلَّم بالدولار، شامل خصم التكلفة وربحك'
             : 'شامل خصم التكلفة وربحك';
     renderCalcAdjust(input, r);
+    renderCalcTierNote(input);
     renderCalcVipNote(input);
     // الموظف فوق حد الحوالة
     const over = input.orig > 0 && txLimitActive() && (isUsd ? r.clientUsd * input.screenRate : r.clientIls) > txLimitIls() + 0.004;

@@ -116,7 +116,7 @@ function applySheetCountries(rows) {
     if (list.length) {
         countries = list;
     } else if (!globalConfig.countriesSeeded && countries.length && !outbox.some(op => op.action === 'upsert_country')) {
-        queueOps(...countries.map(c => ({ action: 'upsert_country', country: c })));
+        queueOps(...countries.map(countryOp));
         flushOutbox();
     }
     if (!globalConfig.countriesSeeded) {
@@ -132,7 +132,7 @@ function afterCountriesChanged(before) {
     if (JSON.stringify(countries) === before) return;
     saveAll();
     const current = calcSource && !calcSource.other ? countries.find(c => c.name === calcSource.name) : null;
-    if (current && ['type', 'factor', 'costMode', 'costValue', 'profitPct'].some(k => current[k] !== calcSource[k])) {
+    if (current && (['type', 'factor', 'costMode', 'costValue', 'profitPct'].some(k => current[k] !== calcSource[k]) || JSON.stringify(current.tiers) !== JSON.stringify(calcSource.tiers))) {
         calcSource = { ...current };
         applySourceToInputs();
         runLiveCalc();
