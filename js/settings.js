@@ -140,6 +140,8 @@ const SHARED_SETTINGS = {
     fraudDailyCount: { label: 'تنبيه: أكثر من هالعدد حوالات لنفس الزبون باليوم (0 = مسكّر)', type: 'num' },
     trackLinkOn: { label: 'رابط التتبّع برسالة واتساب الحوالة (yes/no)', type: 'str' },
     payoutReadyOn: { label: 'جاهزية الدفع بصفحة الحسابات (yes/no)', type: 'str' },
+    trackDays: { label: 'مدة رابط التتبّع بالأيام (فاضي = 7)', type: 'str' },
+    trackExpire: { label: 'رابط التتبّع بينتهي (yes/no)', type: 'str' },
     trackLinkOff: { label: 'زبائن ما بينبعتلهم رابط التتبّع (أرقامهم)', type: 'json' },
     reportEmail: { label: 'التقرير الشهري: الإيميل (فاضي = صاحب السكربت، off = مسكّر)', type: 'str' },
     txLimitOn: { label: 'حد الحوالة للموظف: yes شغّال / no مسكّر', type: 'str' },
@@ -226,9 +228,46 @@ function renderTrackLinkSetting() {
     btn.setAttribute('aria-pressed', String(on));
     btn.lastChild.textContent = on ? 'شغّال' : 'مسكّر';
     const off = trackLinkOffIds().length;
+    const moves = sheetHas('trackMoves');
     $('track-link-note').textContent = on
-        ? `بينضاف لحاله "تابع حوالتك: …"${off ? ` · إلا ${off === 1 ? 'زبون واحد مستثنى' : off + ' زبائن مستثنيين'} (من نافذة الزبون)` : '. لزبون معيّن: من نافذة الزبون'}`
-        : 'ما بينضاف لأي رسالة. بتقدر تنسخه بإيدك من تفاصيل الحوالة';
+        ? `بينضاف لحاله لرسالة ${moves ? 'الحوالة و USDT والجنيه' : 'الحوالة'}${off ? ` · إلا ${off === 1 ? 'زبون واحد مستثنى' : off + ' زبائن مستثنيين'} (من نافذة الزبون)` : '. لزبون معيّن: من نافذة الزبون'}`
+        : 'ما بينضاف لأي رسالة. بتقدر تنسخه بإيدك من نافذة الفاتورة';
+    // المدة: السكربت الجديد بس بيقراها (قبل كانت 30 يوم ثابتة)
+    $('track-days-row').classList.toggle('hidden', !moves);
+    if (!moves) return;
+    const forever = globalConfig.trackExpire === 'no';
+    const days = trackDaysValue();
+    const input = $('track_days');
+    if (document.activeElement !== input) input.value = days;
+    input.disabled = forever;
+    input.classList.toggle('opacity-50', forever);
+    const expBtn = $('track-expire-toggle');
+    expBtn.classList.toggle('on', forever);
+    expBtn.setAttribute('aria-pressed', String(forever));
+    $('track-days-note').textContent = forever
+        ? 'الرابط ما بينتهي أبداً، والزبون بيقدر يفتحه أي وقت'
+        : `الرابط بيشتغل ${days === 1 ? 'يوم واحد' : days + ' أيام'} من تاريخ الحركة، وبعدها بيبين "الرابط انتهى"`;
+}
+
+const trackDaysValue = () => { const d = Math.round(toNum(globalConfig.trackDays, 0)); return d >= 1 ? Math.min(d, 365) : 7; };
+
+function saveTrackDays() {
+    const d = Math.round(toNum($('track_days').value, 0));
+    if (!(d >= 1 && d <= 365)) {
+        showToast('تنبيه', 'المدة من يوم لـ 365 يوم', 'warning');
+        $('track_days').value = trackDaysValue();
+        return;
+    }
+    globalConfig.trackDays = String(d);
+    saveAll();
+    renderTrackLinkSetting();
+    showToast('تم', `رابط التتبّع بيشتغل ${d === 1 ? 'يوم واحد' : d + ' أيام'}`, 'success');
+}
+
+function toggleTrackExpire() {
+    globalConfig.trackExpire = globalConfig.trackExpire === 'no' ? 'yes' : 'no';
+    saveAll();
+    renderTrackLinkSetting();
 }
 
 function toggleTrackLink() {

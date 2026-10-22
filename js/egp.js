@@ -114,6 +114,7 @@ function normalizeEgp(m) {
         party: String(m?.party ?? '').trim(),
         partyNumber: String(m?.partyNumber ?? '').trim(),
         note: String(m?.note ?? '').trim(),
+        trackToken: String(m?.trackToken ?? '').trim(),
         createdBy: String(m?.createdBy ?? '').trim(),
         updatedBy: String(m?.updatedBy ?? '').trim()
     };

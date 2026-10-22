@@ -240,6 +240,8 @@ const CLICK_ACTIONS = {
     'np-payout': (el) => setNewPayout(el.dataset.prefix, el.dataset.payout),
     'sessions-refresh': () => loadSessions(),
     'toggle-payout-ready': togglePayoutReady,
+    'receipt-track-copy': (el) => copyReceiptTrackLink(el),
+    'track-expire-toggle': toggleTrackExpire,
     'session-revoke': (el) => askRevokeSession(el.dataset.sid),
     'np-provider': (el) => setNewPayout(el.dataset.prefix, newPayoutState[el.dataset.prefix]?.payout, el.dataset.provider),
     'set-cost-mode': (el) => setCostMode(el.dataset.mode),
@@ -527,6 +529,7 @@ function bindUserEvents() {
 // الإعدادات وتسعير الدول
 function bindSettingsEvents() {
     $('tx_limit').addEventListener('change', saveTxLimit);
+    $('track_days').addEventListener('change', saveTrackDays);
     ['fraud_new_ils', 'fraud_daily'].forEach(id => $(id).addEventListener('change', saveFraudLimits));
     $('report_email').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveReportEmail(); } });
     $('push_debts_hour').addEventListener('change', () => saveDailyPushHour('pushDebtsHour', $('push_debts_hour').value));

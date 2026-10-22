@@ -63,7 +63,9 @@ async function saveSnapshot() {
         v: SNAP_VERSION, key: snapKey(), savedAt: Date.now(),
         cursor: syncCursor, lastFull: lastFullLoadMs, epoch: dataEpoch, features: sheetFeatures,
         flags: { sheetSupportsExpenses, sheetSupportsTraders, sheetSupportsWallets, sheetSupportsEgp, sheetSupportsCountries },
-        collections, stamps: [...rowStamps], people: peopleNames, push: pushState
+        collections, stamps: [...rowStamps], people: peopleNames, push: pushState,
+        // آخر قيم الإعدادات المشتركة بالشيت: حتى تعديل إعداد بعد الفتح (قبل أي قراءة كاملة) يوصل الشيت فوراً
+        shared: { ...sharedSnapshot }, sharedReady
     };
     try {
         await snapRequest('readwrite', store => store.put(snap, 'main'));
@@ -93,6 +95,11 @@ async function restoreSnapshot() {
     sheetSupportsEgp = f.sheetSupportsEgp !== false;
     sheetSupportsCountries = !!f.sheetSupportsCountries;
     sheetFeatures = Array.isArray(snap.features) ? snap.features : [];
+    // كان الإعداد المعدّل بعد الفتح يستنى أول قراءة كاملة (لحد 30 دقيقة)، وهي كانت ترجّعه للقديم (2026-10-22)
+    if (snap.sharedReady && snap.shared && typeof snap.shared === 'object') {
+        Object.assign(sharedSnapshot, snap.shared);
+        sharedReady = true;
+    }
     sheetSupportsFinalAdjust = sheetHas('finalAdjust');
     syncIbanField($('calc_iban'), $('calc_iban_hint'));
     syncBankAccountField($('calc_bank_account'));

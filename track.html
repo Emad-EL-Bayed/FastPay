@@ -171,11 +171,16 @@
             const card = document.getElementById('card');
             const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             let last = null; // آخر حالة انعرضت (حتى نحرّك بس لما تتغير)
+            let finished = false; // انصرفت/انلغت/انسكّر الحساب: ما في داعي نتحدث
             let lastFetch = 0;
 
             const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
             const money = (v, cur) => (cur === 'USD' ? '$ ' : '') + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (cur === 'USD' ? '' : ' ₪');
             const dateText = (d) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? d.split('-').reverse().join('/') : d);
+            // USDT والجنيه (2026-10-22): الكمية مقابل المبلغ
+            const isMove = (tx) => tx.type === 'usdt' || tx.type === 'egp';
+            const qtyText = (tx) => Number(tx.qty || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }) + (tx.type === 'usdt' ? ' USDT' : ' جنيه');
+            const MOVE_KIND = { deposit: 'USDT · إيداع', withdraw: 'USDT · سحب', send: 'جنيه مصري · إرسال', receive: 'جنيه مصري · استقبال' };
 
             const ICON = {
                 wait: '<svg class="glyph hourglass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12M6 22h12M7 2v4a5 5 0 0 0 10 0V2M7 22v-4a5 5 0 0 1 10 0v4"/></svg>',
@@ -197,10 +202,34 @@
                 return 'وصل المبلغ على محفظة' + (tx.provider ? ' ' + tx.provider : 'ك') + '.';
             }
 
+            // USDT والجنيه حسب الدفع. out = إحنا بندفعله (سحب USDT، استقبال جنيه)، in = هو بيدفعلنا (إيداع USDT، إرسال جنيه)
+            function moveView(tx) {
+                const qty = qtyText(tx);
+                const left = money(Math.max(0, tx.amount - tx.paid), tx.currency);
+                const partLine = (word) => word + ' ' + money(tx.paid, tx.currency) + ' من ' + money(tx.amount, tx.currency);
+                if (tx.dir === 'out') {
+                    const got = tx.type === 'usdt' ? 'استلمنا الـ ' + qty : 'وصلنا الـ ' + qty;
+                    const steps = [[got, dateText(tx.date)],
+                        [tx.state === 'paid' ? 'جهّزنا مبلغك' : 'عم نجهّز مبلغك', tx.state === 'partial' ? partLine('انصرف') : 'بنتأكد من كل التفاصيل'],
+                        ['انصرف', money(tx.amount, tx.currency)]];
+                    if (tx.state === 'paid') return { tone: 'green', icon: 'check', step: 3, all: true, steps, title: 'انصرفلك المبلغ ✓', text: 'انصرفلك ' + money(tx.amount, tx.currency) + ' مقابل ' + qty + '. شكراً لثقتك.' };
+                    if (tx.state === 'partial') return { tone: 'sky', icon: 'half', step: 2, steps, title: 'انصرف جزء من مبلغك', text: 'الباقي ' + left + ' عم يتجهز، ورح يوصلك بأقرب وقت.' };
+                    return { tone: 'amber', icon: 'wait', step: 2, steps, title: 'عم نجهّز مبلغك', text: got + ' وعم نجهّز مبلغك، ورح يوصلك بأقرب وقت.' };
+                }
+                const sent = tx.type === 'usdt' ? 'انبعتلك ' + qty : 'انبعتوا ' + qty;
+                const where = tx.type === 'usdt' ? (tx.network ? 'على شبكة ' + tx.network : 'على محفظتك') : 'للمستلم';
+                const steps = [['استلمنا طلبك', dateText(tx.date)], [sent, where],
+                    ['الدفع', tx.state === 'paid' ? 'وصلنا المبلغ كامل' : tx.state === 'partial' ? partLine('وصلنا') : 'بنستنى ' + money(tx.amount, tx.currency)]];
+                if (tx.state === 'paid') return { tone: 'green', icon: 'check', step: 3, all: true, steps, title: 'تم ✓ والحساب مسكّر', text: sent + ' ' + where + '، ووصلنا المبلغ كامل. شكراً لثقتك.' };
+                if (tx.state === 'partial') return { tone: 'sky', icon: 'half', step: 3, steps, title: 'وصلنا جزء من الدفعة', text: sent + ' ' + where + '. الباقي ' + left + '.' };
+                return { tone: 'amber', icon: 'wait', step: 3, steps, title: 'بنستنى الدفعة', text: sent + ' ' + where + '. المطلوب ' + money(tx.amount, tx.currency) + '.' };
+            }
+
             // الحالة من جهة الزبون: الخطوة (1 استلمنا، 2 عم نجهّز، 3 انصرفت) واللون والكلام
             function view(tx) {
+                if (isMove(tx)) return moveView(tx);
                 if (tx.status === 'ملغي') return { tone: 'rose', icon: 'x', step: 0, title: 'الحوالة انلغت', text: 'إذا عندك أي سؤال تواصل معنا، ومنساعدك.' };
-                if (tx.status === 'مكتمل') return { tone: 'green', icon: 'check', step: 3, title: 'حوالتك انصرفت ✓', text: doneText(tx) + ' شكراً لثقتك.' };
+                if (tx.status === 'مكتمل') return { tone: 'green', icon: 'check', step: 3, all: true, title: 'حوالتك انصرفت ✓', text: doneText(tx) + ' شكراً لثقتك.' };
                 if (tx.status === 'جزئي') return { tone: 'sky', icon: 'half', step: 2, title: 'انصرف جزء من حوالتك', text: 'الباقي عم يتجهز، ورح يوصلك بأقرب وقت.' };
                 if (tx.status === 'فحص') return { tone: 'amber', icon: 'wait', step: 2, title: 'حوالتك قيد المراجعة', text: 'عم نتأكد من التفاصيل، وبعدها بتنصرف مباشرة.' };
                 return { tone: 'amber', icon: 'wait', step: 2, title: 'عم نجهّز حوالتك', text: 'استلمنا طلبك وعم نجهّزه، ورح تنصرف بأقرب وقت.' };
@@ -209,8 +238,11 @@
             function render(data) {
                 const tx = data.tx;
                 const v = view(tx);
-                const changed = last && last !== tx.status + '|' + tx.paid;
-                last = tx.status + '|' + tx.paid;
+                const move = isMove(tx);
+                const key = (move ? tx.state : tx.status) + '|' + tx.paid;
+                const changed = last && last !== key;
+                last = key;
+                finished = !!v.all || tx.status === 'ملغي';
                 document.getElementById('company').textContent = data.company.name || 'فاست باي';
                 document.getElementById('subtitle').textContent = data.company.subtitle || '';
                 document.title = v.title + ' · ' + (data.company.name || 'فاست باي');
@@ -218,37 +250,41 @@
                 const ring = v.icon === 'wait' ? '<div class="ring track"></div><div class="ring spin"></div>'
                     : v.icon === 'half' ? `<div class="ring track"></div><div class="ring progress" style="--p:${pct}"></div>`
                     : v.icon === 'check' ? '<div class="pulse"></div>' : '';
-                const steps = [
+                const steps = v.steps || [
                     ['استلمنا حوالتك', dateText(tx.date)],
                     v.step === 3 ? ['جهّزناها', 'تأكدنا من كل التفاصيل'] : [tx.status === 'فحص' ? 'قيد المراجعة' : 'عم نجهّزها', tx.status === 'جزئي' ? 'انصرف ' + money(tx.paid, tx.currency) + ' من ' + money(tx.amount, tx.currency) : 'بنتأكد من كل التفاصيل'],
                     ['انصرفت', payoutText(tx)]
                 ];
-                const stepCls = (i) => (v.step === 0 ? (i === 0 ? 'done' : 'todo') : i + 1 < v.step || v.step === 3 ? 'done' : i + 1 === v.step ? 'now' : 'todo');
+                const stepCls = (i) => (v.step === 0 ? (i === 0 ? 'done' : 'todo') : i + 1 < v.step || v.all ? 'done' : i + 1 === v.step ? 'now' : 'todo');
+                const partial = move ? tx.state === 'partial' : tx.status === 'جزئي';
+                const amountLabel = !move ? 'مبلغ الحوالة' : tx.dir === 'out' ? 'المبلغ اللي إلك' : tx.state === 'paid' ? 'المبلغ اللي دفعته' : 'المبلغ المطلوب';
+                const fromLine = !move ? (tx.country ? 'حوالة من ' + tx.country : '') : 'مقابل ' + qtyText(tx) + (tx.network ? ' · ' + tx.network : '');
+                const barWord = move && tx.dir === 'in' ? 'وصلنا' : 'انصرف';
                 card.className = 'card tone-' + v.tone;
                 card.innerHTML = `
                     <div class="status-icon">${ring}<div class="disc">${ICON[v.icon]}</div></div>
                     ${tx.name ? `<p class="hello">أهلاً ${esc(tx.name)} 👋</p>` : ''}
                     <h2 class="title">${esc(v.title)}</h2>
                     <p class="text">${esc(v.text)}</p>
-                    <div class="amount"><span>مبلغ الحوالة</span><b id="amount">${money(reduced ? tx.amount : 0, tx.currency)}</b>
-                        ${tx.country ? `<small class="from">حوالة من ${esc(tx.country)}</small>` : ''}
-                        ${tx.status === 'جزئي' ? `<div class="bar"><i id="bar"></i></div><div class="bar-text">انصرف ${esc(money(tx.paid, tx.currency))} من ${esc(money(tx.amount, tx.currency))}</div>` : ''}
+                    <div class="amount"><span>${esc(amountLabel)}</span><b id="amount">${money(reduced ? tx.amount : 0, tx.currency)}</b>
+                        ${fromLine ? `<small class="from">${esc(fromLine)}</small>` : ''}
+                        ${partial ? `<div class="bar"><i id="bar"></i></div><div class="bar-text">${barWord} ${esc(money(tx.paid, tx.currency))} من ${esc(money(tx.amount, tx.currency))}</div>` : ''}
                     </div>
                     ${v.step ? `<ul class="steps"><span class="fillline" id="fill"></span>${steps.map((s, i) => `
                         <li class="step ${stepCls(i)}"><span class="dot">${stepCls(i) === 'done' ? ICON.tick : ''}</span><div><b>${esc(s[0])}</b><small>${esc(s[1])}</small></div></li>`).join('')}</ul>` : ''}
                     <div class="chips">
                         ${tx.no ? `<span class="chip">إيصال <bdi>#${esc(tx.no)}</bdi></span>` : ''}
                         <span class="chip">📅 <bdi>${esc(dateText(tx.date))}</bdi></span>
-                        <span class="chip">${esc(payoutText(tx))}</span>
+                        <span class="chip">${esc(move ? MOVE_KIND[tx.kind] || '' : payoutText(tx))}</span>
                     </div>
-                    ${tx.status === 'مكتمل' || tx.status === 'ملغي' ? '' : '<div class="live"><i></i>الصفحة بتتحدث لحالها</div>'}`;
+                    ${finished ? '' : '<div class="live"><i></i>الصفحة بتتحدث لحالها</div>'}`;
                 document.getElementById('foot').innerHTML = `${esc(data.company.footer || 'شكراً لتعاملكم معنا')}<small>${esc(data.company.name || 'فاست باي')}</small>`;
                 // الحركات: المبلغ بيعدّ، الخط بيتعبّى لحد الخطوة، والشريط للجزئي
                 requestAnimationFrame(() => {
                     const fill = document.getElementById('fill');
                     if (fill) {
                         const items = card.querySelectorAll('.step');
-                        const upto = v.step === 3 ? items[2] : items[Math.max(0, v.step - 1)];
+                        const upto = v.all ? items[2] : items[Math.max(0, v.step - 1)];
                         // من أول نقطة لنص نقطة الخطوة الحالية (النقطة 33px، والسطر بيبلش 16px من فوق)
                         const h = upto ? upto.offsetTop + 6 : 0;
                         fill.style.height = h + 'px';
@@ -257,7 +293,7 @@
                     if (bar) setTimeout(() => { bar.style.width = pct + '%'; }, 120);
                     if (!reduced) countUp(document.getElementById('amount'), tx.amount, tx.currency);
                 });
-                if (tx.status === 'مكتمل' && (changed || !sessionStorage.getItem('fp-confetti-' + token))) {
+                if (v.all && (changed || !sessionStorage.getItem('fp-confetti-' + token))) {
                     sessionStorage.setItem('fp-confetti-' + token, '1');
                     setTimeout(confetti, 650);
                 }
@@ -313,13 +349,13 @@
                     return message('wait', 'amber', 'ما قدرنا نوصل', 'تأكد من الإنترنت وجرّب كمان مرة.', true);
                 }
                 if (data && data.ok) return render(data);
-                if (data && data.error === 'expired') return message('wait', 'amber', 'الرابط انتهى', 'روابط التتبّع بتضل شغّالة 30 يوم. إذا بدك تعرف عن الحوالة تواصل معنا.');
-                return message('x', 'rose', 'ما لقينا الحوالة', 'الرابط مش صحيح أو الحوالة انحذفت. تواصل معنا ومنساعدك.');
+                if (data && data.error === 'expired') return message('wait', 'amber', 'الرابط انتهى', (data.days ? 'روابط التتبّع بتضل شغّالة ' + (data.days === 1 ? 'يوم واحد' : data.days + ' أيام') + '. ' : '') + 'إذا بدك تعرف عن طلبك تواصل معنا.');
+                return message('x', 'rose', 'ما لقيناها', 'الرابط مش صحيح أو الحركة انحذفت. تواصل معنا ومنساعدك.');
             }
 
             load();
             // بتتحدث لحالها، وأول ما ترجع للصفحة
-            setInterval(() => { if (!document.hidden && last && !/^(مكتمل|ملغي)\|/.test(last)) load(); }, 45000);
+            setInterval(() => { if (!document.hidden && last && !finished) load(); }, 45000);
             document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - lastFetch > 15000) load(); });
         })();
     </script>

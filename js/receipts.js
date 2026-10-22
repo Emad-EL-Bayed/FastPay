@@ -256,6 +256,7 @@ const receiptItem = () => receiptCtx?.kind === 'egp' ? egpMoves.find(x => x.id =
 // بنرسمها من جديد وبنجهّز صورة واتساب من جديد، حتى ما تنبعت للزبون بالرقم المؤقت (بطلب عماد 2026-10-19)
 function refreshOpenReceipt() {
     if (!receiptCtx || $('receiptModal').classList.contains('hidden')) return;
+    updateReceiptTrackButton();
     const item = receiptItem();
     if (!item || receiptNo(item) === receiptCtx.no) return;
     renderCurrentReceipt();
@@ -279,12 +280,31 @@ function updateReceiptRateToggle() {
     $('receipt-rate-toggle').setAttribute('aria-pressed', String(on));
 }
 
+// الحركة اللي فاتورتها مفتوحة (حوالة أو USDT أو جنيه)
+function receiptTrackItem() {
+    if (!receiptCtx) return null;
+    const list = receiptCtx.kind === 'usdt' ? usdtMoves : receiptCtx.kind === 'egp' ? egpMoves : ledger;
+    const x = list.find(y => y.id === receiptCtx.id);
+    return x && !(receiptCtx.kind === 'tx' && x.status === CANCELLED) ? x : null;
+}
+
+function updateReceiptTrackButton() {
+    const x = receiptTrackItem();
+    $('receipt-track-copy').classList.toggle('hidden', !(x && trackUrl(x)));
+}
+
+function copyReceiptTrackLink(btn) {
+    const url = trackUrl(receiptTrackItem());
+    if (url) copyWithFlash(btn, { label: 'رابط التتبّع', shown: url.replace(/^https?:\/\//, ''), value: url });
+}
+
 function openReceipt(id) {
     const t = ledger.find(x => x.id === id);
     if (!t) return showToast('الحوالة غير موجودة', '', 'warning');
     receiptCtx = { kind: 'tx', id, no: receiptNo(t) };
     updateReceiptRateToggle();
     renderReceipt(t);
+    updateReceiptTrackButton();
     openModal('receiptModal');
     prepareShareImage('tx:' + id, $('receipt-paper'));
 }
@@ -295,6 +315,7 @@ function openUsdtReceipt(id) {
     receiptCtx = { kind: 'usdt', id, no: receiptNo(m) };
     updateReceiptRateToggle();
     renderUsdtReceipt(m);
+    updateReceiptTrackButton();
     openModal('receiptModal');
     prepareShareImage('usdt:' + id, $('receipt-paper'));
 }
@@ -305,6 +326,7 @@ function openEgpReceipt(id) {
     receiptCtx = { kind: 'egp', id, no: receiptNo(m) };
     updateReceiptRateToggle();
     renderEgpReceipt(m);
+    updateReceiptTrackButton();
     openModal('receiptModal');
     prepareShareImage('egp:' + id, $('receipt-paper'));
 }
@@ -548,11 +570,14 @@ function txMessage(t) {
         'الاسم': t.recipient, 'الرقم': receiptNo(t), 'المبلغ': msgMoney(due, t.currency),
         'المدفوع': msgMoney(paid, t.currency), 'الباقي': msgMoney(Math.max(0, due - paid), t.currency)
     });
-    // رابط التتبّع بآخر الرسالة: إلا الملغية، أو السويتش مسكّر، أو الزبون مستثنى (الإعدادات ونافذة الزبون)
-    const c = customerOfTx(t);
-    const skip = t.status === CANCELLED || globalConfig.trackLinkOn === 'no' || (c && trackLinkOffIds().includes(String(c.id)));
-    const url = skip ? '' : trackUrl(t);
-    return url ? `${text}\nتابع حوالتك: ${url}` : text;
+    return t.status === CANCELLED ? text : withTrackLink(text, t, customerOfTx(t), 'تابع حوالتك');
+}
+
+// رابط التتبّع بآخر الرسالة: إلا إذا السويتش مسكّر أو الزبون مستثنى (الإعدادات ونافذة الزبون)
+function withTrackLink(text, x, c, word) {
+    if (globalConfig.trackLinkOn === 'no' || (c && trackLinkOffIds().includes(String(c.id)))) return text;
+    const url = trackUrl(x);
+    return url ? `${text}\n${word}: ${url}` : text;
 }
 
 // ================= رابط تتبّع الحوالة للزبون (track.html، بطلب عماد 2026-10-21) =================
@@ -565,12 +590,13 @@ function trackUrl(t) {
 }
 
 // USDT والجنيه: حسب الدفع. {العملية} مثل "إيداع 500 USDT" أو "إرسال 10,000 جنيه"
-function payMessage(m, st, operation) {
-    return fillWaMessage(PAY_STATE_MESSAGE[st?.state] || 'payUnpaid', {
+function payMessage(m, st, operation, c) {
+    const text = fillWaMessage(PAY_STATE_MESSAGE[st?.state] || 'payUnpaid', {
         'الاسم': m.customerName, 'الرقم': receiptNo(m), 'العملية': operation,
         'المبلغ': msgMoney(m.total - m.settle, m.currency),
         'المدفوع': msgMoney(st?.paid || 0, m.currency), 'الباقي': msgMoney(st?.remaining || 0, m.currency)
     });
+    return withTrackLink(text, m, c, 'تابع طلبك');
 }
 
 // قسم الرسائل بالإعدادات: خانة لكل حالة، وفاضية = الجملة الافتراضية
@@ -598,14 +624,14 @@ function receiptShareTarget() {
         if (!m) return null;
         const c = customers.find(x => (m.customerId && x.id === m.customerId) || normName(x.name) === normName(m.customerName));
         const operation = `${m.kind === 'send' ? 'إرسال' : 'استقبال'} ${fmtEgp(Math.abs(m.egp))} جنيه`;
-        return { key: 'egp:' + m.id, filename: `فاتورة_جنيه_${m.customerName}_${m.serial || m.id}`, phone: hasWhatsapp(c) ? c.phone : '', text: payMessage(m, egpPayState(m), operation) };
+        return { key: 'egp:' + m.id, filename: `فاتورة_جنيه_${m.customerName}_${m.serial || m.id}`, phone: hasWhatsapp(c) ? c.phone : '', text: payMessage(m, egpPayState(m), operation, c) };
     }
     if (receiptCtx?.kind === 'usdt') {
         const m = usdtMoves.find(x => x.id === receiptCtx.id);
         if (!m) return null;
         const c = customers.find(x => (m.customerId && x.id === m.customerId) || normName(x.name) === normName(m.customerName));
         const operation = `${USDT_KINDS[m.kind]} ${fmt(m.amount, Math.abs(round2(m.amount) % 1) > 0.004 ? 2 : 0)} USDT`;
-        return { key: 'usdt:' + m.id, filename: `فاتورة_USDT_${m.customerName}_${m.serial || m.id}`, phone: hasWhatsapp(c) ? c.phone : '', text: payMessage(m, usdtPayState(m), operation) };
+        return { key: 'usdt:' + m.id, filename: `فاتورة_USDT_${m.customerName}_${m.serial || m.id}`, phone: hasWhatsapp(c) ? c.phone : '', text: payMessage(m, usdtPayState(m), operation, c) };
     }
     const t = ledger.find(x => x.id === receiptCtx?.id);
     if (!t) return null;

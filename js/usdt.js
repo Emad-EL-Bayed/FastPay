@@ -70,6 +70,7 @@ function normalizeUsdt(m) {
         settle: kind === 'adjust' ? 0 : Math.max(0, round2(toNum(m?.settle, 0))),
         address: String(m?.address ?? '').trim(),
         note: String(m?.note ?? '').trim(),
+        trackToken: String(m?.trackToken ?? '').trim(),
         createdBy: String(m?.createdBy ?? '').trim(),
         updatedBy: String(m?.updatedBy ?? '').trim()
     };

@@ -579,6 +579,11 @@ function applyWriteResult(op, res) {
             setTimeout(renderLedgerTable, 0);
         }
     }
+    // رمز رابط التتبّع لـ USDT والجنيه (بيعطيه السكربت)
+    if ((op.action === 'upsert_usdt' || op.action === 'upsert_egp') && res.trackToken && op.move) {
+        const m = (op.action === 'upsert_usdt' ? usdtMoves : egpMoves).find(x => x.id === toNum(op.move.id, NaN));
+        if (m) m.trackToken = String(res.trackToken);
+    }
     // النسخ والإرسال: العداد زي ما بالشيت (مع اللي عملوه غيري)
     if (op.action === 'use_ready' && 'copies' in res) {
         const x = readyAccounts.find(y => y.id === String(op.id));
