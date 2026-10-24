@@ -1388,7 +1388,22 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .pay-input:focus { border-color: #3b82f6; }
 
 /* بطاقة رصيد USDT */
-.usdt-hero { padding: 1rem 1.1rem; border-radius: 1rem; background: linear-gradient(135deg, rgb(var(--b-slate-900, 15 23 42)), #134e4a); color: rgb(var(--t-inv, 255 255 255)); }
+.usdt-hero { padding: 1rem 1.1rem; border-radius: 1rem; background: linear-gradient(135deg, rgb(var(--b-slate-900, 15 23 42)), #134e4a); color: rgb(var(--t-inv, 255 255 255)); transition: background 0.3s; }
+/* رصيد USDT الإجمالي: موجب = بطاقة خضرا خفيفة، سالب = حمرا خفيفة شفافة (صفر بيضل الغامق) */
+.usdt-hero:is(.pos, .neg) { color: #0f172a; border: 1px solid; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.usdt-hero.pos { background: linear-gradient(135deg, rgb(16 185 129 / 0.16), rgb(16 185 129 / 0.07)); border-color: rgb(16 185 129 / 0.3); }
+.usdt-hero.neg { background: linear-gradient(135deg, rgb(244 63 94 / 0.14), rgb(244 63 94 / 0.06)); border-color: rgb(244 63 94 / 0.3); }
+.usdt-hero:is(.pos, .neg) .text-slate-300, .usdt-hero:is(.pos, .neg) .text-slate-400 { color: #64748b; }
+.usdt-hero:is(.pos, .neg) button:hover { color: #0f172a; }
+.usdt-hero.pos #usdt-balance { color: #047857; }
+.usdt-hero.neg #usdt-balance { color: #be123c; }
+html[data-theme="dark"] .usdt-hero:is(.pos, .neg) { color: #f1f5f9; }
+html[data-theme="dark"] .usdt-hero.pos { background: linear-gradient(135deg, rgb(16 185 129 / 0.2), rgb(16 185 129 / 0.08)); }
+html[data-theme="dark"] .usdt-hero.neg { background: linear-gradient(135deg, rgb(244 63 94 / 0.2), rgb(244 63 94 / 0.08)); }
+html[data-theme="dark"] .usdt-hero:is(.pos, .neg) :is(.text-slate-300, .text-slate-400) { color: #94a3b8; }
+html[data-theme="dark"] .usdt-hero:is(.pos, .neg) button:hover { color: #fff; }
+html[data-theme="dark"] .usdt-hero.pos #usdt-balance { color: #6ee7b7; }
+html[data-theme="dark"] .usdt-hero.neg #usdt-balance { color: #fda4af; }
 /* بطاقة رصيد الجنيه */
 .egp-hero { padding: 1rem 1.1rem; border-radius: 1rem; background: linear-gradient(135deg, rgb(var(--b-slate-900, 15 23 42)), #7f1d1d); color: rgb(var(--t-inv, 255 255 255)); }
 
@@ -1891,10 +1906,7 @@ tr.row-late > td:first-child { box-shadow: inset -3px 0 0 #f97316; }
 .uw-title span { font-size: 0.7rem; font-weight: 700; color: rgb(var(--t-slate-500, 100 116 139)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .uw-main-chip { flex: none; align-self: flex-start; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.62rem; font-weight: 800; color: var(--uw-ink); background: color-mix(in srgb, var(--uw, #64748b) 15%, rgb(255 255 255 / 0.7)); border: 1px solid color-mix(in srgb, var(--uw, #64748b) 34%, transparent); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 /* الرصيد بصندوق زجاج: موجب أخضر خفيف، سالب أحمر خفيف، صفر محايد */
-.uw-bal { padding: 0.55rem 0.75rem 0.6rem; border-radius: 0.95rem; border: 1px solid transparent; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-.uw-bal.pos { background: rgb(16 185 129 / 0.1); border-color: rgb(16 185 129 / 0.22); }
-.uw-bal.neg { background: rgb(244 63 94 / 0.08); border-color: rgb(244 63 94 / 0.22); }
-.uw-bal.zero { background: rgb(255 255 255 / 0.5); border-color: rgb(var(--c-slate-200, 226 232 240) / 0.8); }
+.uw-bal { padding: 0; }
 .uw-bal-label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.66rem; font-weight: 800; color: rgb(var(--t-slate-500, 100 116 139)); }
 .uw-low { font-style: normal; padding: 0.05rem 0.45rem; border-radius: 9999px; font-size: 0.6rem; background: rgb(var(--b-orange-100, 255 237 213)); color: rgb(var(--t-orange-800, 154 52 18)); }
 .uw-amount { display: flex; align-items: baseline; gap: 0.35rem; margin-top: 0.1rem; font-size: 1.85rem; font-weight: 900; line-height: 1.1; color: rgb(var(--t-slate-900, 15 23 42)); letter-spacing: -0.01em; }
@@ -1960,9 +1972,6 @@ html[data-theme="dark"] .uw-card:hover { box-shadow: inset 0 1px 0 rgb(255 255 2
 html[data-theme="dark"] .uw-card::before { opacity: 0.3; }
 html[data-theme="dark"] .uw-card::after { opacity: 0.1; }
 html[data-theme="dark"] .uw-card .uw-logo { box-shadow: 0 4px 10px -6px color-mix(in srgb, var(--uw, #64748b) 45%, transparent), 0 0 0 1px rgb(255 255 255 / 0.08); }
-html[data-theme="dark"] .uw-bal.pos { background: rgb(16 185 129 / 0.12); border-color: rgb(16 185 129 / 0.25); }
-html[data-theme="dark"] .uw-bal.neg { background: rgb(244 63 94 / 0.12); border-color: rgb(244 63 94 / 0.28); }
-html[data-theme="dark"] .uw-bal.zero { background: rgb(255 255 255 / 0.04); border-color: rgb(255 255 255 / 0.08); }
 html[data-theme="dark"] :is(.uw-btn, .uwc-close) { background: rgb(255 255 255 / 0.06); border-color: rgb(255 255 255 / 0.1); box-shadow: none; }
 html[data-theme="dark"] .uw-btn:hover { background: rgb(255 255 255 / 0.12); }
 html[data-theme="dark"] .uw-main-chip { background: color-mix(in srgb, var(--uw, #64748b) 18%, transparent); }

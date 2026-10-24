@@ -181,7 +181,11 @@ function renderUsdtPage() {
     });
     const bal = usdtBalance();
     $('usdt-balance').textContent = fmt(bal);
-    $('usdt-balance').classList.toggle('text-rose-300', bal < 0);
+    $('usdt-balance').classList.toggle('neg', bal < -0.004);
+    // الرصيد الإجمالي: خلفية خضرا خفيفة لما يكون موجب وحمرا لما يكون سالب
+    const hero = $('usdt-balance').closest('.usdt-hero');
+    hero?.classList.toggle('pos', bal > 0.004);
+    hero?.classList.toggle('neg', bal < -0.004);
     $('usdt-profit-today').textContent = '+' + fmt(profitToday, 1) + ' ₪';
     $('usdt-profit-month').textContent = '+' + fmt(profitMonth, 1) + ' ₪';
     $('usdt-unpaid').textContent = moneyCur(unpaidIls, 'ILS') + (unpaidUsd ? ` + ${moneyCur(unpaidUsd, 'USD')}` : '');
@@ -853,7 +857,7 @@ function renderUsdtWallets() {
                     </div>
                     ${w.isDefault ? '<span class="uw-main-chip">★ الأساسية</span>' : ''}
                 </div>
-                <div class="uw-bal ${b > 0.004 ? 'pos' : b < -0.004 ? 'neg' : 'zero'}">
+                <div class="uw-bal">
                     <span class="uw-bal-label">الرصيد${low ? '<i class="uw-low">⚠️ قليل</i>' : ''}</span>
                     <div class="uw-amount${b < 0 ? ' neg' : ''}"><bdi class="num count-up">${fmt(b)}</bdi><small>USDT</small></div>
                 </div>
