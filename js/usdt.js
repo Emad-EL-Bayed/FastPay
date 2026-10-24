@@ -801,7 +801,7 @@ function usdtWalletBalances() {
 
 function usdtTransferLabel(m) {
     const from = usdtWallets.find(x => x.id === m.walletId), to = usdtWallets.find(x => x.id === m.toWalletId);
-    return `<span class="inline-flex items-center gap-1.5">${usdtWalletLogo(from, 'xs')}<span>${escapeHtml(usdtWalletName(from))}</span><span class="text-slate-400">←</span>${usdtWalletLogo(to, 'xs')}<span>${escapeHtml(usdtWalletName(to))}</span></span>${m.networkFee ? `<span class="block text-[10px] text-slate-400 font-normal">رسوم ${fmtTrim(m.networkFee)} USDT · وصل ${fmtTrim(m.amount - m.networkFee)}</span>` : ''}`;
+    return `<span class="inline-flex items-center gap-1.5">${usdtWalletLogo(from, 'xs')}<span>${escapeHtml(usdtWalletName(from))}</span><span class="text-slate-400">←</span>${usdtWalletLogo(to, 'xs')}<span>${escapeHtml(usdtWalletName(to))}</span></span>${m.networkFee || m.network ? `<span class="block text-[10px] text-slate-400 font-normal">${m.network ? escapeHtml(m.network) + ' · ' : ''}رسوم ${fmtTrim(m.networkFee)} USDT · وصل ${fmtTrim(m.amount - m.networkFee)}</span>` : ''}`;
 }
 
 const shortAddr = (v) => (v.length > 16 ? `${v.slice(0, 6)}…${v.slice(-5)}` : v);
@@ -998,7 +998,11 @@ function openUsdtTransfer(m = null) {
     $('ut_from').value = from;
     $('ut_to').value = m ? m.toWalletId : list.find(w => w.id !== from).id;
     $('ut_amount').value = m ? m.amount : '';
-    $('ut_fee').value = m ? m.networkFee || '' : '';
+    // الجديد: نفس شبكة آخر تحويل (أو أول شبكة) ورسومها؛ الخانة بتنكتب بإيدك
+    const last = m || usdtMoves.filter(x => x.kind === 'transfer').sort((a, b) => b.id - a.id)[0];
+    const net = usdtNetworks().find(n => n.name === last?.network) || (last && !last.network ? null : usdtNetworks()[0]);
+    $('ut_network').value = m ? m.network : net ? net.name : '';
+    $('ut_fee').value = m ? m.networkFee || '' : net ? toNum(net.fee, 0) || '' : '';
     $('ut_date').value = m ? m.date : localDateStr();
     $('ut_note').value = m ? m.note : '';
     $('usdtTransferTitle').textContent = m ? 'تعديل التحويل بين المحافظ' : 'تحويل بين المحافظ';
@@ -1014,9 +1018,22 @@ function renderUsdtTransferForm() {
         </button>`).join('');
     $('ut_from_chips').innerHTML = chips('from');
     $('ut_to_chips').innerHTML = chips('to');
+    const net = $('ut_network').value;
+    $('ut_networks').innerHTML = usdtNetworks().map(n => `
+        <button type="button" data-action="ut-network" data-name="${escapeHtml(n.name)}" class="tf-chip${net === n.name ? ' active' : ''}">${escapeHtml(n.name)} <b class="num">${fmtTrim(toNum(n.fee, 0))}</b></button>`).join('')
+        + `<button type="button" data-action="ut-network" data-name="" class="tf-chip${net === '' ? ' active' : ''}">بدون رسوم <b class="num">0</b></button>`;
     const amount = toNum($('ut_amount').value, 0), fee = toNum($('ut_fee').value, 0);
     const to = usdtWallets.find(w => w.id === $('ut_to').value);
     $('ut_preview').textContent = amount > 0 ? `بيوصل على ${usdtWalletName(to)}: ${fmtTrim(Math.max(0, amount - fee))} USDT${fee ? ` (رسوم ${fmtTrim(fee)})` : ''}` : '';
+}
+
+// الشبكة بتعبّي رسومها الافتراضية (من إعدادات USDT)
+function pickUsdtTransferNetwork(name) {
+    $('ut_network').value = name;
+    const n = usdtNetworks().find(x => x.name === name);
+    $('ut_fee').value = n ? toNum(n.fee, 0) || '' : '';
+    renderUsdtTransferForm();
+    $('ut_fee').focus();
 }
 
 function pickUsdtTransferWallet(field, id) {
@@ -1036,7 +1053,7 @@ async function saveUsdtTransfer(e) {
     if (!(amount > 0)) return showToast('تنبيه', 'اكتب المبلغ اللي طلع', 'warning');
     if (fee >= amount) return showToast('تنبيه', 'الرسوم أكبر من المبلغ', 'warning');
     const existing = usdtMoves.find(m => m.id === editingUsdtTransferId);
-    const move = normalizeUsdt({ id: existing ? existing.id : nextId(), date: $('ut_date').value || localDateStr(), kind: 'transfer', amount, networkFee: fee, walletId: from, toWalletId: to, note: $('ut_note').value, currency: 'ILS' });
+    const move = normalizeUsdt({ id: existing ? existing.id : nextId(), date: $('ut_date').value || localDateStr(), kind: 'transfer', amount, network: $('ut_network').value, networkFee: fee, walletId: from, toWalletId: to, note: $('ut_note').value, currency: 'ILS' });
     if (editLocked('usdtMoves', existing && { ...existing }, move)) return lockWarn();
     if (!existing && backdateLocked(move.date)) return lockWarn();
     if (existing) Object.assign(existing, move); else usdtMoves.push(move);

@@ -230,6 +230,7 @@ const CLICK_ACTIONS = {
     'us-wallet': (el) => pickUsdtWallet(el.dataset.id),
     'usdt-transfer': () => openUsdtTransfer(),
     'ut-wallet': (el) => pickUsdtTransferWallet(el.dataset.field, el.dataset.id),
+    'ut-network': (el) => pickUsdtTransferNetwork(el.dataset.name),
     'delete-usdt': (el) => deleteUsdtPrompt(toNum(el.dataset.id, NaN)),
     'usdt-net-add': addUsdtNetwork,
     'usdt-net-remove': (el) => removeUsdtNetwork(toNum(el.dataset.index, -1)),
