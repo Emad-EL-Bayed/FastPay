@@ -1446,12 +1446,12 @@ body.no-profit .profit-only { display: none !important; }
 .subnav-btn.active { background: rgb(var(--b-white, 255 255 255)); color: rgb(var(--t-slate-900, 15 23 42)); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12); }
 .subnav-btn.hidden { display: none; }
 /* تابات الإعدادات (settings.js setSettingsTab): نص بس (بطلب عماد، رسمي بدون أيقونات)، والخمسة بسطر واحد حتى عالجوال */
-.stabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.3rem; padding: 0.3rem; border-radius: 1rem; background: rgb(var(--b-white, 255 255 255)); border: 1px solid rgb(var(--c-slate-200, 226 232 240)); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
+.stabs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.3rem; padding: 0.3rem; border-radius: 1rem; background: rgb(var(--b-white, 255 255 255)); border: 1px solid rgb(var(--c-slate-200, 226 232 240)); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
 .stab-btn { min-width: 0; padding: 0.7rem 0.25rem; border-radius: 0.75rem; font-size: 0.82rem; font-weight: 800; color: rgb(var(--t-slate-500, 100 116 139)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background-color 0.15s ease, color 0.15s ease; }
 .stab-btn:hover { background: rgb(var(--b-slate-50, 248 250 252)); color: rgb(var(--t-slate-800, 30 41 59)); }
 .stab-btn.active, .stab-btn.active:hover { background: rgb(var(--b-slate-900, 15 23 42)); color: rgb(var(--t-inv, 255 255 255)); }
 .stab-btn:focus:not(:focus-visible) { outline: none; }
-@media (max-width: 639px) { .stab-btn { font-size: 0.72rem; padding: 0.6rem 0.1rem; } }
+@media (max-width: 639px) { .stab-btn { font-size: 0.68rem; padding: 0.6rem 0.05rem; } .stabs { gap: 0.15rem; padding: 0.25rem; } }
 .stab-off { display: none !important; }
 .stab-in { animation: stab-in 0.28s ease-out backwards; }
 @keyframes stab-in { from { opacity: 0; transform: translateY(6px); } }
@@ -1820,6 +1820,40 @@ tr.row-late > td:first-child { box-shadow: inset -3px 0 0 #f97316; }
 .black-add { display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.5rem; }
 @media (max-width: 520px) { .black-add { grid-template-columns: 1fr auto; } .black-add > :first-child { grid-column: 1 / -1; } }
 .black-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.45rem 0.6rem; border-radius: 0.6rem; font-size: 0.75rem; background: rgb(var(--b-rose-50, 255 241 242)); border: 1px solid rgb(var(--c-rose-100, 255 228 230)); }
+
+/* ================= دفعة 2026-10-24: المصاريف الثابتة، QR الفاتورة، هدف الشهر، سجل الأسعار، الزبون الدايم ================= */
+.rec-form { display: grid; grid-template-columns: 1.4fr 1fr 0.8fr auto auto; gap: 0.5rem; align-items: center; }
+.rec-day { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; font-weight: 700; color: rgb(var(--t-slate-600, 71 85 105)); white-space: nowrap; }
+.rec-day input { width: 3.6rem; }
+.rec-actions { display: flex; gap: 0.4rem; }
+@media (max-width: 640px) { .rec-form { grid-template-columns: 1fr 1fr; } .rec-form > :first-child { grid-column: 1 / -1; } .rec-actions { grid-column: 1 / -1; } .rec-actions button { flex: 1; } }
+.rec-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; padding: 0.6rem 0.75rem; border-radius: 0.75rem; border: 1px solid rgb(var(--c-slate-200, 226 232 240)); background: rgb(var(--b-slate-50, 248 250 252)); font-size: 0.8rem; }
+.rec-row.off > :not(.status-toggle):not(button) { opacity: 0.5; }
+.rec-row > .min-w-0 { flex: 1 1 13rem; }
+
+.rc-foot.has-qr { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; text-align: right; }
+.rc-qr { flex: none; display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
+.rc-qr svg { width: 64px; height: 64px; display: block; padding: 3px; background: #fff; border-radius: 6px; border: 1px solid #e2e8f0; }
+.rc-qr span { font-size: 0.55rem; font-weight: 700; color: #7d8aa0; }
+
+.goal-num { font-size: 1.35rem; font-weight: 900; color: rgb(var(--t-slate-900, 15 23 42)); }
+.goal-bar { position: relative; height: 12px; margin: 0.6rem 0 0.5rem; border-radius: 9999px; background: rgb(var(--b-slate-100, 241 245 249)); overflow: hidden; }
+.goal-bar i { position: absolute; inset-block: 0; inset-inline-start: 0; border-radius: 9999px; background: #10b981; transition: width 0.6s ease; }
+.goal-bar i.behind { background: #f59e0b; }
+.goal-bar i.done { background: linear-gradient(90deg, #10b981, #059669); }
+.goal-today { position: absolute; top: -2px; bottom: -2px; width: 2px; background: rgb(var(--c-slate-500, 100 116 139)); opacity: 0.6; }
+
+.rl-chart { width: 100%; height: auto; display: block; }
+.rl-grid { stroke: var(--chart-grid); stroke-width: 1; }
+.rl-tick { fill: var(--chart-muted); font-size: 10px; font-family: inherit; }
+.rl-band { fill: rgba(59, 130, 246, 0.14); }
+.rl-line { fill: none; stroke: #2563eb; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+.rl-dot { fill: var(--chart-surface); stroke: #2563eb; stroke-width: 1.6; }
+
+.calc-loyal-note { margin-top: 0.45rem; font-size: 0.74rem; font-weight: 800; color: #f9a8d4; }
+.calc-loyal-note.muted { color: #94a3b8; font-weight: 700; }
+.calc-loyal-skip { margin-inline-start: 0.35rem; padding: 0.1rem 0.5rem; border-radius: 9999px; font-size: 0.66rem; font-weight: 800; color: #fff; background: rgba(255, 255, 255, 0.14); }
+.loyal-box { margin-top: 0.6rem; padding: 0.45rem 0.7rem; border-radius: 0.7rem; font-size: 0.72rem; font-weight: 700; background: rgb(var(--b-pink-50, 253 242 248)); color: rgb(var(--t-pink-800, 157 23 77)); border: 1px solid rgb(var(--c-pink-200, 251 207 232)); }
 
 /* ================= الوضع الداكن ================= */
 /* الألوان نفسها متغيرات (build/tailwind.config.js) وبتتحول لحالها، وهون بس اللي إله شكل خاص بالداكن.

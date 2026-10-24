@@ -6,7 +6,7 @@
 // ================= الإعدادات =================
 // ---------- تابات الإعدادات (بطلب عماد 2026-10-21: الصفحة كانت طويلة كثير) ----------
 // كل كرت عليه data-stab (ممكن أكثر من تاب، زي زر الحفظ)، والتاب المفتوح بينحفظ على هالجهاز بس
-const SETTINGS_TABS = ['rates', 'security', 'receipt', 'link', 'look'];
+const SETTINGS_TABS = ['rates', 'expenses', 'security', 'receipt', 'link', 'look'];
 const settingsTab = () => SETTINGS_TABS.includes(globalConfig.settingsTab) ? globalConfig.settingsTab : 'rates';
 
 function setSettingsTab(tab, { remember = true, animate = false } = {}) {
@@ -53,6 +53,9 @@ function loadSettingsPage() {
     renderWaMessageSettings();
     renderTrackLinkSetting();
     renderSectionToggles();
+    renderReceiptQrSetting();
+    renderLoyaltySettings();
+    renderRecurringSettings();
     updateSellBuyPreview();
 }
 
@@ -145,6 +148,14 @@ const SHARED_SETTINGS = {
     trackLinkOff: { label: 'زبائن ما بينبعتلهم رابط التتبّع (أرقامهم)', type: 'json' },
     lateHours: { label: 'الحوالة المتأخرة: بعد كم ساعة (فاضي = 3، 0 = مسكّر)', type: 'str' },
     blacklist: { label: 'القائمة السوداء: أرقام وأسماء ممنوعة', type: 'json' },
+    recurringExpenses: { label: 'المصاريف الثابتة: بتنضاف لحالها بيومها كل شهر', type: 'json' },
+    receiptQrOn: { label: 'QR بالفاتورة لصفحة التتبّع (yes/no)', type: 'str' },
+    goalOn: { label: 'هدف الشهر بالتقارير (yes/no)', type: 'str' },
+    goalAmount: { label: 'هدف الشهر: صافي الربح ₪', type: 'num' },
+    loyaltyOn: { label: 'الزبون الدايم: مكافأة (yes/no)', type: 'str' },
+    loyaltyEvery: { label: 'الزبون الدايم: كل كم حوالة مكتملة', type: 'num' },
+    loyaltyType: { label: 'الزبون الدايم: pct خصم من نسبة الربح / ils مبلغ للزبون', type: 'str' },
+    loyaltyValue: { label: 'الزبون الدايم: قيمة المكافأة (% أو ₪)', type: 'num' },
     reportEmail: { label: 'التقرير الشهري: الإيميل (فاضي = صاحب السكربت، off = مسكّر)', type: 'str' },
     txLimitOn: { label: 'حد الحوالة للموظف: yes شغّال / no مسكّر', type: 'str' },
     txLimit: { label: 'حد الحوالة للموظف ₪ (فوقه بتستنى موافقة المدير)', type: 'num' },
@@ -281,12 +292,77 @@ function toggleTrackLink() {
 const trackLinkOffIds = () => (Array.isArray(globalConfig.trackLinkOff) ? globalConfig.trackLinkOff : []).map(String).filter(Boolean);
 
 // ---------- أقسام الصفحات: بتبين أو بتنخفى عند الكل (إعدادات مشتركة، بطلب عماد 2026-10-21) ----------
-function renderSectionToggles() {
-    const on = globalConfig.payoutReadyOn !== 'no';
-    const btn = $('payout-ready-toggle');
+// سويتش (status-toggle): الحالة والكلمة
+function setToggle(btn, on, onText, offText) {
     btn.classList.toggle('on', on);
     btn.setAttribute('aria-pressed', String(on));
-    btn.lastChild.textContent = on ? 'ظاهرة' : 'مخفية';
+    btn.lastChild.textContent = on ? onText : offText;
+}
+
+function renderSectionToggles() {
+    setToggle($('payout-ready-toggle'), globalConfig.payoutReadyOn !== 'no', 'ظاهرة', 'مخفية');
+    const goal = globalConfig.goalOn === 'yes';
+    setToggle($('goal-toggle'), goal, 'ظاهر', 'مخفي');
+    $('goal_amount').disabled = !goal;
+    if (document.activeElement !== $('goal_amount')) $('goal_amount').value = toNum(globalConfig.goalAmount, 0) || '';
+}
+
+function toggleGoal() {
+    globalConfig.goalOn = globalConfig.goalOn === 'yes' ? 'no' : 'yes';
+    if (globalConfig.goalOn === 'yes' && !(toNum(globalConfig.goalAmount, 0) > 0)) setTimeout(() => $('goal_amount').focus(), 50);
+    saveAll();
+    renderSectionToggles();
+    updateReportsData();
+}
+
+function saveGoalAmount() {
+    globalConfig.goalAmount = Math.max(0, round2(toNum($('goal_amount').value, 0)));
+    saveAll();
+    renderSectionToggles();
+    updateReportsData();
+    showToast('انحفظ الهدف', globalConfig.goalAmount ? `${fmt(globalConfig.goalAmount, 0)} ₪ صافي بالشهر` : 'بدون هدف', 'success');
+}
+
+// ---------- QR بالفاتورة ----------
+function renderReceiptQrSetting() {
+    setToggle($('receipt-qr-toggle'), globalConfig.receiptQrOn !== 'no', 'شغّال', 'مسكّر');
+}
+
+function toggleReceiptQr() {
+    globalConfig.receiptQrOn = globalConfig.receiptQrOn === 'no' ? 'yes' : 'no';
+    saveAll();
+    renderReceiptQrSetting();
+}
+
+// ---------- الزبون الدايم (إعدادات مشتركة loyaltyOn / loyaltyEvery / loyaltyType / loyaltyValue) ----------
+function renderLoyaltySettings() {
+    const on = globalConfig.loyaltyOn === 'yes';
+    setToggle($('loyalty-toggle'), on, 'شغّال', 'مسكّر');
+    $('loyalty-fields').classList.toggle('opacity-50', !on);
+    ['loyalty_every', 'loyalty_type', 'loyalty_value'].forEach(id => { $(id).disabled = !on; });
+    if (document.activeElement !== $('loyalty_every')) $('loyalty_every').value = loyaltyEvery();
+    $('loyalty_type').value = globalConfig.loyaltyType === 'ils' ? 'ils' : 'pct';
+    if (document.activeElement !== $('loyalty_value')) $('loyalty_value').value = toNum(globalConfig.loyaltyValue, 1);
+    $('loyalty_unit').textContent = $('loyalty_type').value === 'ils' ? '₪' : '%';
+    $('loyalty-script-note').classList.toggle('hidden', sheetHas('loyalty'));
+}
+
+function toggleLoyalty() {
+    globalConfig.loyaltyOn = globalConfig.loyaltyOn === 'yes' ? 'no' : 'yes';
+    saveAll();
+    renderLoyaltySettings();
+    applyVipProfit();
+    runLiveCalc();
+}
+
+function saveLoyaltySettings() {
+    globalConfig.loyaltyEvery = Math.min(100, Math.max(2, Math.round(toNum($('loyalty_every').value, 10))));
+    globalConfig.loyaltyType = $('loyalty_type').value === 'ils' ? 'ils' : 'pct';
+    globalConfig.loyaltyValue = Math.max(0, round2(toNum($('loyalty_value').value, 0)));
+    saveAll();
+    renderLoyaltySettings();
+    applyVipProfit();
+    runLiveCalc();
 }
 
 function togglePayoutReady() {

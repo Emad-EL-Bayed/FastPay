@@ -124,9 +124,15 @@ function calcCustomer() {
     return customers.find(c => c.id && c.id === $('calc_customer_id').value) || customers.find(c => normName(c.name) === normName($('calc_recipient').value));
 }
 
-function calcVipDiscount() {
+// خصم VIP لحاله (للملاحظة "⭐ زبون مميز")
+function calcVipOnly() {
     if (typeof sheetHas !== 'function' || !sheetHas('vip')) return 0;
     return Math.max(0, toNum(calcCustomer()?.vipDiscount, 0));
+}
+
+// كل الخصم من نسبة الربح: VIP + مكافأة الزبون الدايم إذا نسبة
+function calcVipDiscount() {
+    return round2(calcVipOnly() + calcLoyaltyPct());
 }
 
 function baseProfitPct() {
@@ -189,7 +195,7 @@ function applyVipProfit() {
 }
 
 function renderCalcVipNote(input) {
-    const vip = calcVipApplied > 0 && input.orig > 0;
+    const vip = calcVipOnly() > 0 && input.orig > 0;
     $('calc-vip-note').classList.toggle('hidden', !vip);
     if (vip) $('calc-vip-note').innerHTML = `⭐ زبون مميز<span class="profit-only"> · الربح ${escapeHtml(String(input.profitPct))}% بدل ${escapeHtml(String(baseProfitPct()))}%</span>`;
 }
@@ -356,7 +362,8 @@ const calcInputSig = (i) => JSON.stringify([i.country, i.orig, i.type, i.factor,
 function calcInputsWithAdjust() {
     const input = readCalcInputs();
     if (calcAdjust && calcInputSig(input) !== calcAdjustSig) calcAdjust = 0;
-    input.finalAdjust = sheetHas('txAdjust') ? calcAdjust : 0;
+    // مكافأة الزبون الدايم بالشيكل بتنزاد على المسلّم (بتنحفظ ضمن التعديل ±، والربح بيتبعها)
+    input.finalAdjust = round2((sheetHas('txAdjust') ? calcAdjust : 0) + calcLoyaltyBonus(input));
     return input;
 }
 
@@ -384,7 +391,9 @@ function bumpCalcAdjust(stepRaw) {
     if (input.orig <= 0) return;
     const step = stepRaw === 'cents' || stepRaw === 'reset' ? stepRaw : toNum(stepRaw, 0);
     if (!step) return;
-    calcAdjust = nextFinalAdjust(deliveredBase(input), input.finalAdjust, step);
+    // أزرار التعديل بتشتغل فوق المكافأة (إذا في)، و↺ بيرجّع التعديل بس
+    const bonus = calcLoyaltyBonus(input);
+    calcAdjust = step === 'reset' ? 0 : round2(nextFinalAdjust(deliveredBase(input) + bonus, input.finalAdjust - bonus, step));
     calcAdjustSig = calcInputSig(input);
     runLiveCalc();
 }
@@ -392,14 +401,15 @@ function bumpCalcAdjust(stepRaw) {
 function renderCalcAdjust(input, r) {
     const show = input.orig > 0 && sheetHas('txAdjust');
     $('calc-adjust').classList.toggle('hidden', !show);
-    const adj = show ? r.finalAdjust : 0;
+    const bonus = calcLoyaltyBonus(input);
+    const adj = show ? round2(r.finalAdjust - bonus) : 0;
     const cur = input.currency === 'USD' ? 'USD' : 'ILS';
     const amount = cur === 'USD' ? r.clientUsd : r.clientIls;
     // ما في قروش: الزر ما إله شغل
     $('calc-adj-cents').disabled = !show || Math.abs(amount - Math.floor(amount + 1e-9)) < 0.005;
     $('calc-adj-reset').classList.toggle('hidden', !adj);
     $('calc-adjust-note').classList.toggle('hidden', !adj);
-    if (adj) $('calc-adjust-note').innerHTML = `قبل التعديل <bdi class="num">${escapeHtml(moneyCur(deliveredBase(input), cur))}</bdi> · <b class="${adj < 0 ? 'text-amber-300' : 'text-sky-300'}">${escapeHtml(adjustWord(adj, cur))}</b>`;
+    if (adj) $('calc-adjust-note').innerHTML = `قبل التعديل <bdi class="num">${escapeHtml(moneyCur(deliveredBase(input) + bonus, cur))}</bdi> · <b class="${adj < 0 ? 'text-amber-300' : 'text-sky-300'}">${escapeHtml(adjustWord(adj, cur))}</b>`;
 }
 
 let lastResultValue = null;
@@ -437,6 +447,7 @@ function runLiveCalc() {
     renderCalcAdjust(input, r);
     renderCalcTierNote(input);
     renderCalcVipNote(input);
+    renderCalcLoyaltyNote(input);
     $('calc_rev_cur').textContent = isUsd ? '$' : '₪';
     // الموظف فوق حد الحوالة
     const over = input.orig > 0 && txLimitActive() && (isUsd ? r.clientUsd * input.screenRate : r.clientIls) > txLimitIls() + 0.004;
@@ -531,6 +542,7 @@ function resetCalcForm() {
     $('calc_other_name').value = '';
     updateSourceBadge();
     if (calcSource && !calcSource.other) $('calc_factor').value = calcSource.factor;
+    calcLoyaltySkipFor = '';
     applySourceRates();
     closeCalcReverse();
     runLiveCalc();
@@ -826,6 +838,7 @@ function fillCustomerIntoCalc(c) {
     $('calc_phone').value = '';
     updateCustomerPhoneField('calc', customers.find(x => c.id && x.id === c.id) || null, c.name);
     setCustomerStatus(true, c.vipDiscount > 0 && sheetHas('vip') ? '⭐ زبون مميز' : '✓ زبون مسجل');
+    calcLoyaltySkipFor = '';
     applyVipProfit();
     renderCalcRepeat();
     renderCalcBlackNote();
@@ -950,4 +963,82 @@ function applyCalcReverse() {
     const money = (v) => `${fmtTrim(v)} ${CUR_SYM[cur] || '₪'}`;
     note.innerHTML = `بيبعت <b class="num"><bdi dir="ltr">${fmtTrim(orig)}${inUsd ? '$' : ''}</bdi></b> ← بيستلم <b class="num">${money(canAdjust || extra <= 0.004 ? target : base)}</b>`
         + (extra > 0.004 ? (canAdjust ? `<span class="profit-only"> · الفرق ${money(extra)} ربح</span>` : ' (أكتر بشوي من المطلوب)') : '');
+}
+
+// ---------- الزبون الدايم (بطلب عماد 2026-10-24، ميزة loyalty) ----------
+// كل loyaltyEvery حوالة مكتملة لنفس الزبون، الحوالة اللي بعدها إلها مكافأة: خصم من نسبة الربح (زي VIP) أو مبلغ زيادة
+// للزبون بالشيكل. الحوالة اللي أخدتها بتنعلّم (loyalty = "1%" / "10 ₪") والعدّ بيبدأ من بعدها. "مش هالمرة" لهالزبون بس.
+// كله داخلي: ما بيطلع بالفاتورة ولا الكشف ولا التتبّع ولا واتساب
+let calcLoyaltySkipFor = '';
+
+const loyaltyEvery = () => Math.min(100, Math.max(2, Math.round(toNum(globalConfig.loyaltyEvery, 10))));
+const loyaltyActive = () => globalConfig.loyaltyOn === 'yes' && typeof sheetHas === 'function' && sheetHas('loyalty') && toNum(globalConfig.loyaltyValue, 0) > 0;
+
+// كم حوالة مكتملة من آخر مكافأة (لزبون)
+function loyaltyProgress(c) {
+    if (!c) return null;
+    const txs = ledger
+        .filter(t => (c.id && t.customerId === c.id) || (!t.customerId && normName(t.recipient) === normName(c.name)))
+        .sort((a, b) => a.id - b.id);
+    let done = 0;
+    txs.forEach(t => {
+        if (t.loyalty) done = 0;
+        else if (t.status === 'مكتمل') done++;
+    });
+    const every = loyaltyEvery();
+    return { done, every, due: done >= every };
+}
+
+function calcLoyaltyInfo() {
+    if (!loyaltyActive()) return null;
+    const c = calcCustomer();
+    const p = loyaltyProgress(c);
+    if (!p) return null;
+    const type = globalConfig.loyaltyType === 'ils' ? 'ils' : 'pct';
+    return { ...p, c, type, value: round2(toNum(globalConfig.loyaltyValue, 0)), skipped: !!c.id && calcLoyaltySkipFor === c.id };
+}
+
+const loyaltyApplies = (info) => !!info && info.due && !info.skipped;
+
+function calcLoyaltyPct() {
+    const info = calcLoyaltyInfo();
+    return loyaltyApplies(info) && info.type === 'pct' ? info.value : 0;
+}
+
+// بعملة التسليم (الدولار بسعر الشاشة)
+function calcLoyaltyBonus(input) {
+    const info = calcLoyaltyInfo();
+    if (!loyaltyApplies(info) || info.type !== 'ils' || !sheetHas('txAdjust') || !(input.orig > 0)) return 0;
+    return input.currency === 'USD' ? round2(info.value / (input.screenRate || 1)) : info.value;
+}
+
+// اللي بينكتب بالحوالة لما تنحفظ
+function calcLoyaltyLabel() {
+    const info = calcLoyaltyInfo();
+    if (!loyaltyApplies(info)) return '';
+    return info.type === 'pct' ? `${fmtTrim(info.value)}%` : `${fmtTrim(info.value)} ₪`;
+}
+
+function renderCalcLoyaltyNote(input) {
+    const el = $('calc-loyal-note');
+    const info = input.orig > 0 ? calcLoyaltyInfo() : null;
+    el.classList.toggle('hidden', !info);
+    if (!info) return;
+    if (!info.due) {
+        el.className = 'calc-loyal-note muted';
+        el.innerHTML = `🎁 الزبون الدايم: ${info.done} من ${info.every} حوالات`;
+        return;
+    }
+    const what = info.type === 'pct' ? `خصم ${fmtTrim(info.value)}% من الربح` : `${fmtTrim(info.value)} ₪ زيادة للزبون`;
+    el.className = 'calc-loyal-note';
+    el.innerHTML = info.skipped
+        ? `🎁 إلها مكافأة الزبون الدايم · مش هالمرة <button type="button" data-action="loyalty-unskip" class="calc-tier-reset">رجّعها</button>`
+        : `🎁 خلّص ${info.every} حوالات: مكافأة الزبون الدايم<span class="profit-only"> · ${escapeHtml(what)}</span> <button type="button" data-action="loyalty-skip" class="calc-loyal-skip">مش هالمرة</button>`;
+}
+
+function setLoyaltySkip(on) {
+    const c = calcCustomer();
+    calcLoyaltySkipFor = on && c?.id ? c.id : '';
+    applyVipProfit();
+    runLiveCalc();
 }

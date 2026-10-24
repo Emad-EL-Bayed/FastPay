@@ -169,6 +169,17 @@ const CLICK_ACTIONS = {
     'pay-fill': (el) => payFill(el.dataset.id),
     'open-notice': openNoticeModal,
     'black-add': addBlacklist,
+    'rec-save': saveRecurring,
+    'rec-cancel': resetRecurringForm,
+    'rec-edit': (el) => editRecurring(el.dataset.id),
+    'rec-toggle': (el) => toggleRecurring(el.dataset.id),
+    'rec-remove': (el) => removeRecurring(el.dataset.id),
+    'open-recurring': () => openSettingsCard('recurring-settings'),
+    'receipt-qr-toggle': toggleReceiptQr,
+    'toggle-goal': toggleGoal,
+    'toggle-loyalty': toggleLoyalty,
+    'loyalty-skip': () => setLoyaltySkip(true),
+    'loyalty-unskip': () => setLoyaltySkip(false),
     'cust-gone-toggle': toggleGoneMode,
     'gone-wa': (el) => goneWhatsapp(el.dataset.id),
     'gone-contacted': (el) => markGoneContacted(el.dataset.id),
@@ -564,6 +575,9 @@ function bindUserEvents() {
 function bindSettingsEvents() {
     $('tx_limit').addEventListener('change', saveTxLimit);
     $('late_hours').addEventListener('change', saveLateHours);
+    $('goal_amount').addEventListener('change', saveGoalAmount);
+    ['loyalty_every', 'loyalty_type', 'loyalty_value'].forEach(id => $(id).addEventListener('change', saveLoyaltySettings));
+    ['rec_name', 'rec_category', 'rec_amount', 'rec_day'].forEach(id => $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveRecurring(); } }));
     $('black_value').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addBlacklist(); } });
     $('black_reason').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addBlacklist(); } });
     $('track_days').addEventListener('change', saveTrackDays);

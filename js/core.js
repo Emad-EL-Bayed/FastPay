@@ -77,6 +77,18 @@ const DEFAULT_CONFIG = {
     lateHours: '',
     // القائمة السوداء: [{v: الرقم أو الاسم منظّف, label, kind: num|name, reason, by, at}]، المدير بس بيعدّلها
     blacklist: [],
+    // المصاريف الثابتة (بطلب عماد 2026-10-24): [{id, name, category, amount, day, on, start}]، السكربت بيضيفها بيومها
+    recurringExpenses: [],
+    // QR بالفاتورة بيفتح صفحة التتبّع
+    receiptQrOn: 'yes',
+    // هدف الشهر (صافي الربح بعد المصاريف) بالتقارير
+    goalOn: 'no',
+    goalAmount: 0,
+    // الزبون الدايم: كل كم حوالة مكتملة مكافأة، ونوعها pct (خصم من نسبة الربح) أو ils (مبلغ زيادة للزبون ₪)
+    loyaltyOn: 'no',
+    loyaltyEvery: 10,
+    loyaltyType: 'pct',
+    loyaltyValue: 1,
     // التقرير الشهري بالإيميل: '' = إيميل صاحب السكربت، 'off' = مسكّر، أو إيميل
     reportEmail: '',
     // حد الحوالة للموظف (بطلب عماد 2026-10-19): فوقه بتستنى موافقة المدير
@@ -597,6 +609,8 @@ function normalizeTx(t) {
         approvedBy: String(t?.approvedBy ?? '').trim(),
         // ⚠️ تنبيه احتيال (الموظف كمّل رغمه)، ورمز رابط التتبّع (السكربت بيعطيه)
         flag: String(t?.flag ?? '').trim(),
+        // مكافأة الزبون الدايم ("1%" أو "10 ₪")، داخلي بس
+        loyalty: String(t?.loyalty ?? '').trim(),
         trackToken: String(t?.trackToken ?? '').trim(),
         createdBy: String(t?.createdBy ?? '').trim(),
         updatedBy: String(t?.updatedBy ?? '').trim()

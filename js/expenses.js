@@ -79,6 +79,9 @@ function renderExpenses() {
     filterSelect.value = categories.includes(currentFilter) ? currentFilter : 'ALL';
 
     $('expenses-unsupported').classList.toggle('hidden', sheetSupportsExpenses || dataState !== 'ready');
+    const recCount = recurringItems().filter(x => x.on !== 'no').length;
+    $('exp-recurring-btn').classList.toggle('hidden', !hasPerm('settings'));
+    $('exp-recurring-count').textContent = recCount ? `(${recCount})` : '';
     $('expense-save-btn').disabled = dataState === 'loading' || !sheetSupportsExpenses;
 
     const list = filteredExpenses();
@@ -109,7 +112,7 @@ function renderExpenses() {
                 <td class="p-3.5 whitespace-nowrap text-slate-500 text-xs num">${escapeHtml(e.date)}</td>
                 <td class="p-3.5"><span class="badge bg-rose-50 text-rose-700">${escapeHtml(e.category)}</span></td>
                 <td class="p-3.5 font-mono font-black text-slate-900 num whitespace-nowrap">${fmt(e.amount)} ₪</td>
-                <td class="p-3.5 text-slate-500 text-xs">${escapeHtml(e.note || '-')}</td>
+                <td class="p-3.5 text-slate-500 text-xs">${/^تلقائي/.test(e.note) ? `<span class="badge bg-sky-50 text-sky-700 ml-1" title="مصروف ثابت انضاف لحاله">🔁 تلقائي</span>${escapeHtml(e.note.replace(/^تلقائي\s*·?\s*/, ''))}` : escapeHtml(e.note || '-')}</td>
                 <td class="p-3.5 text-center whitespace-nowrap">
                     <button data-action="edit-expense" data-id="${e.id}" class="text-blue-600 hover:text-blue-800 font-bold text-xs px-2.5 py-1 bg-blue-50 rounded-lg mr-1">تعديل</button>
                     <button data-action="delete-expense" data-id="${e.id}" class="text-slate-400 hover:text-red-600 p-1 font-bold" title="حذف من السجل ومن الإكسل">✕</button>
@@ -193,4 +196,118 @@ function exportExpensesCSV() {
     const csv = [header, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n');
     downloadBlob('\uFEFF' + csv, 'text/csv;charset=utf-8;', `مصاريف_فاست_باي_${$('exp_month_filter').value || localDateStr()}.csv`);
     showToast('تم التصدير', `تم تنزيل ${list.length} مصروف`, 'info');
+}
+
+// ================= المصاريف الثابتة (بطلب عماد 2026-10-24) =================
+// إعداد مشترك recurringExpenses: [{id, name, category, amount, day, on, start}]. السكربت (recurringExpensesJob، كل ربع ساعة)
+// بيضيفها لورقة المصاريف بيومها ("تلقائي · الاسم")، مرة بالشهر، ومن شهر start (اليوم لسا ما إجا بهالشهر ← هالشهر، وإلا الجاي)
+const pad2 = (n) => String(n).padStart(2, '0');
+
+function recurringItems() {
+    return Array.isArray(globalConfig.recurringExpenses) ? globalConfig.recurringExpenses.filter(x => x && x.id) : [];
+}
+
+// أول شهر بينضاف فيه: إذا يومه لسا ما إجا بهالشهر هالشهر، وإلا الشهر الجاي (حتى ما ينضاف شي دفعته قبل)
+function recurringStart(day) {
+    const now = new Date();
+    if (day > now.getDate()) return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`;
+    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return `${next.getFullYear()}-${pad2(next.getMonth() + 1)}`;
+}
+
+// التاريخ الجاي اللي بينضاف فيه
+function recurringNextDate(x) {
+    const today = localDateStr();
+    const now = new Date();
+    for (let i = 0; i < 14; i++) {
+        const d0 = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        const key = `${d0.getFullYear()}-${pad2(d0.getMonth() + 1)}`;
+        if (x.start && key < x.start) continue;
+        const last = new Date(d0.getFullYear(), d0.getMonth() + 1, 0).getDate();
+        const date = `${key}-${pad2(Math.min(Math.max(1, x.day), last))}`;
+        if (date >= today) return date;
+    }
+    return '';
+}
+
+function renderRecurringSettings() {
+    const list = recurringItems();
+    $('rec-script-note').classList.toggle('hidden', sheetHas('recurringExpenses'));
+    $('rec-list').innerHTML = list.length ? list.map(x => {
+        const on = x.on !== 'no';
+        const next = on ? recurringNextDate(x) : '';
+        return `<div class="rec-row${on ? '' : ' off'}">
+            <div class="min-w-0 flex-1">
+                <b class="text-slate-900">${escapeHtml(x.name || x.category)}</b>${x.category && x.category !== x.name ? ` <span class="text-[11px] text-slate-500">· ${escapeHtml(x.category)}</span>` : ''}
+                <span class="block text-[10px] text-slate-400">يوم ${x.day} بالشهر${next ? ` · الجاية <bdi class="ltr-num">${escapeHtml(next)}</bdi>` : on ? '' : ' · موقّف'}</span>
+            </div>
+            <b class="num text-rose-700 whitespace-nowrap">${fmtTrim(x.amount)} ₪</b>
+            <button type="button" data-action="rec-toggle" data-id="${escapeHtml(x.id)}" class="status-toggle${on ? ' on' : ''}" style="--c:#10b981" aria-pressed="${on}"><span class="sw"></span>${on ? 'شغّال' : 'موقّف'}</button>
+            <button type="button" data-action="rec-edit" data-id="${escapeHtml(x.id)}" class="text-[11px] font-bold text-blue-700 px-1.5">تعديل</button>
+            <button type="button" data-action="rec-remove" data-id="${escapeHtml(x.id)}" class="text-[11px] font-bold text-slate-400 hover:text-rose-600 px-1" aria-label="احذف">✕</button>
+        </div>`;
+    }).join('') : '<p class="text-xs text-slate-400">ما في مصاريف ثابتة لسا. أضف الإيجار أو الرواتب تحت.</p>';
+}
+
+function resetRecurringForm() {
+    $('rec_id').value = '';
+    $('rec_name').value = '';
+    $('rec_category').value = '';
+    $('rec_amount').value = '';
+    $('rec_day').value = '1';
+    $('rec-save-btn').textContent = '+ أضف';
+    $('rec-cancel').classList.add('hidden');
+}
+
+function editRecurring(id) {
+    const x = recurringItems().find(r => r.id === id);
+    if (!x) return;
+    $('rec_id').value = x.id;
+    $('rec_name').value = x.name || '';
+    $('rec_category').value = x.category || '';
+    $('rec_amount').value = x.amount;
+    $('rec_day').value = x.day;
+    $('rec-save-btn').textContent = 'حفظ التعديل';
+    $('rec-cancel').classList.remove('hidden');
+    $('rec_name').focus();
+}
+
+function saveRecurring() {
+    if (!hasPerm('settings')) return;
+    const name = $('rec_name').value.trim().slice(0, 60);
+    const category = ($('rec_category').value.trim() || name).slice(0, 60);
+    const amount = round2(toNum($('rec_amount').value, 0));
+    const day = Math.round(toNum($('rec_day').value, 0));
+    if (!name && !category) return showToast('تنبيه', 'اكتب اسم المصروف', 'warning');
+    if (!(amount > 0)) return showToast('تنبيه', 'اكتب المبلغ', 'warning');
+    if (!(day >= 1 && day <= 31)) return showToast('تنبيه', 'اليوم من 1 لـ 31', 'warning');
+    const list = recurringItems();
+    const id = $('rec_id').value;
+    const old = list.find(x => x.id === id);
+    const item = { id: old ? old.id : 'r' + nextId(), name: name || category, category, amount, day, on: old ? old.on : 'yes', start: old && old.day === day ? old.start : recurringStart(day) };
+    globalConfig.recurringExpenses = old ? list.map(x => (x.id === id ? item : x)) : list.concat(item);
+    saveAll();
+    resetRecurringForm();
+    renderRecurringSettings();
+    renderExpenses();
+    const next = recurringNextDate(item);
+    showToast(old ? 'انحفظ التعديل' : 'انضاف المصروف الثابت', `${item.name} ${fmtTrim(amount)} ₪${next ? ' · أول مرة ' + next : ''}`, 'success');
+}
+
+function toggleRecurring(id) {
+    globalConfig.recurringExpenses = recurringItems().map(x => (x.id === id ? { ...x, on: x.on === 'no' ? 'yes' : 'no', start: x.on === 'no' ? recurringStart(x.day) : x.start } : x));
+    saveAll();
+    renderRecurringSettings();
+    renderExpenses();
+}
+
+function removeRecurring(id) {
+    const x = recurringItems().find(r => r.id === id);
+    if (!x) return;
+    showAppConfirm('حذف المصروف الثابت', `${x.name} ${fmtTrim(x.amount)} ₪ ما عاد ينضاف كل شهر. المصاريف اللي انضافت قبل بتضل.`, () => {
+        globalConfig.recurringExpenses = recurringItems().filter(r => r.id !== id);
+        saveAll();
+        renderRecurringSettings();
+        renderExpenses();
+    });
 }

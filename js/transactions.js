@@ -126,7 +126,8 @@ function readNewTxForm() {
     return {
         input, recipient, payout, provider, account, bankAccount, iban, customer, phone,
         date,
-        status: $('calc_status').value
+        status: $('calc_status').value,
+        loyalty: calcLoyaltyLabel()
     };
 }
 
@@ -142,7 +143,7 @@ function upsertTxCustomer({ customer, recipient, payout, provider, account, bank
 }
 
 // الحساب من الأرقام مباشرة (وليس من النص المعروض) ثم التقريب لقرشين
-function buildNewTx({ input, recipient, payout, provider, account, bankAccount, iban, date, status }, customer) {
+function buildNewTx({ input, recipient, payout, provider, account, bankAccount, iban, date, status, loyalty }, customer) {
     const r = computeTransfer(input);
     return {
         id: newTxId(),
@@ -163,7 +164,8 @@ function buildNewTx({ input, recipient, payout, provider, account, bankAccount, 
         finalAdjust: round2(r.finalAdjust),
         costIls: round2(r.costIls),
         profitIls: round2(r.profitIls),
-        status
+        status,
+        loyalty: loyalty || ''
     };
 }
 
@@ -461,6 +463,7 @@ function renderTxDetails() {
             </div>
             ${approvalDetailsHtml(t)}
             ${flagDetailsHtml(t)}
+            ${t.loyalty ? `<div class="loyal-box">🎁 أخدت مكافأة الزبون الدايم<span class="profit-only">: ${escapeHtml(/%$/.test(t.loyalty) ? 'خصم ' + t.loyalty + ' من الربح' : t.loyalty + ' زيادة للزبون')}</span></div>` : ''}
             ${t.status === 'جزئي' ? `<div class="text-[11px] text-sky-700 mt-2">مدفوع ${fmt(paid)} من ${fmt(txDue(t))} ${CUR_SYM[t.currency]} <button data-action="tx-pay" data-id="${t.id}" class="font-bold underline mr-1">+ دفعة</button></div>` : ''}
         </div>
         <div class="txd-body">

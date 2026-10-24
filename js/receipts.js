@@ -8,6 +8,7 @@
 // html-to-image يرسم بمحرك المتصفح نفسه، فلا ينزاح النص العربي عن مكانه (مشكلة html2canvas)
 const RECEIPT_LIBS = {
     htmlToImage: 'https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js',
+    qr: 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js',
     jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
 };
 const loadedScripts = {};
@@ -110,7 +111,7 @@ const RECEIPT_ICONS = {
 };
 
 // قالب واحد لكل الفواتير. status: اسم الحالة (أو فاضي)، party: { label, name } الزبون تحت المبلغ
-function receiptHtml({ title, no, dateLabel, date, amountLabel, amount, rows, status, party }) {
+function receiptHtml({ title, no, dateLabel, date, amountLabel, amount, rows, status, party, qr }) {
     const now = new Date();
     const issued = `${localDateStr(now)} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const tone = RECEIPT_TONE[status] || 'info';
@@ -139,9 +140,12 @@ function receiptHtml({ title, no, dateLabel, date, amountLabel, amount, rows, st
             <div><span>${dateLabel}</span><b>${ltr(escapeHtml(date))}</b></div>
             <div><span>رقم الإيصال</span><b>${ltr(escapeHtml(no))}</b></div>
         </div>
-        <div class="rc-foot">
-            ${globalConfig.receiptFooter ? `<div class="rc-thanks">${escapeHtml(globalConfig.receiptFooter)}</div>` : ''}
-            <div class="rc-issued">أُصدرت: ${ltr(escapeHtml(issued))}</div>
+        <div class="rc-foot${qr ? ' has-qr' : ''}">
+            <div class="min-w-0">
+                ${globalConfig.receiptFooter ? `<div class="rc-thanks">${escapeHtml(globalConfig.receiptFooter)}</div>` : ''}
+                <div class="rc-issued">أُصدرت: ${ltr(escapeHtml(issued))}</div>
+            </div>
+            ${qr ? `<div class="rc-qr">${qr}<span>امسح للتأكد</span></div>` : ''}
         </div>
         <div class="rc-bar"></div>`;
 }
@@ -173,7 +177,7 @@ function renderReceipt(t) {
     $('receipt-paper').innerHTML = receiptHtml({
         title: 'إيصال تسليم حوالة', no: receiptNo(t), dateLabel: 'تاريخ الحوالة', date: t.date,
         amountLabel: 'المبلغ المسلّم للزبون', amount, rows,
-        status: t.status, party: { label: 'إلى', name: t.recipient }
+        status: t.status, party: { label: 'إلى', name: t.recipient }, qr: t.status === CANCELLED ? '' : receiptQrSvg(t)
     });
 }
 
@@ -207,7 +211,7 @@ function renderUsdtReceipt(m) {
         title: deposit ? 'فاتورة إيداع USDT' : 'إيصال سحب USDT', no: receiptNo(m), dateLabel: 'التاريخ', date: m.date,
         amountLabel: deposit ? 'المبلغ المطلوب من الزبون' : 'المبلغ المسلّم للزبون',
         amount: cur === 'USD' ? `$ ${fmt(m.total - m.settle)}` : `${fmt(m.total - m.settle)} ₪`, rows,
-        status: PAY_STATE[st.state].label, party: { label: 'الزبون:', name: m.customerName }
+        status: PAY_STATE[st.state].label, party: { label: 'الزبون:', name: m.customerName }, qr: receiptQrSvg(m)
     });
 }
 
@@ -230,7 +234,7 @@ function renderEgpReceipt(m) {
         title: send ? 'إيصال إرسال جنيه' : 'إيصال استلام جنيه', no: receiptNo(m), dateLabel: 'التاريخ', date: m.date,
         amountLabel: send ? 'المبلغ المطلوب من الزبون' : 'المبلغ المسلّم للزبون',
         amount: cur === 'USD' ? `$ ${fmt(m.total - m.settle)}` : `${fmt(m.total - m.settle)} ₪`, rows,
-        status: st ? PAY_STATE[st.state].label : '', party: { label: 'الزبون:', name: m.customerName }
+        status: st ? PAY_STATE[st.state].label : '', party: { label: 'الزبون:', name: m.customerName }, qr: receiptQrSvg(m)
     });
 }
 
@@ -655,4 +659,35 @@ function shareStatement() {
         phone: hasWhatsapp(t) ? t.phone : '',
         text: `كشف حساب ${t.name} · ${TRADE_CURRENCIES[panelCurrency].name}`
     });
+}
+
+// ================= QR بالفاتورة (بطلب عماد 2026-10-24، سويتش receiptQrOn) =================
+// بيفتح صفحة التتبّع لهالحركة (نفس trackUrl)، فالزبون بيتأكد إنها فاتورة حقيقية منك. المكتبة (qrcode-generator)
+// بتنزل أول مرة بتنفتح فاتورة، وبعدها الفاتورة بتنرسم من جديد ومعها صورة واتساب
+function receiptQrSvg(x) {
+    if (globalConfig.receiptQrOn === 'no' || !x) return '';
+    const url = trackUrl(x);
+    if (!url) return '';
+    if (typeof qrcode !== 'function') {
+        loadReceiptQrLib();
+        return '';
+    }
+    try {
+        const q = qrcode(0, 'M');
+        q.addData(url);
+        q.make();
+        return q.createSvgTag({ cellSize: 2, margin: 0, scalable: true });
+    } catch (e) {
+        return '';
+    }
+}
+
+let receiptQrLoading = null;
+function loadReceiptQrLib() {
+    receiptQrLoading ??= loadScript(RECEIPT_LIBS.qr).then(() => {
+        if (!receiptCtx || $('receiptModal').classList.contains('hidden')) return;
+        renderCurrentReceipt();
+        const target = receiptShareTarget();
+        if (target) prepareShareImage(target.key, $('receipt-paper'));
+    }).catch(() => { receiptQrLoading = null; });
 }

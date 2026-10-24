@@ -4,7 +4,7 @@
 // الملفات تُحمَّل بالترتيب في index.html وتتشارك نفس المتغيرات العامة.
 
 // ================= التبديل بين التبويبات =================
-const TABS = ['calculator', 'reports', 'transactions', 'usdt', 'egp', 'accounts', 'expenses', 'traders', 'customers', 'ready', 'countries', 'settings', 'users', 'position'];
+const TABS = ['calculator', 'reports', 'transactions', 'usdt', 'egp', 'accounts', 'expenses', 'traders', 'customers', 'ready', 'countries', 'settings', 'users', 'position', 'ratelog'];
 const TITLES = {
     calculator: 'حاسبة وصرافة الحوالات',
     reports: 'التقرير المالي والأرباح',
@@ -19,14 +19,15 @@ const TITLES = {
     countries: 'تسعير ومعاملات الدول',
     settings: 'الإعدادات العامة والربط السحابي',
     users: 'المستخدمون والصلاحيات',
-    position: 'المركز المالي والديون'
+    position: 'المركز المالي والديون',
+    ratelog: 'سجل الأسعار'
 };
 
 // صفحات فرعية بدون زر بالقائمة: زرها المضيء بالقائمة هو صفحتها الأم.
 // المركز المالي بصلاحية التقارير، والمستخدمين بصلاحيتهم الخاصة
-const SUB_TABS = { users: 'settings', position: 'reports' };
+const SUB_TABS = { users: 'settings', position: 'reports', ratelog: 'reports' };
 const navTabOf = (t) => SUB_TABS[t] || t;
-const tabPerm = (t) => (t === 'position' ? 'reports' : t);
+const tabPerm = (t) => (t === 'position' || t === 'ratelog' ? 'reports' : t);
 
 // كل صفحة تُرسم فقط وهي ظاهرة، وعند فتحها تُرسم بآخر البيانات (switchTab)
 function pageHidden(tab) {
@@ -83,6 +84,7 @@ function switchTab(tab) {
     if (tab === 'countries') renderCountriesTable();
     if (tab === 'settings') loadSettingsPage();
     if (tab === 'position') renderPositionPage();
+    if (tab === 'ratelog') renderRateLogPage();
     // الحاسبة إلها حركة دخول خاصة (replayCalcEntrance)
     if (tab !== 'calculator') playPageEnter($('page-' + tab));
 }

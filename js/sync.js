@@ -59,6 +59,7 @@ function setDataStatus(state, message = '', { offline = false } = {}) {
 
 function renderDataViews() {
     renderPositionPage();
+    renderRateLogPage();
     renderTraders();
     renderUsdtPage();
     renderEgpPage();
@@ -104,7 +105,8 @@ const COLLECTION_NORMALIZERS = {
     egpMoves: { get: () => egpMoves, set: (v) => { egpMoves = v; }, norm: (r) => normalizeEgp(r), ok: (x) => x.id },
     closings: { get: () => closings, set: (v) => { closings = v; }, norm: (r) => normalizeClosing(r), ok: (x) => x.id },
     readyAccounts: { get: () => readyAccounts, set: (v) => { readyAccounts = v; }, norm: (r) => normalizeReady(r), ok: (x) => x.id && x.name },
-    readySends: { get: () => readySends, set: (v) => { readySends = v; }, norm: (r) => normalizeReadySend(r), ok: (x) => x.id }
+    readySends: { get: () => readySends, set: (v) => { readySends = v; }, norm: (r) => normalizeReadySend(r), ok: (x) => x.id },
+    rateLog: { get: () => rateLog, set: (v) => { rateLog = v; }, norm: (r) => normalizeRateLog(r), ok: (x) => x.id }
 };
 
 // ---------- تسعير الدول من الشيت ----------
@@ -307,6 +309,7 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
         closings = (data.closings || []).map(normalizeClosing).filter(c => c.id);
         readyAccounts = (data.readyAccounts || []).map(normalizeReady).filter(x => x.id && x.name);
         readySends = (data.readySends || []).map(normalizeReadySend).filter(x => x.id);
+        rateLog = (data.rateLog || []).map(normalizeRateLog).filter(x => x.id);
         lastFullLoadMs = Date.now();
     }
     // السكربت القديم لا يرسل serverTime، فيبقى التحميل كاملاً في كل مرة

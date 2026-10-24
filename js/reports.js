@@ -461,6 +461,7 @@ function setLiveIndicator(ok) {
 // ================= التقارير =================
 function updateReportsData() {
     if (pageHidden('reports')) return;
+    renderGoalCard();
     const todayStr = localDateStr();
     const currentMonth = todayStr.slice(0, 7);
 
@@ -541,4 +542,152 @@ function updateReportsData() {
                 </div>
             </div>
         `).join('');
+}
+
+// ================= هدف الشهر (بطلب عماد 2026-10-24، سويتش goalOn بالإعدادات ← المظهر) =================
+// صافي الربح هالشهر (الربح − المصاريف، نفس monthlyStats) مقابل الهدف، وقديش لازم باليوم للأيام الضايلة (مع اليوم)
+function renderGoalCard() {
+    const box = $('goal-card');
+    const goal = toNum(globalConfig.goalAmount, 0);
+    const show = globalConfig.goalOn === 'yes' && goal > 0;
+    box.classList.toggle('hidden', !show);
+    if (!show) return;
+    const now = new Date();
+    const month = currentMonthKey();
+    const net = round2(monthlyStats()[month]?.net || 0);
+    const pct = Math.max(0, Math.min(100, (net / goal) * 100));
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const daysLeft = daysInMonth - now.getDate() + 1;
+    const left = round2(goal - net);
+    const timePct = (now.getDate() - 1 + now.getHours() / 24) / daysInMonth * 100;
+    const ahead = pct >= timePct;
+    box.innerHTML = `
+        <div class="flex flex-wrap items-end justify-between gap-2">
+            <div>
+                <h3 class="text-sm font-bold text-slate-900">هدف ${escapeHtml(monthLabel(month, false))}</h3>
+                <p class="text-[11px] text-slate-400">صافي الربح بعد المصاريف</p>
+            </div>
+            <div class="text-left">
+                <b class="goal-num num"><bdi dir="ltr">${fmt(net, 0)}</bdi></b> <span class="text-xs font-bold text-slate-500">من ${fmt(goal, 0)} ₪</span>
+            </div>
+        </div>
+        <div class="goal-bar" role="progressbar" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100">
+            <i style="width:${pct.toFixed(1)}%" class="${left <= 0 ? 'done' : ahead ? 'ahead' : 'behind'}"></i>
+            <span class="goal-today" style="inset-inline-start:${timePct.toFixed(1)}%" title="وين المفروض تكون اليوم"></span>
+        </div>
+        <p class="text-xs font-bold ${left <= 0 ? 'text-emerald-700' : ahead ? 'text-slate-600' : 'text-amber-700'}">${left <= 0
+            ? `✓ وصلت الهدف${net > goal ? ` وزيادة ${fmt(net - goal, 0)} ₪` : ''}`
+            : `${Math.round(pct)}% · ضايلك ${fmt(left, 0)} ₪ · لازمك <b class="num">${fmt(left / daysLeft, 0)} ₪</b> باليوم (${daysLeft} ${daysLeft === 1 ? 'يوم' : daysLeft <= 10 ? 'أيام' : 'يوم'})${ahead ? ' · ماشي صح' : ' · متأخر عن الخط'}`}</p>`;
+}
+
+// ================= سجل الأسعار (بطلب عماد 2026-10-24، صفحة فرعية بالتقارير، ميزة rateLog) =================
+// السكربت (recordRates كل ربع ساعة) بيكتب سطر لكل يوم: سعر الشاشة أول اليوم وآخره وأعلى وأقل، والبيع والشراء.
+// هون: رسم آخر 30 يوم، وجدول فيه كمان شغل كل يوم من الحوالات و USDT: كم دولار، الربح، وربح كل دولار
+let rateLog = [];
+const RATELOG_DAYS = 30;
+
+function normalizeRateLog(r) {
+    const n = (v) => round4(toNum(v, 0));
+    const date = String(r?.date || r?.id || '').slice(0, 10);
+    return { id: date, date, open: n(r?.open), high: n(r?.high), low: n(r?.low), close: n(r?.close), sell: n(r?.sell), buy: n(r?.buy) };
+}
+
+
+// شغل كل يوم بالدولار: الحوالات (المبلغ بالدولار قبل الخصم) و USDT (الكمية)، وربحهم
+function dailyUsdWork(fromDate) {
+    const map = {};
+    const get = (d) => (map[d] ??= { usd: 0, profit: 0, count: 0 });
+    ledger.forEach(t => {
+        if (t.status === CANCELLED || !t.date || t.date < fromDate) return;
+        const s = get(t.date);
+        s.usd += sourceUsdAmount(t.type, t.orig, t.factor);
+        s.profit += t.profitIls;
+        s.count++;
+    });
+    usdtMoves.forEach(m => {
+        if (m.kind === 'adjust' || !m.date || m.date < fromDate) return;
+        const s = get(m.date);
+        s.usd += Math.abs(m.amount);
+        s.profit += m.profitIls;
+        s.count++;
+    });
+    return map;
+}
+
+function rateLogChart(rows) {
+    const pts = rows.filter(r => r.close > 0);
+    if (pts.length < 2) return '';
+    const W = 640, H = 190, padL = 8, padR = 46, padT = 12, padB = 22;
+    const lo = Math.min(...pts.map(r => r.low || r.close)), hi = Math.max(...pts.map(r => r.high || r.close));
+    const span = Math.max(hi - lo, 0.01);
+    const x = (i) => padL + (i / (pts.length - 1)) * (W - padL - padR);
+    const y = (v) => padT + (1 - (v - lo) / span) * (H - padT - padB);
+    const band = pts.map((r, i) => `${x(i).toFixed(1)},${y(r.high || r.close).toFixed(1)}`).join(' ')
+        + ' ' + pts.slice().reverse().map((r, j) => `${x(pts.length - 1 - j).toFixed(1)},${y(r.low || r.close).toFixed(1)}`).join(' ');
+    const line = pts.map((r, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(r.close).toFixed(1)}`).join(' ');
+    const ticks = [hi, (hi + lo) / 2, lo].map(v => `<text x="${W - padR + 6}" y="${(y(v) + 4).toFixed(1)}" class="rl-tick">${v.toFixed(3)}</text><line x1="${padL}" x2="${W - padR}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" class="rl-grid"/>`).join('');
+    const labels = [0, Math.floor((pts.length - 1) / 2), pts.length - 1].map(i => `<text x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="middle" class="rl-tick">${pts[i].date.slice(5).replace('-', '/')}</text>`).join('');
+    const dots = pts.map((r, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(r.close).toFixed(1)}" r="3" class="rl-dot"><title>${r.date}: ${r.close.toFixed(3)} (أعلى ${(r.high || r.close).toFixed(3)} · أقل ${(r.low || r.close).toFixed(3)})</title></circle>`).join('');
+    return `<svg viewBox="0 0 ${W} ${H}" class="rl-chart" role="img" aria-label="سعر الشاشة آخر ${pts.length} يوم" dir="ltr">${ticks}<polygon points="${band}" class="rl-band"/><path d="${line}" class="rl-line"/>${dots}${labels}</svg>`;
+}
+
+function renderRateLogPage() {
+    if (pageHidden('ratelog')) return;
+    const box = $('ratelog-body');
+    const from = new Date(Date.now() - (RATELOG_DAYS - 1) * 86400000);
+    const fromDate = localDateStr(from);
+    const byDate = new Map(rateLog.filter(r => r.date >= fromDate).map(r => [r.date, r]));
+    const work = dailyUsdWork(fromDate);
+    const dates = [...new Set([...byDate.keys(), ...Object.keys(work)])].sort();
+    const rows = dates.map(d => ({ date: d, ...(byDate.get(d) || {}), work: work[d] || { usd: 0, profit: 0, count: 0 } }));
+    const withRate = rows.filter(r => r.close > 0);
+    const last = withRate[withRate.length - 1];
+    const first = withRate[0];
+    const totals = rows.reduce((t, r) => ({ usd: t.usd + r.work.usd, profit: t.profit + r.work.profit }), { usd: 0, profit: 0 });
+    const perUsd = (w) => (w.usd > 0 ? w.profit / w.usd : 0);
+    const best = rows.filter(r => r.work.usd >= 50).sort((a, b) => perUsd(b.work) - perUsd(a.work))[0];
+    const note = !sheetHas('rateLog')
+        ? '<p class="text-xs font-bold text-amber-700">السجل بيبدأ من يوم ما تنشر سكربت Google Sheets الجديد. لحد هلّق بس شغل كل يوم من الحوالات.</p>'
+        : !withRate.length ? '<p class="text-xs text-slate-500">لسا ما انسجل ولا سعر. السكربت بيسجّل كل ربع ساعة، فبعد شوي بيبين.</p>' : '';
+    const change = first && last && first !== last ? round4(last.close - first.open) : 0;
+    box.innerHTML = `
+        <div class="section-card p-5 space-y-3">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900">سعر الشاشة آخر ${RATELOG_DAYS} يوم</h3>
+                    <p class="text-[11px] text-slate-400">الخط = آخر سعر باليوم، والمظلل = بين أقل وأعلى سعر</p>
+                </div>
+                ${last ? `<div class="text-left">
+                    <b class="text-lg font-black num text-slate-900">${last.close.toFixed(3)}</b>
+                    ${change ? `<span class="text-xs font-bold ${change > 0 ? 'text-emerald-600' : 'text-rose-600'}">${change > 0 ? '▲' : '▼'} ${Math.abs(change).toFixed(3)}</span>` : ''}
+                </div>` : ''}
+            </div>
+            ${note}
+            ${rateLogChart(rows)}
+        </div>
+        <div class="profit-only grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="section-card p-4"><span class="text-[11px] text-slate-500 font-bold">اشتغلت بـ (${RATELOG_DAYS} يوم)</span><b class="block text-lg font-black num text-slate-900">$${fmt(totals.usd, 0)}</b></div>
+            <div class="section-card p-4"><span class="text-[11px] text-slate-500 font-bold">ربح كل دولار (المعدّل)</span><b class="block text-lg font-black num text-emerald-700">${fmt(perUsd(totals), 3)} ₪</b></div>
+            <div class="section-card p-4"><span class="text-[11px] text-slate-500 font-bold">أحسن يوم إلك</span><b class="block text-sm font-black text-slate-900">${best ? `<bdi class="ltr-num">${best.date}</bdi> · ${fmt(perUsd(best.work), 3)} ₪ للدولار` : '—'}</b></div>
+        </div>
+        <div class="section-card overflow-hidden">
+            <div class="table-scroll">
+                <table class="w-full text-right border-collapse text-xs">
+                    <thead><tr class="bg-slate-50 text-slate-500 font-bold">
+                        <th class="p-3">اليوم</th><th class="p-3">أول اليوم</th><th class="p-3">آخر اليوم</th><th class="p-3">أعلى · أقل</th><th class="p-3">البيع · الشراء</th>
+                        <th class="p-3 profit-only">اشتغلت بـ</th><th class="p-3 profit-only">الربح</th><th class="p-3 profit-only">ربح الدولار</th>
+                    </tr></thead>
+                    <tbody>${rows.length ? rows.slice().reverse().map(r => `<tr class="border-t border-slate-100">
+                        <td class="p-3 whitespace-nowrap num font-bold text-slate-700">${escapeHtml(r.date)}</td>
+                        <td class="p-3 num">${r.open ? r.open.toFixed(3) : '—'}</td>
+                        <td class="p-3 num font-bold text-slate-900">${r.close ? r.close.toFixed(3) : '—'}</td>
+                        <td class="p-3 num whitespace-nowrap text-slate-500">${r.high ? `${r.high.toFixed(3)} · ${r.low.toFixed(3)}` : '—'}</td>
+                        <td class="p-3 num whitespace-nowrap text-slate-500">${r.sell ? `${r.sell.toFixed(3)} · ${r.buy.toFixed(3)}` : '—'}</td>
+                        <td class="p-3 num whitespace-nowrap profit-only">${r.work.usd ? '$' + fmt(r.work.usd, 0) + ` <span class="text-slate-400">(${r.work.count})</span>` : '—'}</td>
+                        <td class="p-3 num whitespace-nowrap profit-only text-emerald-700 font-bold">${r.work.profit ? fmt(r.work.profit, 0) + ' ₪' : '—'}</td>
+                        <td class="p-3 num whitespace-nowrap profit-only font-bold">${r.work.usd ? fmt(perUsd(r.work), 3) + ' ₪' : '—'}</td>
+                    </tr>`).join('') : `<tr><td colspan="8" class="p-6 text-center text-slate-400">ما في أسعار ولا شغل بآخر ${RATELOG_DAYS} يوم</td></tr>`}</tbody>
+                </table>
+            </div>
+        </div>`;
 }
