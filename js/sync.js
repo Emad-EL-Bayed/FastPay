@@ -269,6 +269,12 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
         showToast('تحدّثت البيانات', 'البيانات بالشيت تغيّرت (مسح أو استرجاع نسخة احتياطية)، رجعنا حمّلناها من جديد', 'info');
         return loadFromSheets({ silent: true });
     }
+    // السكربت انتشرت منه نسخة جديدة (ميزات تغيّرت): التحديث السريع ما بيجيب الأوراق والأعمدة الجديدة، فتحميل كامل.
+    // كان البرنامج يضل يحكي "حدّث السكربت" لحد التحميل الكامل الجاي (لحد 30 دقيقة) حتى بعد ما عماد نشره (2026-10-24)
+    if (data.incremental && Array.isArray(data.features) && data.features.slice().sort().join() !== sheetFeatures.slice().sort().join()) {
+        lastFullLoadMs = 0;
+        return loadFromSheets({ silent: true });
+    }
     const changedCount = data.incremental
         ? Object.keys(COLLECTION_NORMALIZERS).reduce((n, k) => n + (data[k]?.length || 0), 0) + (data.deleted?.length || 0)
         : -1;
