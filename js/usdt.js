@@ -808,9 +808,16 @@ const shortAddr = (v) => (v.length > 16 ? `${v.slice(0, 6)}…${v.slice(-5)}` : 
 
 function renderUsdtWallets() {
     const on = sheetHas('usdtWallets');
-    $('usdt-wallets-wrap').classList.toggle('hidden', !on);
+    // السكربت المنشور قديم: القسم بيبين مع سطر بيحكي ليش (كان بيختفي كله وعماد ما عرف شو ناقص)
+    $('usdt-wallets-wrap').classList.toggle('hidden', !on && dataState !== 'ready');
+    $('usdt-wallet-new-btn').classList.toggle('hidden', !on);
     $('usdt_wallet_filter').classList.toggle('hidden', !usdtWalletsOn());
-    if (!on) return;
+    if (!on) {
+        $('usdt-transfer-btn').classList.add('hidden');
+        $('usdt-wallets-loose').classList.add('hidden');
+        $('usdt-wallets').innerHTML = '<p class="col-span-full text-xs font-bold text-amber-700">المحافظ بتشتغل بعد ما تنشر سكربت Google Sheets الجديد: الصق السكربت كله، وبعدين نشر ← إدارة عمليات النشر ← ✏️ ← إصدار جديد، وارجع افتح البرنامج.</p>';
+        return;
+    }
     const bal = usdtWalletBalances();
     const list = sortedUsdtWallets();
     // فلتر المحفظة بالسجل

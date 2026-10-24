@@ -28,41 +28,41 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=131">
+    <link rel="stylesheet" href="styles.css?v=132">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=131">
+    <link rel="stylesheet" href="tailwind.css?v=132">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=131" defer></script>
-    <script src="js/core.js?v=131" defer></script>
-    <script src="js/theme.js?v=131" defer></script>
-    <script src="js/logo-data.js?v=131" defer></script>
-    <script src="js/shell.js?v=131" defer></script>
-    <script src="js/calculator.js?v=131" defer></script>
-    <script src="js/reports.js?v=131" defer></script>
-    <script src="js/sync.js?v=131" defer></script>
-    <script src="js/conflicts.js?v=131" defer></script>
-    <script src="js/cache.js?v=131" defer></script>
-    <script src="js/bgsync.js?v=131" defer></script>
-    <script src="js/transactions.js?v=131" defer></script>
-    <script src="js/receipts.js?v=131" defer></script>
-    <script src="js/customers.js?v=131" defer></script>
-    <script src="js/countries.js?v=131" defer></script>
-    <script src="js/service-logos.js?v=131" defer></script>
-    <script src="js/traders.js?v=131" defer></script>
-    <script src="js/expenses.js?v=131" defer></script>
-    <script src="js/ready.js?v=131" defer></script>
-    <script src="js/settings.js?v=131" defer></script>
-    <script src="js/accounts.js?v=131" defer></script>
-    <script src="js/usdt.js?v=131" defer></script>
-    <script src="js/egp.js?v=131" defer></script>
-    <script src="js/closing.js?v=131" defer></script>
-    <script src="js/admin.js?v=131" defer></script>
-    <script src="js/position.js?v=131" defer></script>
-    <script src="js/search.js?v=131" defer></script>
-    <script src="js/notify.js?v=131" defer></script>
-    <script src="js/push.js?v=131" defer></script>
-    <script src="js/auth.js?v=131" defer></script>
-    <script src="js/main.js?v=131" defer></script>
+    <script src="js/endpoint.js?v=132" defer></script>
+    <script src="js/core.js?v=132" defer></script>
+    <script src="js/theme.js?v=132" defer></script>
+    <script src="js/logo-data.js?v=132" defer></script>
+    <script src="js/shell.js?v=132" defer></script>
+    <script src="js/calculator.js?v=132" defer></script>
+    <script src="js/reports.js?v=132" defer></script>
+    <script src="js/sync.js?v=132" defer></script>
+    <script src="js/conflicts.js?v=132" defer></script>
+    <script src="js/cache.js?v=132" defer></script>
+    <script src="js/bgsync.js?v=132" defer></script>
+    <script src="js/transactions.js?v=132" defer></script>
+    <script src="js/receipts.js?v=132" defer></script>
+    <script src="js/customers.js?v=132" defer></script>
+    <script src="js/countries.js?v=132" defer></script>
+    <script src="js/service-logos.js?v=132" defer></script>
+    <script src="js/traders.js?v=132" defer></script>
+    <script src="js/expenses.js?v=132" defer></script>
+    <script src="js/ready.js?v=132" defer></script>
+    <script src="js/settings.js?v=132" defer></script>
+    <script src="js/accounts.js?v=132" defer></script>
+    <script src="js/usdt.js?v=132" defer></script>
+    <script src="js/egp.js?v=132" defer></script>
+    <script src="js/closing.js?v=132" defer></script>
+    <script src="js/admin.js?v=132" defer></script>
+    <script src="js/position.js?v=132" defer></script>
+    <script src="js/search.js?v=132" defer></script>
+    <script src="js/notify.js?v=132" defer></script>
+    <script src="js/push.js?v=132" defer></script>
+    <script src="js/auth.js?v=132" defer></script>
+    <script src="js/main.js?v=132" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -745,7 +745,7 @@
                         </div>
                         <div class="flex gap-2">
                             <button id="usdt-transfer-btn" data-action="usdt-transfer" class="hidden text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-800 px-3 py-2 rounded-lg transition">⇄ تحويل بين المحافظ</button>
-                            <button data-action="usdt-wallet-new" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg transition">+ محفظة</button>
+                            <button id="usdt-wallet-new-btn" data-action="usdt-wallet-new" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg transition">+ محفظة</button>
                         </div>
                     </div>
                     <div id="usdt-wallets" class="uw-grid"></div>
