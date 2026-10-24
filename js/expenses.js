@@ -256,6 +256,7 @@ function resetRecurringForm() {
     $('rec_amount').value = '';
     $('rec_day').value = '1';
     $('rec-save-btn').textContent = '+ أضف';
+    $('rec-form-title').textContent = '+ مصروف ثابت جديد';
     $('rec-cancel').classList.add('hidden');
 }
 
@@ -268,6 +269,7 @@ function editRecurring(id) {
     $('rec_amount').value = x.amount;
     $('rec_day').value = x.day;
     $('rec-save-btn').textContent = 'حفظ التعديل';
+    $('rec-form-title').textContent = `تعديل: ${x.name}`;
     $('rec-cancel').classList.remove('hidden');
     $('rec_name').focus();
 }

@@ -1822,11 +1822,18 @@ tr.row-late > td:first-child { box-shadow: inset -3px 0 0 #f97316; }
 .black-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.45rem 0.6rem; border-radius: 0.6rem; font-size: 0.75rem; background: rgb(var(--b-rose-50, 255 241 242)); border: 1px solid rgb(var(--c-rose-100, 255 228 230)); }
 
 /* ================= دفعة 2026-10-24: المصاريف الثابتة، QR الفاتورة، هدف الشهر، سجل الأسعار، الزبون الدايم ================= */
-.rec-form { display: grid; grid-template-columns: 1.4fr 1fr 0.8fr auto auto; gap: 0.5rem; align-items: center; }
-.rec-day { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; font-weight: 700; color: rgb(var(--t-slate-600, 71 85 105)); white-space: nowrap; }
-.rec-day input { width: 3.6rem; }
+.rec-form { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.7fr) auto; gap: 0.6rem; align-items: end; padding: 0.85rem; border-radius: 0.9rem; border: 1px dashed rgb(var(--c-slate-300, 203 213 225)); background: rgb(var(--b-slate-50, 248 250 252)); }
+.rec-form-title { grid-column: 1 / -1; font-size: 0.75rem; font-weight: 800; color: rgb(var(--t-slate-700, 51 65 85)); }
+.rec-f { min-width: 0; }
+.rec-f label { display: block; margin-bottom: 0.25rem; font-size: 0.68rem; font-weight: 700; color: rgb(var(--t-slate-500, 100 116 139)); }
+.rec-f input { min-width: 0; }
 .rec-actions { display: flex; gap: 0.4rem; }
-@media (max-width: 640px) { .rec-form { grid-template-columns: 1fr 1fr; } .rec-form > :first-child { grid-column: 1 / -1; } .rec-actions { grid-column: 1 / -1; } .rec-actions button { flex: 1; } }
+@media (max-width: 640px) {
+    .rec-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .rec-f-name { grid-column: 1 / -1; }
+    .rec-actions { grid-column: 1 / -1; }
+    .rec-actions button { flex: 1; }
+}
 .rec-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; padding: 0.6rem 0.75rem; border-radius: 0.75rem; border: 1px solid rgb(var(--c-slate-200, 226 232 240)); background: rgb(var(--b-slate-50, 248 250 252)); font-size: 0.8rem; }
 .rec-row.off > :not(.status-toggle):not(button) { opacity: 0.5; }
 .rec-row > .min-w-0 { flex: 1 1 13rem; }

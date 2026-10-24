@@ -28,41 +28,41 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=127">
+    <link rel="stylesheet" href="styles.css?v=128">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=127">
+    <link rel="stylesheet" href="tailwind.css?v=128">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=127" defer></script>
-    <script src="js/core.js?v=127" defer></script>
-    <script src="js/theme.js?v=127" defer></script>
-    <script src="js/logo-data.js?v=127" defer></script>
-    <script src="js/shell.js?v=127" defer></script>
-    <script src="js/calculator.js?v=127" defer></script>
-    <script src="js/reports.js?v=127" defer></script>
-    <script src="js/sync.js?v=127" defer></script>
-    <script src="js/conflicts.js?v=127" defer></script>
-    <script src="js/cache.js?v=127" defer></script>
-    <script src="js/bgsync.js?v=127" defer></script>
-    <script src="js/transactions.js?v=127" defer></script>
-    <script src="js/receipts.js?v=127" defer></script>
-    <script src="js/customers.js?v=127" defer></script>
-    <script src="js/countries.js?v=127" defer></script>
-    <script src="js/service-logos.js?v=127" defer></script>
-    <script src="js/traders.js?v=127" defer></script>
-    <script src="js/expenses.js?v=127" defer></script>
-    <script src="js/ready.js?v=127" defer></script>
-    <script src="js/settings.js?v=127" defer></script>
-    <script src="js/accounts.js?v=127" defer></script>
-    <script src="js/usdt.js?v=127" defer></script>
-    <script src="js/egp.js?v=127" defer></script>
-    <script src="js/closing.js?v=127" defer></script>
-    <script src="js/admin.js?v=127" defer></script>
-    <script src="js/position.js?v=127" defer></script>
-    <script src="js/search.js?v=127" defer></script>
-    <script src="js/notify.js?v=127" defer></script>
-    <script src="js/push.js?v=127" defer></script>
-    <script src="js/auth.js?v=127" defer></script>
-    <script src="js/main.js?v=127" defer></script>
+    <script src="js/endpoint.js?v=128" defer></script>
+    <script src="js/core.js?v=128" defer></script>
+    <script src="js/theme.js?v=128" defer></script>
+    <script src="js/logo-data.js?v=128" defer></script>
+    <script src="js/shell.js?v=128" defer></script>
+    <script src="js/calculator.js?v=128" defer></script>
+    <script src="js/reports.js?v=128" defer></script>
+    <script src="js/sync.js?v=128" defer></script>
+    <script src="js/conflicts.js?v=128" defer></script>
+    <script src="js/cache.js?v=128" defer></script>
+    <script src="js/bgsync.js?v=128" defer></script>
+    <script src="js/transactions.js?v=128" defer></script>
+    <script src="js/receipts.js?v=128" defer></script>
+    <script src="js/customers.js?v=128" defer></script>
+    <script src="js/countries.js?v=128" defer></script>
+    <script src="js/service-logos.js?v=128" defer></script>
+    <script src="js/traders.js?v=128" defer></script>
+    <script src="js/expenses.js?v=128" defer></script>
+    <script src="js/ready.js?v=128" defer></script>
+    <script src="js/settings.js?v=128" defer></script>
+    <script src="js/accounts.js?v=128" defer></script>
+    <script src="js/usdt.js?v=128" defer></script>
+    <script src="js/egp.js?v=128" defer></script>
+    <script src="js/closing.js?v=128" defer></script>
+    <script src="js/admin.js?v=128" defer></script>
+    <script src="js/position.js?v=128" defer></script>
+    <script src="js/search.js?v=128" defer></script>
+    <script src="js/notify.js?v=128" defer></script>
+    <script src="js/push.js?v=128" defer></script>
+    <script src="js/auth.js?v=128" defer></script>
+    <script src="js/main.js?v=128" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -1199,13 +1199,26 @@
                     <div id="rec-list" class="space-y-2"></div>
                     <input type="hidden" id="rec_id">
                     <div class="rec-form">
-                        <input type="text" id="rec_name" autocomplete="off" placeholder="الاسم (مثلاً: إيجار المكتب)" class="field text-xs font-bold">
-                        <input type="text" id="rec_category" autocomplete="off" placeholder="البند (مثلاً: إيجار)" class="field text-xs">
-                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="rec_amount" placeholder="المبلغ ₪" class="field text-xs font-bold num">
-                        <label class="rec-day">يوم <input type="number" id="rec_day" min="1" max="31" step="1" value="1" class="field text-xs font-bold num"> بالشهر</label>
+                        <div id="rec-form-title" class="rec-form-title">+ مصروف ثابت جديد</div>
+                        <div class="rec-f rec-f-name">
+                            <label for="rec_name">الاسم</label>
+                            <input type="text" id="rec_name" autocomplete="off" placeholder="مثلاً: إيجار المكتب" class="w-full field text-xs font-bold">
+                        </div>
+                        <div class="rec-f rec-f-cat">
+                            <label for="rec_category">البند</label>
+                            <input type="text" id="rec_category" autocomplete="off" placeholder="مثلاً: إيجار" class="w-full field text-xs">
+                        </div>
+                        <div class="rec-f rec-f-amt">
+                            <label for="rec_amount">المبلغ ₪</label>
+                            <input type="text" inputmode="decimal" autocomplete="off" data-commas id="rec_amount" placeholder="0" class="w-full field text-xs font-bold num">
+                        </div>
+                        <div class="rec-f rec-f-day">
+                            <label for="rec_day">يوم بالشهر</label>
+                            <input type="number" id="rec_day" min="1" max="31" step="1" value="1" class="w-full field text-xs font-bold num">
+                        </div>
                         <div class="rec-actions">
-                            <button type="button" id="rec-save-btn" data-action="rec-save" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-3 py-2.5 rounded-lg whitespace-nowrap">+ أضف</button>
-                            <button type="button" id="rec-cancel" data-action="rec-cancel" class="hidden text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2.5 rounded-lg">إلغاء</button>
+                            <button type="button" id="rec-save-btn" data-action="rec-save" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-lg whitespace-nowrap">+ أضف</button>
+                            <button type="button" id="rec-cancel" data-action="rec-cancel" class="hidden text-xs font-bold bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-2.5 rounded-lg">إلغاء</button>
                         </div>
                     </div>
                     <p id="rec-script-note" class="hidden text-[11px] font-bold text-amber-700">انشر سكربت Google Sheets الجديد حتى تنضاف لحالها</p>
