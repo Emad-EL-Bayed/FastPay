@@ -28,41 +28,41 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=117">
+    <link rel="stylesheet" href="styles.css?v=122">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=117">
+    <link rel="stylesheet" href="tailwind.css?v=122">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=117" defer></script>
-    <script src="js/core.js?v=117" defer></script>
-    <script src="js/theme.js?v=117" defer></script>
-    <script src="js/logo-data.js?v=117" defer></script>
-    <script src="js/shell.js?v=117" defer></script>
-    <script src="js/calculator.js?v=117" defer></script>
-    <script src="js/reports.js?v=117" defer></script>
-    <script src="js/sync.js?v=117" defer></script>
-    <script src="js/conflicts.js?v=117" defer></script>
-    <script src="js/cache.js?v=117" defer></script>
-    <script src="js/bgsync.js?v=117" defer></script>
-    <script src="js/transactions.js?v=117" defer></script>
-    <script src="js/receipts.js?v=117" defer></script>
-    <script src="js/customers.js?v=117" defer></script>
-    <script src="js/countries.js?v=117" defer></script>
-    <script src="js/service-logos.js?v=117" defer></script>
-    <script src="js/traders.js?v=117" defer></script>
-    <script src="js/expenses.js?v=117" defer></script>
-    <script src="js/ready.js?v=117" defer></script>
-    <script src="js/settings.js?v=117" defer></script>
-    <script src="js/accounts.js?v=117" defer></script>
-    <script src="js/usdt.js?v=117" defer></script>
-    <script src="js/egp.js?v=117" defer></script>
-    <script src="js/closing.js?v=117" defer></script>
-    <script src="js/admin.js?v=117" defer></script>
-    <script src="js/position.js?v=117" defer></script>
-    <script src="js/search.js?v=117" defer></script>
-    <script src="js/notify.js?v=117" defer></script>
-    <script src="js/push.js?v=117" defer></script>
-    <script src="js/auth.js?v=117" defer></script>
-    <script src="js/main.js?v=117" defer></script>
+    <script src="js/endpoint.js?v=122" defer></script>
+    <script src="js/core.js?v=122" defer></script>
+    <script src="js/theme.js?v=122" defer></script>
+    <script src="js/logo-data.js?v=122" defer></script>
+    <script src="js/shell.js?v=122" defer></script>
+    <script src="js/calculator.js?v=122" defer></script>
+    <script src="js/reports.js?v=122" defer></script>
+    <script src="js/sync.js?v=122" defer></script>
+    <script src="js/conflicts.js?v=122" defer></script>
+    <script src="js/cache.js?v=122" defer></script>
+    <script src="js/bgsync.js?v=122" defer></script>
+    <script src="js/transactions.js?v=122" defer></script>
+    <script src="js/receipts.js?v=122" defer></script>
+    <script src="js/customers.js?v=122" defer></script>
+    <script src="js/countries.js?v=122" defer></script>
+    <script src="js/service-logos.js?v=122" defer></script>
+    <script src="js/traders.js?v=122" defer></script>
+    <script src="js/expenses.js?v=122" defer></script>
+    <script src="js/ready.js?v=122" defer></script>
+    <script src="js/settings.js?v=122" defer></script>
+    <script src="js/accounts.js?v=122" defer></script>
+    <script src="js/usdt.js?v=122" defer></script>
+    <script src="js/egp.js?v=122" defer></script>
+    <script src="js/closing.js?v=122" defer></script>
+    <script src="js/admin.js?v=122" defer></script>
+    <script src="js/position.js?v=122" defer></script>
+    <script src="js/search.js?v=122" defer></script>
+    <script src="js/notify.js?v=122" defer></script>
+    <script src="js/push.js?v=122" defer></script>
+    <script src="js/auth.js?v=122" defer></script>
+    <script src="js/main.js?v=122" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -312,6 +312,8 @@
                                 </div>
                                 <p id="payout-cash-note" class="hidden text-[11px] text-slate-500">يستلم الزبون المبلغ نقداً من المكتب.</p>
                             </div>
+                            <!-- القائمة السوداء (calculator.js renderCalcBlackNote) -->
+                            <p id="calc-black-note" class="black-note hidden"></p>
                         </section>
 
                         <!-- الخطوة 2: المصدر والمبلغ وعملة التسليم -->
@@ -341,6 +343,20 @@
                                         <input type="number" step="any" min="0" id="calc_factor" class="calc-input calc-amount num pr-8 !text-lg">
                                     </div>
                                 </div>
+                            </div>
+                            <!-- الحاسبة بالعكس (calculator.js applyCalcReverse): رابط خفيف تحت المبلغ -->
+                            <div class="calc-rev -mt-2">
+                                <button type="button" id="calc-rev-link" data-action="calc-rev-open" class="calc-rev-link">بدّه يستلم مبلغ معيّن؟</button>
+                                <div id="calc-rev-box" class="calc-rev-box hidden">
+                                    <label for="calc_rev_target" class="calc-rev-label">بدّه يستلم</label>
+                                    <div class="calc-rev-field">
+                                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="calc_rev_target" placeholder="1,000" class="num">
+                                        <span id="calc_rev_cur">₪</span>
+                                    </div>
+                                    <button type="button" data-action="calc-rev-apply" class="calc-rev-go">احسب</button>
+                                    <button type="button" data-action="calc-rev-close" class="calc-rev-x" aria-label="سكّر">✕</button>
+                                </div>
+                                <p id="calc-rev-note" class="calc-rev-note hidden"></p>
                             </div>
 
                             <div class="flex flex-wrap items-center justify-between gap-3">
@@ -457,9 +473,13 @@
                                 </div>
                             </div>
 
-                            <button id="save-tx-btn" data-action="save-tx" class="save-btn mt-5">
-                                <span class="save-btn-label">حفظ الحوالة</span>
-                            </button>
+                            <!-- "نسخ" جنب الحفظ (calculator.js copyCalcQuote): نص قصير للزبون قبل ما تحفظ -->
+                            <div class="calc-actions mt-5">
+                                <button id="save-tx-btn" data-action="save-tx" class="save-btn">
+                                    <span class="save-btn-label">حفظ الحوالة</span>
+                                </button>
+                                <button type="button" data-action="calc-copy" class="calc-copy-btn" title="نسخ المبلغين للزبون">⧉ نسخ</button>
+                            </div>
                             <button id="last-receipt-btn" data-action="open-last-receipt" class="hidden w-full mt-2 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition">فاتورة آخر حوالة</button>
                         </div>
 
@@ -644,6 +664,8 @@
 
                 <!-- للمدير: الحوالات اللي بتستنى موافقته (حد الموظف، transactions.js renderApprovalBanner) -->
                 <div id="approval-banner" class="hidden approval-banner"></div>
+                <!-- الحوالات المتأخرة (transactions.js renderLateBanner) -->
+                <div id="late-banner" class="hidden late-banner"></div>
 
                 <!-- فلتر الحالات: تشغيل/إيقاف لكل حالة، ويبقى محفوظاً -->
                 <div class="flex flex-wrap items-center gap-2">
@@ -854,6 +876,7 @@
                     <div class="flex flex-wrap gap-2 w-full md:w-auto">
                         <button data-action="open-amove" class="flex-1 md:flex-none bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs px-3 py-2.5 rounded-lg transition">± حركة يدوية</button>
                         <button data-action="open-transfer" class="flex-1 md:flex-none bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs px-3 py-2.5 rounded-lg transition">⇄ تحويل بين الحسابات</button>
+                        <button data-action="open-notice" class="flex-1 md:flex-none bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs px-3 py-2.5 rounded-lg transition" title="لصق إشعار تحويل من بال باي أو جوال باي أو البنك">📩 لصق إشعار</button>
                         <button data-action="open-closing" class="flex-1 md:flex-none bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-3 py-2.5 rounded-lg transition">📋 جرد آخر اليوم</button>
                         <button data-action="open-account-modal" class="flex-1 md:flex-none bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition">+ حساب جديد</button>
                     </div>
@@ -1016,10 +1039,13 @@
                             <option value="received">الأكثر استلاماً</option>
                             <option value="name">الاسم</option>
                         </select>
+                        <!-- زبائن غابوا (customers.js isGoneCustomer) -->
+                        <button type="button" id="cust-gone-btn" data-action="cust-gone-toggle" class="tf-chip hidden" title="زبائن كانوا يتعاملوا معك ووقفوا من شهر">غابوا <b id="cust-gone-count" class="num">0</b></button>
                     </div>
                     <button data-action="open-customer-modal" class="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition flex items-center gap-1.5 shadow-sm">+ إضافة زبون يدوي</button>
                 </div>
 
+                <p id="cust-gone-note" class="hidden text-[11px] font-bold text-slate-500 px-1">زبائن إلهم 3 حركات أو أكتر، وآخر حركة إلهم قبل 30 يوم أو أكتر. ابعتلهم رسالة، و"تواصلت معه" بيخفيه 30 يوم.</p>
                 <div class="section-card overflow-hidden">
                     <div class="table-scroll">
                         <table class="w-full text-right border-collapse text-xs md:text-sm">
@@ -1311,6 +1337,32 @@
                         </div>
                         <p class="text-[10px] text-slate-400">0 = مسكّر. <span id="fraud-script-note" class="hidden font-bold text-amber-700">انشر سكربت Google Sheets الجديد حتى تشتغل التنبيهات</span></p>
                     </div>
+                    <!-- الحوالة المتأخرة (transactions.js txLateMs، والسكربت lateTxJob للإشعار) -->
+                    <div id="late-section" class="space-y-2 pt-4 border-t border-slate-100">
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-900">الحوالة المتأخرة</h4>
+                            <p class="text-[11px] text-slate-400 leading-5">حوالة مش مكتملة ولا ملغية صرلها أكتر من هالوقت: بتصير برتقالية بالسجل وبيطلع شريط فوقه، وبيوصل إشعار عالجوال للمدير وللموظف اللي سجّلها (مرة وحدة لكل حوالة).</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
+                            <span>بعد</span>
+                            <input type="number" min="0" step="0.5" id="late_hours" class="field w-20 text-xs font-bold num">
+                            <span>ساعات</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400">0 = مسكّر. <span id="late-script-note" class="hidden font-bold text-amber-700">الإشعار عالجوال بدّه سكربت Google Sheets الجديد وإشعارات الجوال مفعّلة</span></p>
+                    </div>
+                    <!-- القائمة السوداء (core.js blacklistHit، الإعداد المشترك blacklist). المدير بس -->
+                    <div id="black-section" class="space-y-2 pt-4 border-t border-slate-100">
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-900">القائمة السوداء</h4>
+                            <p class="text-[11px] text-slate-400 leading-5">أرقام محافظ أو حسابات أو IBAN أو أسماء معروفة بالنصب. أول ما تنكتب بالحاسبة أو USDT أو الجنيه بيطلع تحذير أحمر، والموظف ما بيقدر يحفظ. إنت بتقدر تكمّل على مسؤوليتك.</p>
+                        </div>
+                        <div class="black-add">
+                            <input type="text" id="black_value" autocomplete="off" placeholder="الرقم أو الاسم الكامل" class="field text-xs font-bold">
+                            <input type="text" id="black_reason" autocomplete="off" placeholder="السبب (اختياري)" class="field text-xs">
+                            <button type="button" data-action="black-add" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-3 py-2.5 rounded-lg whitespace-nowrap">+ أضف</button>
+                        </div>
+                        <div id="black-list" class="space-y-1.5"></div>
+                    </div>
                     <div class="flex flex-wrap justify-between items-center gap-2 pt-4 border-t border-slate-100">
                         <div>
                             <h4 class="text-sm font-bold text-slate-900">سجل التعديلات</h4>
@@ -1580,6 +1632,7 @@
             <span class="block text-lg font-black text-white num leading-tight"><bdi class="ltr-num" id="mrb-amount">0.00</bdi> <span id="mrb-currency" class="text-xs text-slate-300">₪</span></span>
         </div>
         <span class="text-[11px] text-emerald-400 font-bold num profit-only">+<span id="mrb-profit">0.00</span> ₪</span>
+        <button type="button" data-action="calc-copy" class="mrb-copy shrink-0 bg-white/10 text-white font-black text-xs px-3 py-2.5 rounded-xl active:scale-95 transition" aria-label="نسخ المبلغين للزبون">⧉ نسخ</button>
         <button data-action="save-tx" class="shrink-0 bg-white text-slate-900 font-black text-xs px-4 py-2.5 rounded-xl active:scale-95 transition">حفظ</button>
     </div>
 
@@ -2271,6 +2324,7 @@
                 <button data-action="pay-cancel" class="text-slate-400 hover:text-slate-700">✕</button>
             </div>
             <div id="pay-summary" class="pay-summary mt-3"></div>
+            <p id="pay-limit-warn" class="hidden mt-2 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2"></p>
             <div id="pay-dir-label" class="text-xs font-bold text-slate-700 mt-4 mb-2">دفعت من وين؟</div>
             <div id="pay-accounts" class="space-y-2"></div>
             <label id="pay-settle-wrap" class="hidden flex items-start gap-2 mt-3 text-xs text-slate-600 bg-amber-50 border border-amber-200 rounded-lg p-2.5 cursor-pointer">
@@ -2306,6 +2360,7 @@
                     <input type="text" id="us_customer" placeholder="اضغط لاختيار زبون أو اكتب اسماً جديداً" autocomplete="off" role="combobox" aria-controls="us-customer-dropdown" class="w-full field font-bold">
                     <div id="us-customer-dropdown" role="listbox" class="cust-dropdown hidden"></div>
                 </div>
+                <p id="us_black_note" class="black-note hidden"></p>
                 <div id="us_phone_wrap" class="hidden">
                     <label for="us_phone" id="us_phone_label" class="font-bold block mb-1 text-slate-700">رقم الواتساب (اختياري)</label>
                     <input type="tel" id="us_phone" dir="ltr" placeholder="970599123456" autocomplete="off" class="w-full field font-mono text-right">
@@ -2425,6 +2480,7 @@
                     <input type="text" id="eg_customer" placeholder="اضغط لاختيار زبون أو اكتب اسماً جديداً" autocomplete="off" role="combobox" aria-controls="eg-customer-dropdown" class="w-full field font-bold">
                     <div id="eg-customer-dropdown" role="listbox" class="cust-dropdown hidden"></div>
                 </div>
+                <p id="eg_black_note" class="black-note hidden"></p>
                 <div id="eg_phone_wrap" class="hidden">
                     <label for="eg_phone" id="eg_phone_label" class="font-bold block mb-1 text-slate-700">رقم الواتساب (اختياري)</label>
                     <input type="tel" id="eg_phone" dir="ltr" placeholder="970599123456" autocomplete="off" class="w-full field font-mono text-right">
@@ -2747,6 +2803,18 @@
                     </div>
                 </div>
                 <label class="flex items-center gap-2 font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="acc_usd"> فيه رصيد دولار</label>
+                <!-- حد التحويل اللي بيطلع (accounts.js walletLimitWarn)، لكل الأنواع إلا الكاش -->
+                <div id="acc_limits_wrap" class="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div>
+                        <label for="acc_limit_day" class="font-bold block mb-1 text-slate-700">الحد اليومي ₪</label>
+                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="acc_limit_day" placeholder="بدون حد" class="w-full field font-bold">
+                    </div>
+                    <div>
+                        <label for="acc_limit_month" class="font-bold block mb-1 text-slate-700">الحد الشهري ₪</label>
+                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="acc_limit_month" placeholder="بدون حد" class="w-full field font-bold">
+                    </div>
+                    <span class="col-span-2 text-[10px] text-slate-400">حد التحويل اللي بيطلع من الحساب. بيبين بالكرت قديش طلع اليوم، وبينبهك بنافذة الدفع قبل ما تعدّيه. الفاضي = بدون حد</span>
+                </div>
                 <div>
                     <label for="acc_alert" class="font-bold block mb-1 text-slate-700">نبّهني لما رصيد الشيكل ينزل تحت (اختياري)</label>
                     <input type="text" inputmode="decimal" autocomplete="off" data-commas id="acc_alert" placeholder="مثلاً 500" class="w-full field font-bold">
@@ -2771,6 +2839,46 @@
                     <button type="button" id="acc_delete" data-action="delete-account" class="hidden px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg font-bold">حذف</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal: لصق إشعار تحويل (accounts.js parseTransferNotice/noticeMatches) -->
+    <div id="noticeModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="section-card max-w-lg w-full p-6 max-h-[92vh] overflow-y-auto">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-900">لصق إشعار تحويل</h3>
+                <button data-action="close-modal" data-modal="noticeModal" class="text-slate-400 hover:text-slate-700">✕</button>
+            </div>
+            <div class="mt-4 space-y-3 text-xs">
+                <textarea id="nt_text" rows="4" class="w-full field text-sm leading-relaxed" placeholder="الصق هون رسالة أو إشعار التحويل (بال باي، جوال باي، البنك)"></textarea>
+                <div id="nt_read" class="hidden space-y-2">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <div>
+                            <label for="nt_amount" class="font-bold block mb-1 text-slate-700">المبلغ</label>
+                            <div class="flex gap-1">
+                                <input type="text" inputmode="decimal" autocomplete="off" data-commas id="nt_amount" class="w-full min-w-0 field font-bold num">
+                                <select id="nt_currency" class="border border-slate-200 rounded-lg px-1 bg-white font-bold" aria-label="العملة">
+                                    <option value="ILS">₪</option>
+                                    <option value="USD">$</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="nt_dir" class="font-bold block mb-1 text-slate-700">الاتجاه</label>
+                            <select id="nt_dir" class="w-full field font-bold">
+                                <option value="in">وصلني</option>
+                                <option value="out">دفعت</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2 sm:col-span-1">
+                            <label for="nt_account" class="font-bold block mb-1 text-slate-700">الحساب</label>
+                            <select id="nt_account" class="w-full field font-bold"></select>
+                        </div>
+                    </div>
+                    <p id="nt_from" class="text-[11px] font-bold text-slate-500"></p>
+                </div>
+                <div id="nt_matches" class="space-y-2"></div>
+            </div>
         </div>
     </div>
 

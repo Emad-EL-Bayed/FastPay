@@ -437,6 +437,7 @@ function runLiveCalc() {
     renderCalcAdjust(input, r);
     renderCalcTierNote(input);
     renderCalcVipNote(input);
+    $('calc_rev_cur').textContent = isUsd ? '$' : '₪';
     // الموظف فوق حد الحوالة
     const over = input.orig > 0 && txLimitActive() && (isUsd ? r.clientUsd * input.screenRate : r.clientIls) > txLimitIls() + 0.004;
     $('calc-limit-note').classList.toggle('hidden', !over);
@@ -531,7 +532,9 @@ function resetCalcForm() {
     updateSourceBadge();
     if (calcSource && !calcSource.other) $('calc_factor').value = calcSource.factor;
     applySourceRates();
+    closeCalcReverse();
     runLiveCalc();
+    renderCalcBlackNote();
 }
 
 // ---------- شريط النتيجة السريع على الجوال ----------
@@ -631,6 +634,7 @@ function applyCalcRepeat(id) {
     setIbanField($('calc_iban'), $('calc_iban_hint'), t.iban || '');
     runLiveCalc();
     renderCalcRepeat();
+    renderCalcBlackNote();
     $('calc_orig_amount').focus();
 }
 
@@ -824,6 +828,7 @@ function fillCustomerIntoCalc(c) {
     setCustomerStatus(true, c.vipDiscount > 0 && sheetHas('vip') ? '⭐ زبون مميز' : '✓ زبون مسجل');
     applyVipProfit();
     renderCalcRepeat();
+    renderCalcBlackNote();
 }
 
 function selectCustomerFromSearch(id) {
@@ -832,4 +837,117 @@ function selectCustomerFromSearch(id) {
     fillCustomerIntoCalc(c);
     closeCustomerPicker();
     $('calc_orig_amount').focus();
+}
+
+// ---------- القائمة السوداء بالحاسبة (core.js blacklistHit) ----------
+// خط أحمر تحت خطوة الزبون أول ما الاسم أو رقم المحفظة/الحساب/IBAN/الجوال يطابق. الحفظ: transactions.js checkBlacklistThen
+function calcBlackHit() {
+    return blacklistHit({
+        name: $('calc_recipient').value,
+        numbers: [$('calc_account').value, $('calc_bank_account').value, $('calc_iban').value, $('calc_phone').value]
+    });
+}
+
+function renderCalcBlackNote() {
+    const hit = calcBlackHit();
+    $('calc-black-note').classList.toggle('hidden', !hit);
+    if (hit) $('calc-black-note').textContent = blackNoteText(hit);
+}
+
+// ---------- نسخ الأرقام للزبون (بطلب عماد 2026-10-23، زي زر النسخ بـ USDT) ----------
+// "🅿️ باي بال 100$" ← سطر جديد ← "290 ₪". بدون قروش إلا إذا فيه (fmtTrim)
+function calcQuoteText() {
+    const input = calcInputsWithAdjust();
+    if (!(input.orig > 0) || !input.country) return '';
+    const r = computeTransfer(input);
+    const inUsd = input.type === 'direct_percent' || (input.type === 'mul' && input.factor === 1);
+    const name = input.country.replace(/^أخرى\s*-\s*/, '');
+    const paid = input.currency === 'USD' ? r.clientUsd : r.clientIls;
+    return `${name} ${fmtTrim(input.orig)}${inUsd ? '$' : ''}\n${fmtTrim(paid)} ${CUR_SYM[input.currency] || '₪'}`;
+}
+
+async function copyCalcQuote(btn) {
+    const text = calcQuoteText();
+    if (!text) return showToast('تنبيه', 'اختار المصدر واكتب المبلغ أول', 'warning');
+    if (!(await copyText(text))) return showToast('ما زبط النسخ', 'المتصفح منع النسخ، انسخه بإيدك', 'warning');
+    if (btn) {
+        if (!btn.dataset.label) btn.dataset.label = btn.textContent;
+        btn.classList.add('copied');
+        btn.textContent = '✓ تم النسخ';
+        clearTimeout(btn._copiedTimer);
+        btn._copiedTimer = setTimeout(() => { btn.classList.remove('copied'); btn.textContent = btn.dataset.label; }, 1400);
+    }
+    showToast('تم النسخ', text.replace(/\n/g, ' · '), 'success');
+}
+
+// ---------- الحاسبة بالعكس (بطلب عماد 2026-10-23) ----------
+// "بدّه يستلم 1,000 ₪": بنلاقي أقل مبلغ صحيح لازم يبعته (مع الشرائح والنسب و VIP زي الحاسبة بالضبط)، والفرق الصغير
+// اللي بيطلع من التقريب لفوق بينخصم بالتعديل ± (calcAdjust)، فبيستلم المطلوب بالضبط والفرق ربح.
+// السكربت القديم (بدون txAdjust): بيستلم أكتر بشوي وبنكتبله قديش
+function deliveredAt(orig) {
+    const input = { ...readCalcInputs(), orig, finalAdjust: 0 };
+    const src = calcSource && !calcSource.other ? calcSource : null;
+    if (src?.tiers?.length && !calcRatesTouched) {
+        const { tier } = countryTierAt(src, sourceUsdAmount(src.type, orig, input.factor));
+        if (input.costMode === 'fixed') input.costFixed = tier.cost; else input.costPct = tier.cost;
+        input.profitPct = round2(Math.max(0, tier.profit - calcVipApplied));
+    }
+    return deliveredBase(input);
+}
+
+function reverseOrig(target) {
+    if (!(target > 0)) return 0;
+    let hi = 1;
+    while (deliveredAt(hi) < target && hi < 1e12) hi *= 2;
+    if (deliveredAt(hi) < target) return 0;
+    let lo = 0;
+    for (let i = 0; i < 90; i++) {
+        const mid = (lo + hi) / 2;
+        if (deliveredAt(mid) >= target) hi = mid; else lo = mid;
+    }
+    // أقل رقم صحيح بيوصّل المطلوب (الشرائح ممكن تخلّي الرقم اللي بعده يوصّل أقل، فبنفحص)
+    let orig = Math.ceil(hi - 1e-9);
+    for (let i = 0; i < 50 && deliveredAt(orig) < target - 0.004; i++) orig += 1;
+    return orig;
+}
+
+function openCalcReverse() {
+    $('calc-rev-link').classList.add('hidden');
+    $('calc-rev-box').classList.remove('hidden');
+    $('calc_rev_cur').textContent = $('calc_currency').value === 'USD' ? '$' : '₪';
+    $('calc_rev_target').focus();
+}
+
+function closeCalcReverse() {
+    $('calc-rev-box').classList.add('hidden');
+    $('calc-rev-link').classList.remove('hidden');
+    $('calc-rev-note').classList.add('hidden');
+    $('calc_rev_target').value = '';
+}
+
+function applyCalcReverse() {
+    const target = round2(toNum($('calc_rev_target').value, 0));
+    if (!(target > 0)) return showToast('تنبيه', 'اكتب المبلغ اللي بدّه يستلمه', 'warning');
+    if (!calcSource || (calcSource.other && !(toNum($('calc_factor').value, 0) >= 0))) return showToast('تنبيه', 'اختار المصدر أول', 'warning');
+    const orig = reverseOrig(target);
+    if (!orig) return showToast('ما زبط الحساب', 'تأكد من المصدر والنسب وسعر الشاشة', 'warning');
+    calcAdjust = 0;
+    $('calc_orig_amount').value = orig;
+    runLiveCalc();
+    const input = readCalcInputs();
+    const cur = input.currency;
+    const base = deliveredBase(input);
+    const extra = round2(base - target);
+    const canAdjust = sheetHas('txAdjust');
+    if (extra > 0.004 && canAdjust) {
+        calcAdjust = -extra;
+        calcAdjustSig = calcInputSig(input);
+        runLiveCalc();
+    }
+    const inUsd = input.type === 'direct_percent' || (input.type === 'mul' && input.factor === 1);
+    const note = $('calc-rev-note');
+    note.classList.remove('hidden');
+    const money = (v) => `${fmtTrim(v)} ${CUR_SYM[cur] || '₪'}`;
+    note.innerHTML = `بيبعت <b class="num"><bdi dir="ltr">${fmtTrim(orig)}${inUsd ? '$' : ''}</bdi></b> ← بيستلم <b class="num">${money(canAdjust || extra <= 0.004 ? target : base)}</b>`
+        + (extra > 0.004 ? (canAdjust ? `<span class="profit-only"> · الفرق ${money(extra)} ربح</span>` : ' (أكتر بشوي من المطلوب)') : '');
 }

@@ -1763,6 +1763,60 @@ html.motion-off .copy-menu { animation: none; }
 .fraud-reasons li { padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.8rem; font-weight: 700; line-height: 1.6; background: rgb(var(--b-amber-50, 255 251 235)); color: rgb(var(--t-amber-900, 120 53 15)); border: 1px solid rgb(var(--c-amber-200, 253 230 138)); }
 html.motion-off .fraud-icon { animation: none; }
 
+/* ================= دفعة 2026-10-23: النسخ والعكس بالحاسبة، حدود المحافظ، إشعار التحويل، المتأخرة، القائمة السوداء ================= */
+/* الحاسبة: "نسخ" جنب الحفظ (الكرت غامق دايماً) */
+.calc-actions { display: flex; gap: 0.5rem; align-items: stretch; }
+.calc-actions .save-btn { flex: 1; width: auto; }
+.calc-copy-btn { flex: none; padding: 0 1rem; border-radius: 0.9rem; font-size: 0.8rem; font-weight: 800; color: #fff; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.14); transition: background 0.15s ease; white-space: nowrap; }
+.calc-copy-btn:hover { background: rgba(255, 255, 255, 0.18); }
+.calc-copy-btn.copied, .calc-copy-btn.copied:hover, .mrb-copy.copied { background: #059669; border-color: #059669; color: #fff; }
+
+/* الحاسبة بالعكس: رابط خفيف تحت المبلغ */
+.calc-rev-link { font-size: 0.72rem; font-weight: 700; color: rgb(var(--t-slate-400, 148 163 184)); text-decoration: underline dotted; text-underline-offset: 3px; }
+.calc-rev-link:hover { color: rgb(var(--t-blue-600, 37 99 235)); }
+.calc-rev-box { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; padding: 0.45rem 0.55rem; border-radius: 0.75rem; background: rgb(var(--b-slate-50, 248 250 252)); border: 1px dashed rgb(var(--c-slate-300, 203 213 225)); }
+.calc-rev-label { font-size: 0.72rem; font-weight: 800; color: rgb(var(--t-slate-600, 71 85 105)); white-space: nowrap; }
+.calc-rev-field { position: relative; flex: 1; min-width: 6.5rem; }
+.calc-rev-field input { width: 100%; padding: 0.4rem 1.6rem 0.4rem 0.6rem; padding-inline-end: 1.6rem; border-radius: 0.55rem; border: 1px solid rgb(var(--c-slate-200, 226 232 240)); background: rgb(var(--b-white, 255 255 255)); font-weight: 800; font-size: 0.85rem; outline: none; }
+.calc-rev-field input:focus { border-color: rgb(var(--c-blue-500, 59 130 246)); }
+.calc-rev-field span { position: absolute; inset-inline-end: 0.55rem; top: 50%; transform: translateY(-50%); font-size: 0.75rem; font-weight: 800; color: rgb(var(--t-slate-400, 148 163 184)); pointer-events: none; }
+.calc-rev-go { padding: 0.4rem 0.8rem; border-radius: 0.55rem; font-size: 0.75rem; font-weight: 800; background: rgb(var(--b-slate-900, 15 23 42)); color: rgb(var(--t-inv, 255 255 255)); }
+.calc-rev-x { width: 1.7rem; height: 1.7rem; border-radius: 0.5rem; font-size: 0.75rem; color: rgb(var(--t-slate-400, 148 163 184)); }
+.calc-rev-x:hover { background: rgb(var(--b-slate-100, 241 245 249)); color: rgb(var(--t-slate-700, 51 65 85)); }
+.calc-rev-note { margin-top: 0.35rem; font-size: 0.72rem; font-weight: 700; color: rgb(var(--t-emerald-700, 4 120 87)); }
+
+/* حدود المحافظ بكرت الحساب */
+.wl-box { margin-top: 0.6rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.wl-row { font-size: 0.66rem; font-weight: 700; color: rgb(var(--t-slate-500, 100 116 139)); }
+.wl-row b { color: rgb(var(--t-slate-800, 30 41 59)); }
+.wl-row i { display: block; height: 4px; margin-top: 2px; border-radius: 9999px; background: linear-gradient(to left, var(--acc, #64748b) var(--p), rgb(var(--b-slate-200, 226 232 240)) var(--p)); }
+.wl-row.near i { background: linear-gradient(to left, #f59e0b var(--p), rgb(var(--b-slate-200, 226 232 240)) var(--p)); }
+.wl-row.full, .wl-row.full b { color: rgb(var(--t-rose-700, 190 18 60)); }
+.wl-row.full i { background: #e11d48; }
+
+/* لصق إشعار التحويل */
+.nt-match { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.6rem 0.75rem; border-radius: 0.75rem; border: 1px solid rgb(var(--c-slate-200, 226 232 240)); background: rgb(var(--b-white, 255 255 255)); text-align: right; transition: border-color 0.15s ease, background 0.15s ease; }
+.nt-match:hover { border-color: rgb(var(--c-blue-400, 96 165 250)); background: rgb(var(--b-blue-50, 239 246 255)); }
+.nt-match.strong { border-color: rgb(var(--c-emerald-300, 110 231 183)); background: rgb(var(--b-emerald-50, 236 253 245)); }
+.nt-why { display: block; font-size: 0.62rem; font-weight: 800; color: rgb(var(--t-emerald-700, 4 120 87)); }
+
+/* الحوالة المتأخرة */
+tr.row-late > td { background: rgb(var(--b-orange-50, 255 247 237)); }
+tr.row-late > td:first-child { box-shadow: inset -3px 0 0 #f97316; }
+.late-chip { display: inline-flex; margin-top: 0.3rem; padding: 0.12rem 0.5rem; border-radius: 9999px; font-size: 0.64rem; font-weight: 800; background: rgb(var(--b-orange-100, 255 237 213)); color: rgb(var(--t-orange-800, 154 52 18)); }
+.late-banner { border-radius: 1rem; border: 1px solid rgb(var(--c-orange-200, 254 215 170)); background: rgb(var(--b-orange-50, 255 247 237)); padding: 0.75rem 1rem; }
+.late-banner-head { font-size: 0.8rem; font-weight: 800; color: rgb(var(--t-orange-800, 154 52 18)); margin-bottom: 0.35rem; }
+.late-banner-head span { font-size: 0.7rem; font-weight: 600; color: rgb(var(--t-orange-700, 194 65 12)); }
+.late-row { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.4rem 0; border-top: 1px solid rgb(var(--c-orange-200, 254 215 170)); font-size: 0.78rem; color: rgb(var(--t-slate-700, 51 65 85)); text-align: right; }
+.late-row:hover b { text-decoration: underline; }
+.late-ago { flex: none; font-size: 0.7rem; font-weight: 800; color: rgb(var(--t-orange-700, 194 65 12)); }
+
+/* القائمة السوداء */
+.black-note { margin: 0; padding: 0.5rem 0.7rem; border-radius: 0.65rem; font-size: 0.75rem; font-weight: 800; background: rgb(var(--b-rose-50, 255 241 242)); color: rgb(var(--t-rose-700, 190 18 60)); border: 1px solid rgb(var(--c-rose-300, 253 164 175)); }
+.black-add { display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.5rem; }
+@media (max-width: 520px) { .black-add { grid-template-columns: 1fr auto; } .black-add > :first-child { grid-column: 1 / -1; } }
+.black-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.45rem 0.6rem; border-radius: 0.6rem; font-size: 0.75rem; background: rgb(var(--b-rose-50, 255 241 242)); border: 1px solid rgb(var(--c-rose-100, 255 228 230)); }
+
 /* ================= الوضع الداكن ================= */
 /* الألوان نفسها متغيرات (build/tailwind.config.js) وبتتحول لحالها، وهون بس اللي إله شكل خاص بالداكن.
    <html data-theme="dark"> بيتحط من js/theme.js (ومن سكربت صغير بأول index.html قبل أول رسم) */

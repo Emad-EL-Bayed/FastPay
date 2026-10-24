@@ -31,14 +31,74 @@ function normalizeAccount(a) {
         usd: a?.usd === true || a?.usd === 'yes',
         // تنبيه لما رصيد الشيكل ينزل تحت هالمبلغ (0 = بدون تنبيه)
         alertBelow: Math.max(0, toNum(a?.alertBelow, 0)),
+        // حد التحويل اللي بيطلع (₪) يومي وشهري، 0 = بدون حد (بطلب عماد 2026-10-23)
+        dayLimit: Math.max(0, toNum(a?.dayLimit, 0)),
+        monthLimit: Math.max(0, toNum(a?.monthLimit, 0)),
         order: toNum(a?.order, 0),
         note: String(a?.note ?? '').trim(),
         createdAt: String(a?.createdAt ?? '').slice(0, 10)
     };
 }
 
-// الشيت يحفظ "فيه دولار" كنعم/لا
-const accountPayload = (a) => ({ ...a, usd: a.usd ? 'yes' : 'no' });
+// الشيت يحفظ "فيه دولار" كنعم/لا، والحد الفاضي فاضي (مش 0)
+const accountPayload = (a) => ({ ...a, usd: a.usd ? 'yes' : 'no', dayLimit: a.dayLimit || '', monthLimit: a.monthLimit || '' });
+
+// ---------- حدود المحافظ (بطلب عماد 2026-10-23، ميزة walletLimits) ----------
+// الحد على اللي بيطلع من الحساب بالشيكل: دفع حوالات و USDT والجنيه والتحويل لحساب ثاني. الحركات اليدوية لا
+// (رصيد افتتاحي، تسوية الجرد، تصحيح). بنافذة الحساب لكل الأنواع إلا الكاش
+const LIMIT_TYPES = ['jawwal', 'palpay', 'malchat', 'bank', 'other'];
+const hasLimits = (a) => !!a && (a.dayLimit > 0 || a.monthLimit > 0);
+
+// قديش طلع اليوم وهالشهر (except: أرقام حركات ما بتنحسب، مثلاً الحركة اللي عم تتعدل)
+function walletUsage(accountId, except = []) {
+    const today = localDateStr(), month = today.slice(0, 7);
+    let day = 0, mon = 0;
+    accountMoves.forEach(m => {
+        if (m.accountId !== accountId || m.currency !== 'ILS' || m.amount >= 0 || m.reason === 'manual' || except.includes(m.id)) return;
+        if (m.date.slice(0, 7) !== month) return;
+        mon += -m.amount;
+        if (m.date === today) day += -m.amount;
+    });
+    return { day: round2(day), month: round2(mon) };
+}
+
+// الضايل من الحد (Infinity = بدون حد)
+function walletLeft(a, except = []) {
+    const u = walletUsage(a.id, except);
+    return {
+        day: a.dayLimit > 0 ? round2(a.dayLimit - u.day) : Infinity,
+        month: a.monthLimit > 0 ? round2(a.monthLimit - u.month) : Infinity,
+        used: u
+    };
+}
+
+// إذا هالمبلغ بيطلع من الحساب، بيعدّي حد؟ ← نص التنبيه أو ''
+function walletLimitWarn(a, amount, except = []) {
+    if (!hasLimits(a) || !(amount > 0) || !sheetHas('walletLimits')) return '';
+    const left = walletLeft(a, except);
+    const over = [];
+    if (amount - left.day > 0.004) over.push(`اليومي بـ ${moneyCur(amount - Math.max(left.day, 0), 'ILS')}`);
+    if (amount - left.month > 0.004) over.push(`الشهري بـ ${moneyCur(amount - Math.max(left.month, 0), 'ILS')}`);
+    return over.length ? `⚠️ بتعدّي حد ${accountName(a)} ${over.join(' و')}` : '';
+}
+
+// سطر الحد بكرت الحساب: "اليوم 4,200 من 5,000" مع شريط
+function walletLimitHtml(a) {
+    if (!hasLimits(a) || !sheetHas('walletLimits')) return '';
+    const u = walletUsage(a.id);
+    const row = (word, used, limit) => {
+        if (!(limit > 0)) return '';
+        const pct = Math.min(100, (used / limit) * 100);
+        const cls = pct >= 100 ? 'full' : pct >= 80 ? 'near' : '';
+        return `<div class="wl-row ${cls}"><span>${word} <b class="num">${fmt(used, 0)}</b> من <span class="num">${fmt(limit, 0)}</span></span><i style="--p:${pct.toFixed(1)}%"></i></div>`;
+    };
+    return `<div class="wl-box" title="حد التحويل اللي بيطلع من الحساب">${row('اليوم', u.day, a.dayLimit)}${row('الشهر', u.month, a.monthLimit)}</div>`;
+}
+
+function syncAccountLimitFields() {
+    const show = sheetHas('walletLimits') && LIMIT_TYPES.includes($('acc_type').value);
+    $('acc_limits_wrap').classList.toggle('hidden', !show);
+}
 
 function accountName(a) {
     if (!a) return 'حساب محذوف';
@@ -142,6 +202,7 @@ function renderAccountsPage() {
                         <div class="acc-balance ${b.ILS < 0 ? 'neg' : ''}">${moneyCur(b.ILS, 'ILS')}</div>
                         ${a.usd ? `<div class="acc-balance usd ${b.USD < 0 ? 'neg' : ''}">${moneyCur(b.USD, 'USD')}</div>` : ''}
                     </div>
+                    ${walletLimitHtml(a)}
                 </div>`;
         }).join('');
     renderPayoutReadiness();
@@ -195,6 +256,9 @@ function openAccountModal(a = null) {
     $('acc_note').value = a ? a.note : '';
     $('acc_alert').value = a && a.alertBelow ? a.alertBelow : '';
     $('acc_alert').disabled = !sheetHas('alerts');
+    $('acc_limit_day').value = a && a.dayLimit ? a.dayLimit : '';
+    $('acc_limit_month').value = a && a.monthLimit ? a.monthLimit : '';
+    syncAccountLimitFields();
     $('acc_open_ils').value = '';
     $('acc_open_usd').value = '';
     $('acc_opening').classList.toggle('hidden', !!a);
@@ -219,6 +283,9 @@ async function saveAccount(e) {
         holder: $('acc_holder').value,
         usd: $('acc_usd').checked,
         alertBelow: sheetHas('alerts') ? $('acc_alert').value : existing?.alertBelow,
+        // الكاش ما إله حد؛ والسكربت القديم ما عنده الأعمدة فبتضل زي ما هي
+        dayLimit: !sheetHas('walletLimits') ? existing?.dayLimit : LIMIT_TYPES.includes($('acc_type').value) ? $('acc_limit_day').value : 0,
+        monthLimit: !sheetHas('walletLimits') ? existing?.monthLimit : LIMIT_TYPES.includes($('acc_type').value) ? $('acc_limit_month').value : 0,
         order: existing ? existing.order : accounts.reduce((m, a) => Math.max(m, a.order), -1) + 1,
         note: $('acc_note').value,
         createdAt: existing ? existing.createdAt : localDateStr()
@@ -349,6 +416,10 @@ async function saveAmove(e) {
         moves = [makeAmove({ accountId: from, currency, amount: sign * amount, reason: 'manual', note, date })];
     }
     if (moves.some(x => editLocked('accountMoves', editing.find(y => y.id === x.id), x))) return lockWarn();
+    // التحويل لحساب ثاني بينحسب من حد المحفظة (تنبيه بس)
+    const limitWarn = mode === 'transfer' && currency === 'ILS' && date === localDateStr()
+        ? walletLimitWarn(accounts.find(a => a.id === from), amount, editing.map(x => x.id)) : '';
+    if (limitWarn) showToast('انتبه للحد', limitWarn.replace(/^⚠️\s*/, ''), 'warning');
     const ids = new Set(moves.map(x => x.id));
     accountMoves = accountMoves.filter(x => !ids.has(x.id)).concat(moves);
     editingAmoveIds = [];
@@ -440,7 +511,7 @@ function openPayModal(ctx) {
                     <span class="acc-dot"></span>
                     <div class="min-w-0 flex-1">
                         <div class="font-bold text-slate-800 truncate">${escapeHtml(accountName(a))}</div>
-                        <div class="text-[10px] text-slate-400">الرصيد ${moneyCur(b, ctx.currency)}</div>
+                        <div class="text-[10px] text-slate-400">الرصيد ${moneyCur(b, ctx.currency)}${ctx.dir < 0 && ctx.currency === 'ILS' ? payLimitText(a) : ''}</div>
                     </div>
                     <button type="button" data-action="pay-fill" data-id="${escapeHtml(a.id)}" class="text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-md shrink-0">الباقي</button>
                     <input type="text" inputmode="decimal" autocomplete="off" data-commas data-acc="${escapeHtml(a.id)}" class="pay-input" placeholder="0">
@@ -451,6 +522,15 @@ function openPayModal(ctx) {
     updatePaySummary();
     openModal('payModal');
     $('pay-accounts').querySelector('.pay-input')?.focus();
+}
+
+// " · ضايل من حد اليوم 800 ₪" (الأقل بين اليومي والشهري)
+function payLimitText(a) {
+    if (!hasLimits(a) || !sheetHas('walletLimits')) return '';
+    const left = walletLeft(a);
+    const v = Math.min(left.day, left.month);
+    const word = left.day <= left.month ? 'اليوم' : 'الشهر';
+    return ` · <span class="${v <= 0 ? 'text-rose-600 font-bold' : ''}">ضايل من حد ${word} ${moneyCur(Math.max(v, 0), 'ILS')}</span>`;
 }
 
 function payFill(accountId) {
@@ -471,6 +551,12 @@ function updatePaySummary() {
         <div><span>المطلوب</span><b>${moneyCur(payCtx.due, cur)}</b></div>
         <div><span>مدفوع سابقاً</span><b>${moneyCur(payCtx.paid, cur)}</b></div>
         <div><span>الباقي الآن</span><b class="${after > 0.004 ? 'text-amber-700' : after < -0.004 ? 'text-rose-700' : 'text-emerald-700'}">${moneyCur(Math.max(after, 0), cur)}${after < -0.004 ? ' (زيادة!)' : ''}</b></div>`;
+    // بيطلع من حساباتنا: إذا مبلغ حساب بيعدّي حده (تنبيه بس، مش منع)
+    const warns = payCtx.dir < 0 && cur === 'ILS'
+        ? [...document.querySelectorAll('#pay-accounts .pay-input')].map(el => walletLimitWarn(accounts.find(a => a.id === el.dataset.acc), toNum(el.value, 0))).filter(Boolean)
+        : [];
+    $('pay-limit-warn').classList.toggle('hidden', !warns.length);
+    $('pay-limit-warn').innerHTML = warns.map(escapeHtml).join('<br>');
     const showSettle = after > 0.004;
     $('pay-settle-wrap').classList.toggle('hidden', !showSettle);
     $('pay-settle-text').textContent = `اعتبر الباقي (${moneyCur(Math.max(after, 0), cur)}) خصماً وأغلق الحركة كمدفوعة`;
@@ -556,4 +642,162 @@ function refundTxOps(tx) {
     const moves = refMoves('tx', tx.id);
     accountMoves = accountMoves.filter(m => !moves.includes(m));
     return moves.map(m => ({ action: 'delete_amove', id: m.id }));
+}
+
+// ================= لصق إشعار التحويل (بطلب عماد 2026-10-23) =================
+// بتلصق رسالة/إشعار التحويل (بال باي، جوال باي، البنك): بنقرا المبلغ والعملة والاتجاه والحساب ومين بعت،
+// وبندوّر على اللي عليه هالمبلغ: وصلني ← إيداع USDT، إرسال/بيع جنيه؛ دفعت ← حوالات، سحب USDT، استقبال جنيه.
+// الكبسة على وحدة بتفتح نافذة الدفع تبعها معبّاية. ما في شي بينحفظ لحاله
+const NOTICE_ACC_WORDS = [
+    ['palpay', /pal\s*pay|بال\s*باي|بالباي/i],
+    ['jawwal', /jawwal\s*pay|جوال\s*باي|جوال\s*pay/i],
+    ['malchat', /mal\s*chat|مال\s*تشات|مالتشات|مالشات/i],
+    ['bank', /بنك\s*فلسطين|bank\s*of\s*palestine|\bBOP\b/i]
+];
+const NOTICE_IN = /استلام|استلمت|وصلك|وصلتك|وصل\s|وارد|واردة|إيداع|ايداع|اضافة|إضافة|أضيف|اضيف|إلى\s*حسابك|الى\s*حسابك|لحسابك|إلى\s*محفظتك|الى\s*محفظتك|لمحفظتك|received|credited|deposit/i;
+const NOTICE_OUT = /دفعت|تم\s*الدفع|خصم|صادر|صادرة|أرسلت|ارسلت|حولت|من\s*حسابك|من\s*محفظتك|sent|debited|withdraw|paid/i;
+const NOTICE_CUR = { ILS: /₪|شيكل|شيقل|شواكل|\bILS\b|\bNIS\b|ش\.ج/i, USD: /\$|دولار|\bUSD\b/i };
+
+function parseTransferNotice(raw) {
+    const text = latinDigits(String(raw || '')).replace(/٫/g, '.').replace(/٬/g, ',');
+    const out = { amount: 0, currency: '', dir: 0, accType: '', phone: '', name: '' };
+    if (!text.trim()) return out;
+    // الأرقام مع مكانها؛ بنشيل الجوال والتاريخ والوقت وأرقام الحسابات الطويلة
+    const nums = [];
+    const re = /\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?/g;
+    let m;
+    while ((m = re.exec(text))) {
+        const s = m[0], before = text[m.index - 1] || '', after = text[m.index + s.length] || '';
+        const digits = s.replace(/\D/g, '');
+        // تاريخ أو وقت (23/10، 14:05، 2026-10-23). الإشارة السالبة قبل المبلغ (-636) مسموحة
+        const dateLike = /[/:]/.test(before) || /[/:]/.test(after)
+            || (before === '-' && /\d/.test(text[m.index - 2] || '')) || (after === '-' && /\d/.test(text[m.index + s.length + 1] || ''));
+        if (dateLike) continue;
+        if (!s.includes(',') && !s.includes('.') && digits.length >= 7) continue;
+        const v = toNum(s, 0);
+        if (!(v > 0)) continue;
+        const near = text.slice(Math.max(0, m.index - 14), m.index + s.length + 14);
+        const cur = NOTICE_CUR.ILS.test(near) ? 'ILS' : NOTICE_CUR.USD.test(near) ? 'USD' : '';
+        const word = /مبلغ|بقيمة|قيمة|amount|المبلغ/i.test(text.slice(Math.max(0, m.index - 16), m.index));
+        nums.push({ v, cur, score: (cur ? 3 : 0) + (word ? 2 : 0) + (s.includes('.') || s.includes(',') ? 1 : 0) });
+    }
+    const best = nums.sort((a, b) => b.score - a.score)[0];
+    if (best) { out.amount = round2(best.v); out.currency = best.cur; }
+    if (!out.currency) out.currency = NOTICE_CUR.USD.test(text) && !NOTICE_CUR.ILS.test(text) ? 'USD' : 'ILS';
+    const inHit = NOTICE_IN.test(text), outHit = NOTICE_OUT.test(text);
+    out.dir = outHit && !inHit ? -1 : 1;
+    out.accType = (NOTICE_ACC_WORDS.find(([, r]) => r.test(text)) || [''])[0];
+    const phone = text.match(/(?:\+?97[02])?0?5\d{8}/);
+    if (phone) out.phone = phone[0].replace(/\D/g, '').slice(-9);
+    const nm = text.match(/(?:من|from|المرسل|اسم المرسل|المحوّل|المحول)\s*[:：]?\s*([^\n\d،,.:؛()]{3,40})/i);
+    if (nm && !/حساب|محفظ|رقم|بنك|account|wallet/i.test(nm[1])) out.name = nm[1].trim();
+    return out;
+}
+
+// اللي بيطابق: نفس المبلغ بالضبط، أو الرقم/الاسم زي اللي بعت
+function noticeMatches(n) {
+    if (!(n.amount > 0)) return [];
+    const { owed, owe } = debtItems();
+    const list = (n.dir < 0 ? owe : owed).filter(i => i.cur === n.currency);
+    const nameWords = normName(n.name).split(' ').filter(w => w.length > 1).slice(0, 2);
+    return list.map(i => {
+        const c = customers.find(x => i.customerId && x.id === i.customerId) || customers.find(x => normName(x.name) === normName(i.who));
+        const nums = [c?.phone, c?.account].map(v => latinDigits(String(v || '')).replace(/\D/g, '').slice(-9)).filter(v => v.length >= 9);
+        const why = [];
+        let score = 0;
+        if (Math.abs(i.amount - n.amount) < 0.5) { score += 4; why.push('نفس المبلغ'); } else if (n.amount < i.amount) score += 1;
+        if (n.phone && nums.includes(n.phone)) { score += 5; why.push('نفس الرقم'); }
+        if (nameWords.length && nameWords.every(w => normName(i.who).includes(w))) { score += 4; why.push('نفس الاسم'); }
+        return { ...i, score, why };
+    }).filter(i => i.score > 1).sort((a, b) => b.score - a.score || String(b.date).localeCompare(String(a.date))).slice(0, 6);
+}
+
+function openNoticeModal() {
+    if (!walletsReady()) return;
+    $('nt_text').value = '';
+    $('nt_read').classList.add('hidden');
+    $('nt_matches').innerHTML = '';
+    openModal('noticeModal');
+    $('nt_text').focus();
+}
+
+// بعد اللصق: نعبّي الخانات (بتقدر تصلّحها) وبعدين المطابقات
+function onNoticeText() {
+    const n = parseTransferNotice($('nt_text').value);
+    const has = n.amount > 0;
+    $('nt_read').classList.toggle('hidden', !has);
+    if (!has) {
+        $('nt_matches').innerHTML = $('nt_text').value.trim() ? '<p class="text-xs text-amber-700 font-bold">ما لقيت مبلغ بالرسالة. اكتبه بإيدك تحت.</p>' : '';
+        if ($('nt_text').value.trim()) $('nt_read').classList.remove('hidden');
+        return;
+    }
+    $('nt_amount').value = n.amount;
+    $('nt_currency').value = n.currency;
+    $('nt_dir').value = n.dir < 0 ? 'out' : 'in';
+    fillNoticeAccounts(n.accType);
+    $('nt_from').textContent = [n.name && `من: ${n.name}`, n.phone && `الرقم: 0${n.phone}`].filter(Boolean).join(' · ');
+    renderNoticeMatches();
+}
+
+function fillNoticeAccounts(accType) {
+    const cur = $('nt_currency').value;
+    const pick = accType ? sortedAccounts().find(a => a.accType === accType && (cur !== 'USD' || a.usd)) : null;
+    $('nt_account').innerHTML = accountOptionsHtml(cur, pick?.id || $('nt_account').value);
+}
+
+function noticeForm() {
+    const n = parseTransferNotice($('nt_text').value);
+    return { ...n, amount: round2(toNum($('nt_amount').value, 0)), currency: $('nt_currency').value === 'USD' ? 'USD' : 'ILS', dir: $('nt_dir').value === 'out' ? -1 : 1, accountId: $('nt_account').value };
+}
+
+function renderNoticeMatches() {
+    const n = noticeForm();
+    if (!(n.amount > 0)) { $('nt_matches').innerHTML = ''; return; }
+    const list = noticeMatches(n);
+    const manual = `<button type="button" data-action="notice-manual" class="w-full text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg py-2">± سجّلها حركة يدوية على الحساب</button>`;
+    $('nt_matches').innerHTML = (list.length
+        ? `<p class="text-[11px] font-bold text-slate-500">${n.dir < 0 ? 'مين دفعتله؟' : 'مين اللي دفع؟'} اختار وبتنفتح نافذة الدفع معبّاية</p>` + list.map(i => `
+            <button type="button" data-action="notice-pick" data-type="${i.type}" data-id="${escapeHtml(i.id)}" class="nt-match${i.why.length ? ' strong' : ''}">
+                <span class="min-w-0">
+                    <b class="block truncate text-slate-900">${escapeHtml(i.who || '؟')}</b>
+                    <span class="text-[10px] text-slate-500">${escapeHtml(i.label)} ${escapeHtml(i.no)} · ${escapeHtml(i.date)}</span>
+                </span>
+                <span class="text-left shrink-0">
+                    <b class="num block">${moneyCur(i.amount, i.cur)}</b>
+                    ${i.why.length ? `<span class="nt-why">✓ ${escapeHtml(i.why.join(' · '))}</span>` : '<span class="text-[10px] text-slate-400">الباقي عليه</span>'}
+                </span>
+            </button>`).join('')
+        : `<p class="text-xs font-bold text-slate-500">ما لقيت ${n.dir < 0 ? 'حد إله' : 'حد عليه'} ${moneyCur(n.amount, n.currency)}.</p>`) + manual;
+}
+
+// افتح نافذة دفع الحركة وعبّي الحساب بالمبلغ
+function noticePick(type, id) {
+    const n = noticeForm();
+    closeModal('noticeModal');
+    if (type === 'tx') {
+        const tx = ledger.find(x => String(x.id) === String(id));
+        if (!tx) return;
+        if (txHeld(tx)) return approvalWarn(tx);
+        openTxPayModal(tx, 'مكتمل', { afterCreate: true });
+    } else if (type === 'usdt') openUsdtPay(toNum(id, NaN));
+    else openEgpPay(toNum(id, NaN));
+    if (!payCtx) return;
+    const input = $('pay-accounts').querySelector(`.pay-input[data-acc="${CSS.escape(n.accountId)}"]`);
+    if (input) {
+        input.value = Math.min(n.amount, payRemaining());
+        updatePaySummary();
+        input.focus();
+    }
+}
+
+function noticeManual() {
+    const n = noticeForm();
+    closeModal('noticeModal');
+    openAmoveModal('manual');
+    $('am_currency').value = n.currency;
+    fillAmoveAccounts();
+    if (n.accountId) $('am_account').value = n.accountId;
+    $('am_dir').value = n.dir < 0 ? 'out' : 'in';
+    $('am_amount').value = n.amount || '';
+    $('am_note').value = [n.name, n.phone && '0' + n.phone].filter(Boolean).join(' · ');
 }

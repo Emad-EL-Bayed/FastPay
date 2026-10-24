@@ -663,6 +663,22 @@ function updateEgpCustomerStatus() {
     const trade = ['send', 'receive'].includes($('eg_kind').value);
     updateCustomerPhoneField('eg', known, trade ? q : '');
     syncNewPayoutField('eg', !known && !!q && $('eg_kind').value === 'receive');
+    renderEgpBlackNote();
+}
+
+// القائمة السوداء: اسم الزبون واسم المستلم/المرسل، والجوال ورقم فودافون/انستا والرقم المحفوظ للزبون
+function egpBlackHit() {
+    if (!['send', 'receive'].includes($('eg_kind').value)) return null;
+    const name = $('eg_customer').value;
+    const known = customers.find(c => c.id === $('eg_customer_id').value) || customers.find(c => normName(c.name) === normName(name));
+    const numbers = [$('eg_phone').value, $('eg_np_account').value, $('eg_party_number').value, known?.phone, known?.account, known?.bankAccount, known?.iban];
+    return blacklistHit({ name, numbers }) || blacklistHit({ name: $('eg_party').value });
+}
+
+function renderEgpBlackNote() {
+    const hit = egpBlackHit();
+    $('eg_black_note').classList.toggle('hidden', !hit);
+    if (hit) $('eg_black_note').textContent = blackNoteText(hit);
 }
 
 function onEgpCustomerInput() {
@@ -940,7 +956,7 @@ function recentSameEgp(f, customerId, name, trade) {
         && (trade ? (customerId && m.customerId ? m.customerId === customerId : normName(m.customerName) === normName(name)) : m.walletId === f.walletId)));
 }
 
-async function saveEgp(e, sameOk = false) {
+async function saveEgp(e, sameOk = false, blackOk = false) {
     e.preventDefault();
     if (!egpReady()) return;
     const f = resolvedEgpForm();
@@ -959,13 +975,17 @@ async function saveEgp(e, sameOk = false) {
     if (trade && f.currency === 'ILS' && !(f.usdRate > 0)) return warn('سعر الدولار غير صحيح', 'eg_usd_rate');
     // رقم المستلم بالإرسال اختياري (بطلب عماد 2026-10-16)
     if (f.kind === 'topup' && !(f.total > 0)) return warn('اكتب المبلغ اللي دفعته أو قبضته', 'eg_total');
+    if (!editingEgpId && !blackOk) {
+        const hit = egpBlackHit();
+        if (hit) return checkBlacklistThen(hit, () => saveEgp({ preventDefault() {} }, sameOk, true));
+    }
     if (!editingEgpId && !sameOk) {
         const known = trade ? customers.find(c => c.id === $('eg_customer_id').value) || customers.find(c => normName(c.name) === normName(name)) : null;
         const same = recentSameEgp(f, known?.id || '', name, trade);
         if (same) {
             showAppConfirm('هاي الحركة انسجلت قبل شوي',
                 `${EGP_KINDS[same.kind].replace(/\s*جنيه$/, '')} ${fmtTrim(Math.abs(same.egp))} جنيه${same.customerName ? ' · ' + same.customerName : ''} ${receiptNo(same)} انسجلت قبل ${sameMoveAgo(same)}. بدك تسجلها كمان مرة؟`,
-                () => saveEgp({ preventDefault() {} }, true));
+                () => saveEgp({ preventDefault() {} }, true, blackOk));
             return;
         }
     }

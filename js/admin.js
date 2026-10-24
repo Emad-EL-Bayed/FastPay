@@ -75,6 +75,77 @@ function renderAdminTools() {
     $('restore-open-btn').disabled = !sheetHas('restore');
     renderTxLimitSettings();
     renderFraudSettings();
+    renderLateSettings();
+    renderBlacklistSettings();
+}
+
+// ---------- الحوالة المتأخرة (إعداد مشترك lateHours: '' = 3، 0 = مسكّر) ----------
+function renderLateSettings() {
+    if (document.activeElement !== $('late_hours')) $('late_hours').value = lateHoursValue();
+    $('late-script-note').classList.toggle('hidden', sheetHas('lateAlert'));
+}
+
+function saveLateHours() {
+    const v = Math.max(0, Math.min(720, round2(toNum($('late_hours').value, 0))));
+    globalConfig.lateHours = String(v);
+    saveAll();
+    renderLateSettings();
+    renderLedgerTable();
+    showToast('انحفظ', v ? `الحوالة بتصير متأخرة بعد ${fmtTrim(v)} ${v === 1 ? 'ساعة' : 'ساعات'}` : 'تنبيه الحوالة المتأخرة مسكّر', 'success');
+}
+
+// ---------- القائمة السوداء (المدير بس) ----------
+function renderBlacklistSettings() {
+    const mgr = isManager() && hasPerm('settings');
+    $('black-section').classList.toggle('hidden', !mgr);
+    if (!mgr) return;
+    const list = blacklistEntries();
+    $('black-list').innerHTML = list.length
+        ? list.map((e, i) => `
+            <div class="black-row">
+                <span class="min-w-0">
+                    <b class="${e.kind === 'num' ? 'font-mono' : ''} text-slate-900 break-all" ${e.kind === 'num' ? 'dir="ltr"' : ''}>${escapeHtml(e.label)}</b>
+                    ${e.reason ? `<span class="text-slate-500"> — ${escapeHtml(e.reason)}</span>` : ''}
+                    <span class="block text-[10px] text-slate-400">${e.kind === 'num' ? 'رقم' : 'اسم'}${e.by ? ' · ' + escapeHtml(personName(e.by)) : ''}${e.at ? ' · ' + escapeHtml(e.at) : ''}</span>
+                </span>
+                <button type="button" data-action="black-remove" data-i="${i}" class="text-[11px] font-bold text-slate-400 hover:text-rose-600 px-2 py-1 shrink-0">شيل</button>
+            </div>`).join('')
+        : '<p class="text-[11px] text-slate-400">القائمة فاضية</p>';
+}
+
+function addBlacklist() {
+    if (!isManager()) return;
+    const raw = $('black_value').value.trim();
+    const key = blackKey(raw);
+    if (!key) return showToast('تنبيه', 'اكتب رقم (6 أرقام وأكثر) أو IBAN أو اسم كامل', 'warning');
+    const list = blacklistEntries();
+    if (list.some(e => e.kind === key.kind && e.v === key.v)) return showToast('موجود', `${blackLabel({ ...key, label: raw })} أصلاً بالقائمة`, 'info');
+    list.unshift({ ...key, label: raw, reason: $('black_reason').value.trim().slice(0, 120), by: session?.username || '', at: localDateStr() });
+    globalConfig.blacklist = list;
+    saveAll();
+    $('black_value').value = '';
+    $('black_reason').value = '';
+    renderBlacklistSettings();
+    refreshBlackNotes();
+    showToast('انضاف للقائمة السوداء', blackLabel(list[0]), 'success');
+}
+
+function removeBlacklist(i) {
+    const list = blacklistEntries();
+    const e = list[toNum(i, -1)];
+    if (!e || !isManager()) return;
+    showAppConfirm('شيل من القائمة السوداء', `${blackLabel(e)}؟`, () => {
+        globalConfig.blacklist = blacklistEntries().filter(x => !(x.kind === e.kind && x.v === e.v));
+        saveAll();
+        renderBlacklistSettings();
+        refreshBlackNotes();
+    });
+}
+
+function refreshBlackNotes() {
+    renderCalcBlackNote();
+    renderUsdtBlackNote();
+    renderEgpBlackNote();
 }
 
 // ---------- تنبيهات الاحتيال (إعدادات مشتركة fraudSameNumber / fraudNewIls / fraudDailyCount) ----------

@@ -167,6 +167,14 @@ const CLICK_ACTIONS = {
     'delete-amove': (el) => deleteAmovePrompt(toNum(el.dataset.id, NaN)),
     // الدفع
     'pay-fill': (el) => payFill(el.dataset.id),
+    'open-notice': openNoticeModal,
+    'black-add': addBlacklist,
+    'cust-gone-toggle': toggleGoneMode,
+    'gone-wa': (el) => goneWhatsapp(el.dataset.id),
+    'gone-contacted': (el) => markGoneContacted(el.dataset.id),
+    'black-remove': (el) => removeBlacklist(el.dataset.i),
+    'notice-pick': (el) => noticePick(el.dataset.type, el.dataset.id),
+    'notice-manual': noticeManual,
     'pay-save': savePayModal,
     'pay-skip': skipPayModal,
     'pay-cancel': cancelPayModal,
@@ -249,6 +257,10 @@ const CLICK_ACTIONS = {
         setCostMode(el.dataset.mode);
     },
     'calc-tier-reset': () => resetCalcTier(),
+    'calc-copy': (el) => copyCalcQuote(el),
+    'calc-rev-open': openCalcReverse,
+    'calc-rev-close': closeCalcReverse,
+    'calc-rev-apply': applyCalcReverse,
     'edit-country': (el) => openCountryModal(toNum(el.dataset.index, -1)),
     'country-tier-add': () => addCountryTier(),
     'country-tier-remove': (el) => removeCountryTier(el.dataset.i),
@@ -355,7 +367,7 @@ function bindGlobalEvents() {
 
 // النوافذ من فوق لتحت: Esc وزر الرجوع بيسكّروا اللي فوق بس
 // (الإشعار المهم و"مين عدّل قبلي" مش هون: ما بيتسكّروا إلا بالاختيار)
-const MODAL_ORDER = ['searchModal', 'fraudModal', 'custStatementModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'readySendModal', 'readyModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'accountModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal'];
+const MODAL_ORDER = ['searchModal', 'fraudModal', 'custStatementModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'readySendModal', 'readyModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'accountModal', 'noticeModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal'];
 const topModalId = () => MODAL_ORDER.find(id => !$(id).classList.contains('hidden'));
 
 // ================= زر الرجوع بالجوال (بطلب عماد 2026-10-19) =================
@@ -401,6 +413,10 @@ function bindCalculatorEvents() {
     $('calc_recipient').addEventListener('focus', onCustomerSearchInput);
     $('calc_recipient').addEventListener('click', onCustomerSearchInput);
     $('calc_recipient').addEventListener('keydown', onCustomerPickerKey);
+    ['calc_recipient', 'calc_account', 'calc_bank_account', 'calc_iban', 'calc_phone'].forEach(id => $(id).addEventListener('input', renderCalcBlackNote));
+    $('calc_rev_target').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); applyCalcReverse(); } });
+    // كتابة المبلغ بإيدك بتشيل سطر "بيبعت… بيستلم…" القديم
+    $('calc_orig_amount').addEventListener('input', () => $('calc-rev-note').classList.add('hidden'));
     $('source-search').addEventListener('input', renderSourceGrid);
     $('calc_other_name').addEventListener('input', updateSourceBadge);
     // كتابة التكلفة أو الربح بإيدك بتوقف شريحة المبلغ لهالحوالة (قبل runLiveCalc)
@@ -477,11 +493,15 @@ function bindAccountEvents() {
     $('closingForm').addEventListener('submit', saveClosing);
     $('closing-rows').addEventListener('input', updateClosingDiffs);
     $('amoveForm').addEventListener('submit', saveAmove);
-    $('acc_type').addEventListener('change', () => { $('acc_usd').checked = ACCOUNT_TYPES[$('acc_type').value].usd; syncAccountUsdField(); });
+    $('acc_type').addEventListener('change', () => { $('acc_usd').checked = ACCOUNT_TYPES[$('acc_type').value].usd; syncAccountUsdField(); syncAccountLimitFields(); });
     $('acc_usd').addEventListener('change', syncAccountUsdField);
     $('am_currency').addEventListener('change', fillAmoveAccounts);
     $('am_account').addEventListener('change', fillAmoveAccounts);
     $('pay-accounts').addEventListener('input', updatePaySummary);
+    $('nt_text').addEventListener('input', onNoticeText);
+    $('nt_amount').addEventListener('input', renderNoticeMatches);
+    ['nt_dir', 'nt_account'].forEach(id => $(id).addEventListener('change', renderNoticeMatches));
+    $('nt_currency').addEventListener('change', () => { fillNoticeAccounts(''); renderNoticeMatches(); });
     $('pay_settle').addEventListener('change', updatePaySummary);
 }
 
@@ -496,6 +516,7 @@ function bindUsdtEvents() {
     $('us_network').addEventListener('change', () => { $('us_fee').value = toNum($('us_network').selectedOptions[0]?.dataset.fee, 0); updateUsdtPreview(); });
     ['input', 'focus', 'click'].forEach(ev => $('us_customer').addEventListener(ev, onUsdtCustomerInput));
     $('us_customer').addEventListener('keydown', onUsdtCustomerKey);
+    ['us_phone', 'us_np_account'].forEach(id => $(id).addEventListener('input', renderUsdtBlackNote));
     $('usdt_search').addEventListener('input', (e) => { usdtSearch = e.target.value; renderUsdtPage(); });
     ['usdt_kind_filter', 'usdt_month_filter', 'usdt_date_filter'].forEach(id => $(id).addEventListener('change', renderUsdtPage));
     $('usdt-settings').addEventListener('change', (e) => onUsdtSettingInput(e.target));
@@ -512,6 +533,7 @@ function bindEgpEvents() {
     ['eg_wallet', 'eg_to_wallet', 'eg_dir'].forEach(id => $(id).addEventListener('change', () => { syncEgpDirFields(); updateEgpPreview(); }));
     ['input', 'focus', 'click'].forEach(ev => $('eg_customer').addEventListener(ev, onEgpCustomerInput));
     $('eg_customer').addEventListener('keydown', onEgpCustomerKey);
+    ['eg_phone', 'eg_np_account', 'eg_party', 'eg_party_number'].forEach(id => $(id).addEventListener('input', renderEgpBlackNote));
     $('egp_search').addEventListener('input', (e) => { egpSearch = e.target.value; renderEgpLog(); });
     ['egp_kind_filter', 'egp_month_filter'].forEach(id => $(id).addEventListener('change', renderEgpLog));
     $('egpq_amount').addEventListener('input', renderEgpQuick);
@@ -537,6 +559,9 @@ function bindUserEvents() {
 // الإعدادات وتسعير الدول
 function bindSettingsEvents() {
     $('tx_limit').addEventListener('change', saveTxLimit);
+    $('late_hours').addEventListener('change', saveLateHours);
+    $('black_value').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addBlacklist(); } });
+    $('black_reason').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addBlacklist(); } });
     $('track_days').addEventListener('change', saveTrackDays);
     ['fraud_new_ils', 'fraud_daily'].forEach(id => $(id).addEventListener('change', saveFraudLimits));
     $('report_email').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveReportEmail(); } });
@@ -632,6 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // تحديث حيّ واحد كل دقيقتين (سعر الشاشة + الشيت معاً)، وعند الرجوع للصفحة
     setInterval(liveCycle, LIVE_REFRESH_MS);
+    setInterval(lateTick, 60 * 1000);
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
             // اللي انبعت بالخلفية وإحنا مسكّرين (الأندرويد)

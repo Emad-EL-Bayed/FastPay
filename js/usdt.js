@@ -233,6 +233,21 @@ function updateUsdtCustomerStatus() {
     const adjust = $('us_kind').value === 'adjust';
     updateCustomerPhoneField('us', known, adjust ? '' : q);
     syncNewPayoutField('us', !known && !!q && $('us_kind').value === 'withdraw');
+    renderUsdtBlackNote();
+}
+
+// القائمة السوداء (core.js blacklistHit): الاسم، الجوال، ورقم الزبون المحفوظ أو الجديد
+function usdtBlackHit() {
+    if ($('us_kind').value === 'adjust') return null;
+    const name = $('us_customer').value;
+    const known = customers.find(c => c.id === $('us_customer_id').value) || customers.find(c => normName(c.name) === normName(name));
+    return blacklistHit({ name, numbers: [$('us_phone').value, $('us_np_account').value, known?.phone, known?.account, known?.bankAccount, known?.iban] });
+}
+
+function renderUsdtBlackNote() {
+    const hit = usdtBlackHit();
+    $('us_black_note').classList.toggle('hidden', !hit);
+    if (hit) $('us_black_note').textContent = blackNoteText(hit);
 }
 
 function onUsdtCustomerInput() {
@@ -479,7 +494,7 @@ function recentSameUsdt(f, customerId, name) {
 
 const latestById = (list) => list.reduce((best, m) => (!best || m.id > best.id ? m : best), null);
 
-async function saveUsdt(e, sameOk = false) {
+async function saveUsdt(e, sameOk = false, blackOk = false) {
     e.preventDefault();
     if (!walletsReady()) return;
     const f = resolvedUsdtForm();
@@ -487,13 +502,17 @@ async function saveUsdt(e, sameOk = false) {
     const name = $('us_customer').value.trim();
     if (f.kind !== 'adjust' && !name) return showToast('تنبيه', 'اكتب اسم الزبون', 'warning');
     if (f.kind !== 'adjust' && f.currency === 'ILS' && !(f.rate > 0)) return showToast('تنبيه', 'سعر الدولار غير صحيح', 'warning');
+    if (!editingUsdtId && !blackOk) {
+        const hit = usdtBlackHit();
+        if (hit) return checkBlacklistThen(hit, () => saveUsdt({ preventDefault() {} }, sameOk, true));
+    }
     if (!editingUsdtId && !sameOk) {
         const known = customers.find(c => c.id === $('us_customer_id').value) || customers.find(c => normName(c.name) === normName(name));
         const same = recentSameUsdt(f, known?.id || '', name);
         if (same) {
             showAppConfirm('هاي الحركة انسجلت قبل شوي',
                 `${USDT_KINDS[same.kind]} ${fmtTrim(Math.abs(same.amount))} USDT${same.customerName ? ' · ' + same.customerName : ''} ${receiptNo(same)} انسجلت قبل ${sameMoveAgo(same)}. بدك تسجلها كمان مرة؟`,
-                () => saveUsdt({ preventDefault() {} }, true));
+                () => saveUsdt({ preventDefault() {} }, true, blackOk));
             return;
         }
     }

@@ -101,8 +101,18 @@ function payoutReadiness() {
     });
     return [...groups.values()].map(g => {
         const h = g.type ? (have[g.type + '|' + g.cur] || 0) : null;
-        return { ...g, have: h, short: g.type ? round2(g.need - h) : 0 };
+        return { ...g, have: h, short: g.type ? round2(g.need - h) : 0, limitLeft: g.cur === 'ILS' ? typeLimitLeft(g.type) : Infinity };
     }).sort((a, b) => (!a.type) - (!b.type) || b.short - a.short || b.need - a.need);
+}
+
+// حدود المحافظ: قديش ضايل نقدر نطلّع اليوم من حسابات هالنوع (Infinity إذا في حساب منها بدون حد)
+function typeLimitLeft(type) {
+    const list = accounts.filter(a => a.accType === type);
+    if (!type || !list.length || !sheetHas('walletLimits') || list.some(a => !hasLimits(a))) return Infinity;
+    return round2(list.reduce((sum, a) => {
+        const left = walletLeft(a);
+        return sum + Math.max(0, Math.min(left.day, left.month));
+    }, 0));
 }
 
 function payoutItemLabel(i) {
@@ -118,7 +128,7 @@ function renderPayoutReadiness() {
     if (dataState === 'loading' || globalConfig.payoutReadyOn === 'no') { box.innerHTML = ''; box.classList.add('hidden'); return; }
     box.classList.remove('hidden');
     const rows = payoutReadiness();
-    const shorts = rows.filter(r => r.type && r.short > 0.004).length;
+    const shorts = rows.filter(r => r.type && (r.short > 0.004 || (Number.isFinite(r.limitLeft) && r.need - r.limitLeft > 0.004))).length;
     const missing = [['transactions', 'الحوالات'], ['usdt', 'USDT'], ['egp', 'الجنيه']].filter(([p]) => !hasPerm(p)).map(([, l]) => l);
     const head = `
         <div class="flex flex-wrap items-start justify-between gap-2">
@@ -138,22 +148,26 @@ function renderPayoutReadiness() {
     box.innerHTML = head + '<div class="space-y-2">' + rows.map(r => {
         const t = ACCOUNT_TYPES[r.type] || { label: 'مش محدد', color: '#64748b', soft: '#f1f5f9', ink: '#334155' };
         const by = Object.entries(r.by);
+        const limitShort = Number.isFinite(r.limitLeft) && r.need - r.limitLeft > 0.004;
         const breakdown = [
             by.length > 1 ? by.map(([k, v]) => `${READY_TYPE_WORD[k]}: ${moneyCur(v, r.cur)}`).join(' · ') : '',
-            r.pending > 0.004 ? `منها ${moneyCur(r.pending, r.cur)} بتستنى موافقتك ⏳` : ''
+            r.pending > 0.004 ? `منها ${moneyCur(r.pending, r.cur)} بتستنى موافقتك ⏳` : '',
+            Number.isFinite(r.limitLeft) ? `ضايل من حد التحويل ${moneyCur(r.limitLeft, r.cur)}${limitShort ? ' ⚠️' : ''}` : ''
         ].filter(Boolean).join(' · ');
         const state = !r.type
             ? '<span class="pr-state none">بتختار الحساب وقت الدفع</span>'
             : r.short > 0.004
                 ? `<span class="pr-state short">ناقصك ${moneyCur(r.short, r.cur)} ⚠️</span>`
-                : '<span class="pr-state ok">✓ مكفّي</span>';
+                : limitShort
+                    ? '<span class="pr-state short">الحد ما بيكفي ⚠️</span>'
+                    : '<span class="pr-state ok">✓ مكفّي</span>';
         const items = [...r.items].sort((a, b) => String(a.date).localeCompare(String(b.date))).map(i => `
             <button type="button" data-action="goto-ref" data-type="${i.type}" data-id="${escapeHtml(i.id)}" class="pr-item">
                 <span class="min-w-0 truncate">${payoutItemLabel(i)} ${escapeHtml(i.no)} · ${escapeHtml(i.who || '')}${i.pending ? ' ⏳' : ''}</span>
                 <b class="num shrink-0">${moneyCur(i.amount, i.cur)}</b>
             </button>`).join('');
         return `
-            <details class="pr-row${r.short > 0.004 ? ' is-short' : ''}" style="--acc:${t.color};--acc-soft:${t.soft};--acc-ink:${t.ink}">
+            <details class="pr-row${r.short > 0.004 || limitShort ? ' is-short' : ''}" style="--acc:${t.color};--acc-soft:${t.soft};--acc-ink:${t.ink}">
                 <summary class="pr-sum">
                     <span class="pr-name"><span class="acc-chip">${escapeHtml(t.label)}</span>${r.cur === 'USD' ? '<span class="pr-cur">دولار</span>' : ''}</span>
                     <span class="pr-num"><small>لازمك</small><b class="num">${moneyCur(r.need, r.cur)}</b></span>

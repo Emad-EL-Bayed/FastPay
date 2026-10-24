@@ -132,9 +132,11 @@ function renderCustomersTable() {
     const sort = $('cust_sort').value || 'recent';
     const index = buildCustomerStatsIndex();
 
-    const rows = customers
-        .filter(c => !search || c.name.toLowerCase().includes(search) || (searchDigits && (whatsappDigits(c.phone).includes(searchDigits) || normPhone(c.account).includes(searchDigits) || (c.bankAccount && normPhone(c.bankAccount).includes(searchDigits)) || (c.iban && c.iban.toLowerCase().includes(searchDigits)))))
-        .map(c => ({ c, s: customerStats(c, index) }));
+    const all = customers.map(c => ({ c, s: customerStats(c, index) }));
+    const gone = all.filter(isGoneCustomer);
+    renderGoneChip(gone.length);
+    const rows = (custGoneMode ? gone : all)
+        .filter(({ c }) => !search || c.name.toLowerCase().includes(search) || (searchDigits && (whatsappDigits(c.phone).includes(searchDigits) || normPhone(c.account).includes(searchDigits) || (c.bankAccount && normPhone(c.bankAccount).includes(searchDigits)) || (c.iban && c.iban.toLowerCase().includes(searchDigits)))));
 
     const sorters = {
         recent: (a, b) => (b.s.last || b.c.createdAt || '').localeCompare(a.s.last || a.c.createdAt || ''),
@@ -143,10 +145,11 @@ function renderCustomersTable() {
         received: (a, b) => (b.s.receivedIls + b.s.receivedUsd * globalConfig.screenRate) - (a.s.receivedIls + a.s.receivedUsd * globalConfig.screenRate),
         name: (a, b) => a.c.name.localeCompare(b.c.name, 'ar')
     };
-    rows.sort(sorters[sort] || sorters.recent);
+    // غابوا: الأكثر حركات أول (الأهم ترجّعه)
+    rows.sort(custGoneMode ? sorters.count : (sorters[sort] || sorters.recent));
 
     if (rows.length === 0) {
-        $('customers-body').innerHTML = `<tr><td colspan="8" class="p-6 text-center text-xs text-slate-400">${emptyMessage(customers.length, 'لا توجد نتائج مطابقة', 'لا يوجد زبائن في الشيت بعد')}</td></tr>`;
+        $('customers-body').innerHTML = `<tr><td colspan="8" class="p-6 text-center text-xs text-slate-400">${custGoneMode ? '✓ ما في زبائن غابوا' : emptyMessage(customers.length, 'لا توجد نتائج مطابقة', 'لا يوجد زبائن في الشيت بعد')}</td></tr>`;
         return;
     }
 
@@ -155,10 +158,10 @@ function renderCustomersTable() {
             <td class="p-3.5">
                 <span class="flex items-center gap-2.5">
                     <span class="cust-avatar">${escapeHtml(c.name.trim().charAt(0) || '؟')}</span>
-                    <span class="font-bold text-slate-900 whitespace-nowrap">${c.vipDiscount > 0 ? '<span title="زبون مميز">⭐</span> ' : ''}${escapeHtml(c.name)}</span>
+                    <span class="font-bold text-slate-900 whitespace-nowrap">${c.vipDiscount > 0 ? '<span title="زبون مميز">⭐</span> ' : ''}${escapeHtml(c.name)}${custGoneMode ? `<span class="block text-[10px] font-bold text-amber-700">آخر حركة ${escapeHtml(relativeDays(s.last))}</span>` : ''}</span>
                 </span>
             </td>
-            <td class="p-3.5 whitespace-nowrap">${whatsappButton(c)}</td>
+            <td class="p-3.5 whitespace-nowrap">${custGoneMode ? goneActionsHtml(c) : whatsappButton(c)}</td>
             <td class="p-3.5"><span class="badge ${payoutBadgeClass(c.payout)}">${escapeHtml(payoutLabel(c))}</span></td>
             <td class="p-3.5 text-center whitespace-nowrap"><span class="cust-count-pill">${[s.count || (!s.usdtCount && !s.egpCount) ? `${s.count} حوالة` : '', s.usdtCount ? `${s.usdtCount} USDT` : '', s.egpCount ? `${s.egpCount} جنيه` : ''].filter(Boolean).join(' · ')}</span></td>
             <td class="p-3.5 font-bold text-slate-800 num whitespace-nowrap">${receivedHtml(s)}</td>
@@ -170,6 +173,58 @@ function renderCustomersTable() {
             </td>
         </tr>
     `).join('');
+}
+
+// ================= زبائن غابوا (بطلب عماد 2026-10-23) =================
+// زبون إله 3 حركات أو أكتر (حوالات و USDT والجنيه) وآخر حركة قبل 30 يوم أو أكتر. "تواصلت معه" (contactedAt
+// بعمود "آخر تواصل"، ميزة goneCustomers) بيخفيه 30 يوم. رسالة واتساب من الإعدادات (WA_MESSAGE_DEFAULTS gone)
+const GONE_DAYS = 30;
+const GONE_MIN_MOVES = 3;
+let custGoneMode = false;
+
+function isGoneCustomer({ c, s }) {
+    if (s.count + s.usdtCount + s.egpCount < GONE_MIN_MOVES) return false;
+    const days = daysSince(s.last);
+    if (days === null || days < GONE_DAYS) return false;
+    const contacted = daysSince(c.contactedAt);
+    return contacted === null || contacted >= GONE_DAYS;
+}
+
+function renderGoneChip(n) {
+    $('cust-gone-count').textContent = n;
+    $('cust-gone-btn').classList.toggle('active', custGoneMode);
+    $('cust-gone-btn').classList.toggle('hidden', !n && !custGoneMode);
+    $('cust-gone-note').classList.toggle('hidden', !custGoneMode);
+}
+
+function goneActionsHtml(c) {
+    return `<span class="inline-flex items-center gap-1.5">
+        <button data-action="gone-wa" data-id="${escapeHtml(c.id)}" class="wa-btn${hasWhatsapp(c) ? '' : ' wa-missing'}" title="رسالة واتساب">${WA_ICON} رسالة</button>
+        ${sheetHas('goneCustomers') ? `<button data-action="gone-contacted" data-id="${escapeHtml(c.id)}" class="text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg">✓ تواصلت معه</button>` : ''}
+    </span>`;
+}
+
+function toggleGoneMode() {
+    custGoneMode = !custGoneMode;
+    renderCustomersTable();
+}
+
+// الرسالة الجاهزة على محادثته (أو بتختار المحادثة إذا ما إله رقم)
+function goneWhatsapp(id) {
+    const c = customers.find(x => x.id === id);
+    if (!c) return;
+    const text = encodeURIComponent(fillWaMessage('gone', { 'الاسم': c.name.split(' ')[0] || c.name }));
+    window.open(hasWhatsapp(c) ? `https://wa.me/${whatsappDigits(c.phone)}?text=${text}` : `https://wa.me/?text=${text}`, '_blank', 'noopener');
+}
+
+async function markGoneContacted(id) {
+    const c = customers.find(x => x.id === id);
+    if (!c || !sheetHas('goneCustomers')) return;
+    c.contactedAt = localDateStr();
+    queueOps({ action: 'upsert_customer', customer: c });
+    renderCustomersTable();
+    const status = await flushOutbox();
+    showToast('✓ تواصلت معه', `${c.name} بيختفي من "غابوا" ${GONE_DAYS} يوم — ${syncResultMessage(status)}`, syncToastType(status));
 }
 
 // ---------- واتساب ----------

@@ -20,6 +20,18 @@ function saveNewTransaction() {
     if (txSaving) return;
     const form = readNewTxForm();
     if (!form) return;
+    const hit = blacklistHit({ name: form.recipient, numbers: [form.account, form.bankAccount, form.iban, form.phone, form.customer?.phone] });
+    checkBlacklistThen(hit, () => saveCheckedTransaction(form));
+}
+
+// القائمة السوداء قبل أي حفظ (الحاسبة و USDT والجنيه): الموظف ممنوع، والمدير بيكمّل على مسؤوليته
+function checkBlacklistThen(hit, go) {
+    if (!hit) return go();
+    if (!isManager()) return showToast('⛔ ممنوع الحفظ', `${blackNoteText(hit).replace(/^⛔\s*/, '')}. بس المدير بيقدر يكمّل`, 'error');
+    showAppConfirm('⛔ بالقائمة السوداء', `${blackLabel(hit)}${hit.reason ? ' — ' + hit.reason : ''}. بدك تكمّل على مسؤوليتك؟`, go);
+}
+
+function saveCheckedTransaction(form) {
     const same = recentSameTx(form);
     if (same) {
         const mins = Math.max(1, Math.round((Date.now() - same.id) / 60000));
@@ -246,6 +258,7 @@ function renderLedgerTable() {
     });
 
     renderApprovalBanner();
+    renderLateBanner();
     if (filtered.length === 0) {
         $('ledger-body').innerHTML = `<tr><td colspan="7" class="p-6 text-center text-xs text-slate-400">${emptyMessage(ledger.length, 'لا توجد نتائج مطابقة للفلترة', 'لا توجد حوالات في الشيت بعد')}</td></tr>`;
         refreshTxDetails();
@@ -257,9 +270,10 @@ function renderLedgerTable() {
     $('ledger-body').innerHTML = shown.map(t => {
         const syncState = txSyncState(t.id);
         const syncDot = syncState ? `<span class="sync-dot ${syncState}" title="${SYNC_TITLES[syncState]}"></span>` : '';
+        const lateMs = txLateMs(t);
         // باقي التفاصيل (الرقم، المبلغ الأصلي، الربح، سعر الشاشة، التعديل والحذف) بنافذة "تفاصيل"
         return `
-            <tr class="hover:bg-slate-50">
+            <tr class="hover:bg-slate-50${lateMs ? ' row-late' : ''}">
                 <td class="p-3.5 text-center whitespace-nowrap"><button data-action="tx-details" data-id="${t.id}" class="txd-link" title="التفاصيل${auditTitle(t) ? ' · ' + auditTitle(t) : ''}${t.serial ? ` · رقم الحركة ${t.id}` : ''}">${syncDot} ${receiptNo(t)}</button></td>
                 <td class="p-3.5 whitespace-nowrap text-slate-500 text-xs num">${escapeHtml(t.date)}${lockMark(t.date)}</td>
                 <td class="p-3.5">
@@ -281,6 +295,7 @@ function renderLedgerTable() {
                     ${t.status === 'جزئي' ? `<div class="text-[10px] text-sky-700 mt-1">مدفوع ${fmt(txPaid(t))} من ${fmt(txDue(t))} ${CUR_SYM[t.currency]} <button data-action="tx-pay" data-id="${t.id}" class="font-bold underline mr-1">+ دفعة</button></div>` : ''}
                     ${approvalChip(t)}
                     ${flagChip(t)}
+                    ${lateMs ? `<div class="late-chip" title="انسجلت ${escapeHtml(new Date(t.id).toLocaleString('ar-EG', { hour: 'numeric', minute: '2-digit', day: 'numeric', month: 'numeric' }))}">⏰ صرلها ${lateAgoWords(lateMs)}</div>` : ''}
                 </td>
                 <td class="p-3.5 text-center whitespace-nowrap">
                     <button data-action="open-receipt" data-id="${t.id}" class="text-slate-700 hover:text-slate-900 font-bold text-xs px-2.5 py-1 bg-slate-100 rounded-lg">فاتورة</button>
@@ -594,6 +609,56 @@ function renderApprovalBanner() {
             <button data-action="tx-details" data-id="${t.id}" class="min-w-0 text-right"><b>${escapeHtml(t.recipient)}</b> <span class="num">${deliveredHtml(t)}</span> <span class="text-[11px] text-slate-500">${t.createdBy ? escapeHtml(personName(t.createdBy)) + ' · ' : ''}${escapeHtml(t.date)}</span></button>
             <button data-action="tx-approve" data-id="${t.id}" class="approval-chip manager">✓ وافق</button>
         </div>`).join('');
+}
+
+// ================= الحوالة المتأخرة (بطلب عماد 2026-10-23) =================
+// مش مكتملة ولا ملغية، وصرلها أكتر من lateHours ساعة من وقت إنشائها (= رقمها). السطر برتقالي وعليه "⏰ صرلها…"،
+// وشريط فوق السجل. الإشعار عالجوال من السكربت (lateTxJob كل ربع ساعة)
+function lateHoursValue() {
+    const raw = String(globalConfig.lateHours ?? '').trim();
+    if (raw === '') return 3;
+    const h = toNum(raw, 0);
+    return h > 0 ? h : 0;
+}
+
+function txLateMs(t, now = Date.now()) {
+    const hours = lateHoursValue();
+    if (!hours || t.status === 'مكتمل' || t.status === CANCELLED || !(t.id > 1e12)) return 0;
+    const ms = now - t.id;
+    return ms >= hours * 3600000 ? ms : 0;
+}
+
+// 3 ساعات، 11 ساعة، يومين، 5 أيام
+function lateAgoWords(ms) {
+    const h = Math.floor(ms / 3600000);
+    if (h < 24) return h <= 1 ? 'ساعة' : h === 2 ? 'ساعتين' : h <= 10 ? `${h} ساعات` : `${h} ساعة`;
+    const d = Math.floor(h / 24);
+    return d === 1 ? 'يوم' : d === 2 ? 'يومين' : d <= 10 ? `${d} أيام` : `${d} يوم`;
+}
+
+function renderLateBanner() {
+    const box = $('late-banner');
+    const now = Date.now();
+    const list = ledger.map(t => ({ t, ms: txLateMs(t, now) })).filter(x => x.ms).sort((a, b) => b.ms - a.ms);
+    box.classList.toggle('hidden', !list.length);
+    if (!list.length) { box.innerHTML = ''; return; }
+    const h = lateHoursValue();
+    box.innerHTML = `<div class="late-banner-head">⏰ ${list.length === 1 ? 'حوالة متأخرة' : list.length + ' حوالات متأخرة'} <span>(صرلها أكتر من ${fmtTrim(h)} ${h === 1 ? 'ساعة' : 'ساعات'} وما خلصت)</span></div>`
+        + list.slice(0, 6).map(({ t, ms }) => `<button data-action="tx-details" data-id="${t.id}" class="late-row">
+            <span class="min-w-0 truncate"><b>${escapeHtml(t.recipient)}</b> <span class="num">${deliveredHtml(t)}</span> <span class="text-[11px] text-slate-500">${escapeHtml(t.status)}${t.createdBy ? ' · ' + escapeHtml(personName(t.createdBy)) : ''}</span></span>
+            <span class="late-ago">صرلها ${lateAgoWords(ms)}</span>
+        </button>`).join('')
+        + (list.length > 6 ? `<div class="text-[11px] text-slate-500 pt-1">وغيرهم ${list.length - 6}</div>` : '');
+}
+
+// كل دقيقة: إذا تغيّرت المتأخرة (أو صار إلها ساعة زيادة) بنعيد رسم السجل
+let lateSig = '';
+function lateTick() {
+    const now = Date.now();
+    const sig = ledger.map(t => [t.id, txLateMs(t, now)]).filter(([, ms]) => ms).map(([id, ms]) => id + ':' + Math.floor(ms / 3600000)).join(',');
+    if (sig === lateSig) return;
+    lateSig = sig;
+    if (!pageHidden('transactions')) renderLedgerTable();
 }
 
 async function approveTx(id) {

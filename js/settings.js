@@ -143,6 +143,8 @@ const SHARED_SETTINGS = {
     trackDays: { label: 'مدة رابط التتبّع بالأيام (فاضي = 7)', type: 'str' },
     trackExpire: { label: 'رابط التتبّع بينتهي (yes/no)', type: 'str' },
     trackLinkOff: { label: 'زبائن ما بينبعتلهم رابط التتبّع (أرقامهم)', type: 'json' },
+    lateHours: { label: 'الحوالة المتأخرة: بعد كم ساعة (فاضي = 3، 0 = مسكّر)', type: 'str' },
+    blacklist: { label: 'القائمة السوداء: أرقام وأسماء ممنوعة', type: 'json' },
     reportEmail: { label: 'التقرير الشهري: الإيميل (فاضي = صاحب السكربت، off = مسكّر)', type: 'str' },
     txLimitOn: { label: 'حد الحوالة للموظف: yes شغّال / no مسكّر', type: 'str' },
     txLimit: { label: 'حد الحوالة للموظف ₪ (فوقه بتستنى موافقة المدير)', type: 'num' },

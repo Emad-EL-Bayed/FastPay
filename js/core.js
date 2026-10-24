@@ -73,6 +73,10 @@ const DEFAULT_CONFIG = {
     // مدة الرابط بالأيام ('' = 7)، أو ما بينتهي (trackExpire = 'no')؛ السكربت بيطبّقها
     trackDays: '',
     trackExpire: 'yes',
+    // الحوالة المتأخرة (بطلب عماد 2026-10-23): مش مكتملة ولا ملغية صرلها أكتر من هالساعات ('' = 3، 0 = مسكّر)
+    lateHours: '',
+    // القائمة السوداء: [{v: الرقم أو الاسم منظّف, label, kind: num|name, reason, by, at}]، المدير بس بيعدّلها
+    blacklist: [],
     // التقرير الشهري بالإيميل: '' = إيميل صاحب السكربت، 'off' = مسكّر، أو إيميل
     reportEmail: '',
     // حد الحوالة للموظف (بطلب عماد 2026-10-19): فوقه بتستنى موافقة المدير
@@ -537,6 +541,8 @@ function normalizeCustomer(c) {
         // زبون مميز: خصم على نسبة ربح الدولة بالحاسبة (%)، وموثوق = بدون تنبيهات احتيال (المدير بس بيغيّرهم)
         vipDiscount: Math.max(0, round2(toNum(c?.vipDiscount, 0))),
         trusted: c?.trusted === 'yes' || c?.trusted === true ? 'yes' : 'no',
+        // زبائن غابوا: آخر "تواصلت معه" (yyyy-MM-dd)
+        contactedAt: String(c?.contactedAt ?? '').slice(0, 10),
         createdAt: String(c?.createdAt ?? '').slice(0, 10)
     };
 }
@@ -655,3 +661,36 @@ function showToast(title, message = '', type = 'success') {
         setTimeout(() => toast.remove(), 300);
     }, duration);
 }
+
+// ================= القائمة السوداء (بطلب عماد 2026-10-23) =================
+// إعداد مشترك blacklist: [{kind: num|name, v: المفتاح المنظّف, label: زي ما انكتب, reason, by, at}]. المدير بس بيعدّلها
+// (admin.js). الرقم: IBAN منظّف، أو آخر 9 أرقام (0599… = 970599… = 599…)؛ الاسم: الاسم كامل منظّف (مش جزء منه).
+// الحاسبة و USDT والجنيه بيبينوا خط أحمر أول ما يطابق، والحفظ للموظف ممنوع والمدير بيكمّل على مسؤوليته
+function blackKey(raw) {
+    const s = latinDigits(String(raw ?? '')).trim();
+    if (!s) return null;
+    const iban = cleanIban(s);
+    if (/^[A-Z]{2}\d{2}[A-Z0-9]{8,}$/.test(iban)) return { kind: 'num', v: iban };
+    const digits = s.replace(/\D/g, '');
+    // رقم = أرقام بس (المسافات والشرطات و+ مسموحة)
+    if (digits.length >= 6 && /^[\d\s\-+()]+$/.test(s)) return { kind: 'num', v: digits.length >= 9 ? digits.slice(-9) : digits };
+    const n = normName(s);
+    return n.length >= 3 && !/\d/.test(n) ? { kind: 'name', v: n } : null;
+}
+
+function blacklistEntries() {
+    return Array.isArray(globalConfig.blacklist) ? globalConfig.blacklist.filter(e => e && e.v && (e.kind === 'num' || e.kind === 'name')) : [];
+}
+
+// {name, numbers: [..]} ← أول سطر بيطابق أو null
+function blacklistHit({ name = '', numbers = [] } = {}) {
+    const list = blacklistEntries();
+    if (!list.length) return null;
+    const keys = numbers.map(blackKey).filter(k => k && k.kind === 'num').map(k => k.v);
+    const nm = normName(name);
+    return list.find(e => (e.kind === 'num' ? keys.includes(e.v) : !!nm && nm === e.v)) || null;
+}
+
+// الرقم بيضل من الشمال لليمين جوّا النص العربي (0597 000 111 مش 111 000 0597)
+const blackLabel = (e) => (e.kind === 'num' ? `\u2066${e.label}\u2069` : e.label);
+const blackNoteText = (hit) => `⛔ بالقائمة السوداء: ${blackLabel(hit)}${hit.reason ? ' — ' + hit.reason : ''}`;
