@@ -28,41 +28,41 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=135">
+    <link rel="stylesheet" href="styles.css?v=138">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=135">
+    <link rel="stylesheet" href="tailwind.css?v=138">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=135" defer></script>
-    <script src="js/core.js?v=135" defer></script>
-    <script src="js/theme.js?v=135" defer></script>
-    <script src="js/logo-data.js?v=135" defer></script>
-    <script src="js/shell.js?v=135" defer></script>
-    <script src="js/calculator.js?v=135" defer></script>
-    <script src="js/reports.js?v=135" defer></script>
-    <script src="js/sync.js?v=135" defer></script>
-    <script src="js/conflicts.js?v=135" defer></script>
-    <script src="js/cache.js?v=135" defer></script>
-    <script src="js/bgsync.js?v=135" defer></script>
-    <script src="js/transactions.js?v=135" defer></script>
-    <script src="js/receipts.js?v=135" defer></script>
-    <script src="js/customers.js?v=135" defer></script>
-    <script src="js/countries.js?v=135" defer></script>
-    <script src="js/service-logos.js?v=135" defer></script>
-    <script src="js/traders.js?v=135" defer></script>
-    <script src="js/expenses.js?v=135" defer></script>
-    <script src="js/ready.js?v=135" defer></script>
-    <script src="js/settings.js?v=135" defer></script>
-    <script src="js/accounts.js?v=135" defer></script>
-    <script src="js/usdt.js?v=135" defer></script>
-    <script src="js/egp.js?v=135" defer></script>
-    <script src="js/closing.js?v=135" defer></script>
-    <script src="js/admin.js?v=135" defer></script>
-    <script src="js/position.js?v=135" defer></script>
-    <script src="js/search.js?v=135" defer></script>
-    <script src="js/notify.js?v=135" defer></script>
-    <script src="js/push.js?v=135" defer></script>
-    <script src="js/auth.js?v=135" defer></script>
-    <script src="js/main.js?v=135" defer></script>
+    <script src="js/endpoint.js?v=138" defer></script>
+    <script src="js/core.js?v=138" defer></script>
+    <script src="js/theme.js?v=138" defer></script>
+    <script src="js/logo-data.js?v=138" defer></script>
+    <script src="js/shell.js?v=138" defer></script>
+    <script src="js/calculator.js?v=138" defer></script>
+    <script src="js/reports.js?v=138" defer></script>
+    <script src="js/sync.js?v=138" defer></script>
+    <script src="js/conflicts.js?v=138" defer></script>
+    <script src="js/cache.js?v=138" defer></script>
+    <script src="js/bgsync.js?v=138" defer></script>
+    <script src="js/transactions.js?v=138" defer></script>
+    <script src="js/receipts.js?v=138" defer></script>
+    <script src="js/customers.js?v=138" defer></script>
+    <script src="js/countries.js?v=138" defer></script>
+    <script src="js/service-logos.js?v=138" defer></script>
+    <script src="js/traders.js?v=138" defer></script>
+    <script src="js/expenses.js?v=138" defer></script>
+    <script src="js/ready.js?v=138" defer></script>
+    <script src="js/settings.js?v=138" defer></script>
+    <script src="js/accounts.js?v=138" defer></script>
+    <script src="js/usdt.js?v=138" defer></script>
+    <script src="js/egp.js?v=138" defer></script>
+    <script src="js/closing.js?v=138" defer></script>
+    <script src="js/admin.js?v=138" defer></script>
+    <script src="js/position.js?v=138" defer></script>
+    <script src="js/search.js?v=138" defer></script>
+    <script src="js/notify.js?v=138" defer></script>
+    <script src="js/push.js?v=138" defer></script>
+    <script src="js/auth.js?v=138" defer></script>
+    <script src="js/main.js?v=138" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -2972,6 +2972,14 @@
     </div>
 
     <!-- Modal: محفظة USDT (usdt.js openUsdtWalletModal/saveUsdtWallet) -->
+    <!-- نافذة نسخ الـ ID والعناوين من محفظة USDT (usdt.js openUsdtCopy) -->
+    <div id="usdtCopyModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div id="usdtCopyCard" class="uwc-card section-card max-w-md w-full my-auto overflow-hidden">
+            <div id="uwc_head" class="uwc-head"></div>
+            <div id="uwc_list" class="uwc-list"></div>
+        </div>
+    </div>
+
     <div id="usdtWalletModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4 overflow-y-auto">
         <div class="section-card max-w-md w-full p-6 my-auto">
             <div class="flex justify-between items-center pb-3 border-b border-slate-100">

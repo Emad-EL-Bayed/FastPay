@@ -1863,20 +1863,72 @@ tr.row-late > td:first-child { box-shadow: inset -3px 0 0 #f97316; }
 .loyal-box { margin-top: 0.6rem; padding: 0.45rem 0.7rem; border-radius: 0.7rem; font-size: 0.72rem; font-weight: 700; background: rgb(var(--b-pink-50, 253 242 248)); color: rgb(var(--t-pink-800, 157 23 77)); border: 1px solid rgb(var(--c-pink-200, 251 207 232)); }
 
 /* ================= محافظ USDT (usdt.js، 2026-10-24) ================= */
-.uw-grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); }
-.uw-card { position: relative; padding: 0.85rem 0.95rem; border-radius: 1rem; border: 1px solid rgb(var(--c-slate-200, 226 232 240)); background: rgb(var(--b-white, 255 255 255)); box-shadow: inset 0 3px 0 var(--uw, #64748b); }
-.uw-card.low { border-color: #fdba74; background: rgb(var(--b-orange-50, 255 247 237)); }
-.uw-head { display: flex; align-items: center; gap: 0.6rem; font-size: 0.82rem; }
-.uw-default { display: inline-flex; padding: 0.05rem 0.45rem; border-radius: 9999px; font-size: 0.6rem; font-weight: 800; background: rgb(var(--b-amber-100, 254 243 199)); color: rgb(var(--t-amber-800, 146 64 14)); }
-.uw-balance { margin-top: 0.55rem; font-size: 1.35rem; font-weight: 900; color: rgb(var(--t-slate-900, 15 23 42)); }
-.uw-balance small { font-size: 0.7rem; font-weight: 700; color: rgb(var(--t-slate-400, 148 163 184)); }
-.uw-balance.neg { color: rgb(var(--t-rose-600, 225 29 72)); }
-.uw-copies { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.55rem; }
-.uw-copy { display: inline-flex; align-items: center; gap: 0.3rem; max-width: 100%; padding: 0.25rem 0.5rem; border-radius: 0.55rem; font-size: 0.66rem; color: rgb(var(--t-slate-600, 71 85 105)); background: rgb(var(--b-slate-50, 248 250 252)); border: 1px solid rgb(var(--c-slate-200, 226 232 240)); transition: background 0.15s ease; }
-.uw-copy b { font-size: 0.6rem; font-weight: 800; color: rgb(var(--t-slate-500, 100 116 139)); }
-.uw-copy bdi { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; color: rgb(var(--t-slate-800, 30 41 59)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.uw-copy:hover { background: rgb(var(--b-blue-50, 239 246 255)); border-color: rgb(var(--c-blue-200, 191 219 254)); }
-.uw-copy.copied { background: rgb(var(--b-emerald-50, 236 253 245)); border-color: #34d399; }
+/* محافظ USDT: بطاقات زجاج بلون شعار المحفظة (--uw)، 2–3 بالسطر على الكمبيوتر (--uw-cols من renderUsdtWallets) */
+.uw-grid { display: grid; gap: 0.85rem; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 520px) { .uw-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .uw-grid { grid-template-columns: repeat(var(--uw-cols, 3), minmax(0, 1fr)); } }
+.uw-card {
+    --uw-ink: color-mix(in srgb, var(--uw, #64748b) 58%, #111827);
+    position: relative; isolation: isolate; overflow: hidden;
+    display: flex; flex-direction: column; gap: 0.95rem;
+    min-height: 10.75rem; padding: 1.05rem 1.1rem 0.95rem; border-radius: 1.35rem;
+    background:
+        radial-gradient(90% 110% at 0% 100%, color-mix(in srgb, var(--uw, #64748b) 13%, transparent) 0%, transparent 62%),
+        linear-gradient(160deg, color-mix(in srgb, var(--uw, #64748b) 11%, rgb(var(--b-white, 255 255 255))) 0%, rgb(var(--b-white, 255 255 255)) 72%);
+    border: 1px solid color-mix(in srgb, var(--uw, #64748b) 26%, rgb(var(--c-slate-200, 226 232 240)));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 16px 36px -24px color-mix(in srgb, var(--uw, #64748b) 85%, transparent);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+/* كرة لون الشعار مغبّشة ورا الشعار، ولمعة زجاج مايلة */
+.uw-card::before { content: ''; position: absolute; z-index: -1; width: 11rem; height: 11rem; border-radius: 50%; top: -5.5rem; inset-inline-start: -3.5rem; background: var(--uw, #64748b); opacity: 0.24; filter: blur(44px); pointer-events: none; }
+.uw-card::after { content: ''; position: absolute; z-index: -1; inset: 0; background: linear-gradient(115deg, rgb(255 255 255 / 0.6) 0%, rgb(255 255 255 / 0) 36%, rgb(255 255 255 / 0) 66%, rgb(255 255 255 / 0.28) 100%); pointer-events: none; }
+.uw-card:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 22px 40px -24px color-mix(in srgb, var(--uw, #64748b) 95%, transparent); }
+.uw-card.low { border-color: #fb923c; }
+.uw-card .uw-logo { box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--uw, #64748b) 75%, transparent), 0 0 0 1px rgb(255 255 255 / 0.7); }
+.uw-top { display: flex; align-items: center; gap: 0.7rem; }
+.uw-title { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; }
+.uw-title b { font-size: 0.98rem; font-weight: 900; color: rgb(var(--t-slate-900, 15 23 42)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uw-title span { font-size: 0.7rem; font-weight: 700; color: rgb(var(--t-slate-500, 100 116 139)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uw-main-chip { flex: none; align-self: flex-start; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.62rem; font-weight: 800; color: var(--uw-ink); background: color-mix(in srgb, var(--uw, #64748b) 15%, rgb(255 255 255 / 0.7)); border: 1px solid color-mix(in srgb, var(--uw, #64748b) 34%, transparent); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.uw-bal-label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.66rem; font-weight: 800; color: rgb(var(--t-slate-500, 100 116 139)); }
+.uw-low { font-style: normal; padding: 0.05rem 0.45rem; border-radius: 9999px; font-size: 0.6rem; background: rgb(var(--b-orange-100, 255 237 213)); color: rgb(var(--t-orange-800, 154 52 18)); }
+.uw-amount { display: flex; align-items: baseline; gap: 0.35rem; margin-top: 0.1rem; font-size: 1.85rem; font-weight: 900; line-height: 1.1; color: rgb(var(--t-slate-900, 15 23 42)); letter-spacing: -0.01em; }
+.uw-amount small { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em; color: var(--uw-ink); }
+.uw-amount.neg { color: rgb(var(--t-rose-600, 225 29 72)); }
+.uw-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.uw-nets { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.04em; color: rgb(var(--t-slate-400, 148 163 184)); }
+.uw-actions { display: flex; flex: none; gap: 0.35rem; }
+.uw-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem; height: 2.05rem; padding: 0 0.85rem; border-radius: 0.8rem; font-size: 0.74rem; font-weight: 800; color: rgb(var(--t-slate-800, 30 41 59)); background: rgb(255 255 255 / 0.62); border: 1px solid rgb(255 255 255 / 0.85); box-shadow: 0 1px 2px rgb(15 23 42 / 0.07), inset 0 1px 0 rgb(255 255 255 / 0.9); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: background 0.15s ease, box-shadow 0.15s ease; }
+.uw-btn:hover { background: rgb(255 255 255 / 0.95); box-shadow: 0 3px 10px -4px color-mix(in srgb, var(--uw, #64748b) 70%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.9); }
+.uw-btn:not(.uw-icon) svg { color: var(--uw-ink); }
+.uw-btn.uw-icon { width: 2.05rem; padding: 0; color: rgb(var(--t-slate-500, 100 116 139)); }
+.uw-btn.uw-icon:hover { color: rgb(var(--t-slate-900, 15 23 42)); }
+.uw-btn svg { width: 0.95rem; height: 0.95rem; }
+/* نافذة النسخ */
+.uwc-card { --uw-ink: color-mix(in srgb, var(--uw, #64748b) 58%, #111827); padding: 0; }
+.uwc-head { position: relative; isolation: isolate; overflow: hidden; display: flex; align-items: center; gap: 0.75rem; padding: 1.1rem 1.15rem; background: linear-gradient(160deg, color-mix(in srgb, var(--uw, #64748b) 16%, rgb(var(--b-white, 255 255 255))) 0%, rgb(var(--b-white, 255 255 255)) 85%); border-bottom: 1px solid color-mix(in srgb, var(--uw, #64748b) 20%, rgb(var(--c-slate-200, 226 232 240))); }
+.uwc-head::before { content: ''; position: absolute; z-index: -1; width: 10rem; height: 10rem; border-radius: 50%; top: -5rem; inset-inline-start: -3rem; background: var(--uw, #64748b); opacity: 0.22; filter: blur(40px); }
+.uwc-head .uw-logo { box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--uw, #64748b) 75%, transparent); }
+.uwc-close { flex: none; width: 2rem; height: 2rem; border-radius: 9999px; color: rgb(var(--t-slate-500, 100 116 139)); background: rgb(255 255 255 / 0.6); border: 1px solid rgb(var(--c-slate-200, 226 232 240)); }
+.uwc-close:hover { color: rgb(var(--t-slate-900, 15 23 42)); }
+.uwc-list { display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem; }
+.uwc-row { display: flex; align-items: center; gap: 0.7rem; width: 100%; padding: 0.7rem 0.8rem; border-radius: 0.95rem; text-align: start; background: rgb(var(--b-slate-50, 248 250 252)); border: 1px solid rgb(var(--c-slate-200, 226 232 240)); transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease; }
+.uwc-row:hover { border-color: color-mix(in srgb, var(--uw, #64748b) 55%, rgb(var(--c-slate-200, 226 232 240))); background: color-mix(in srgb, var(--uw, #64748b) 7%, rgb(var(--b-white, 255 255 255))); }
+.uwc-tag { flex: none; min-width: 3.4rem; padding: 0.3rem 0.45rem; border-radius: 0.6rem; text-align: center; font-size: 0.64rem; font-weight: 900; letter-spacing: 0.03em; color: var(--uw-ink); background: color-mix(in srgb, var(--uw, #64748b) 14%, rgb(var(--b-white, 255 255 255))); border: 1px solid color-mix(in srgb, var(--uw, #64748b) 28%, transparent); }
+.uwc-body { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; gap: 0.1rem; }
+.uwc-body small { font-size: 0.64rem; font-weight: 700; color: rgb(var(--t-slate-500, 100 116 139)); }
+.uwc-body bdi { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; font-weight: 700; color: rgb(var(--t-slate-900, 15 23 42)); text-align: left; word-break: break-all; line-height: 1.35; }
+.uwc-ico { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 0.65rem; font-size: 0.9rem; color: rgb(var(--t-slate-600, 71 85 105)); background: rgb(var(--b-white, 255 255 255)); border: 1px solid rgb(var(--c-slate-200, 226 232 240)); }
+.uwc-ico svg { width: 1rem; height: 1rem; display: block; }
+.uwc-all svg { width: 0.95rem; height: 0.95rem; }
+.uwc-ico .ok { display: none; }
+.uwc-row.copied { background: rgb(var(--b-emerald-50, 236 253 245)); border-color: #34d399; }
+.uwc-row.copied .uwc-ico { color: #fff; background: #10b981; border-color: #10b981; }
+.uwc-row.copied .uwc-ico .c { display: none; }
+.uwc-row.copied .uwc-ico .ok { display: inline; }
+.uwc-all { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; margin-top: 0.15rem; padding: 0.6rem; border-radius: 0.85rem; font-size: 0.74rem; font-weight: 800; color: rgb(var(--t-slate-600, 71 85 105)); border: 1px dashed rgb(var(--c-slate-300, 203 213 225)); transition: background 0.15s ease; }
+.uwc-all:hover { background: rgb(var(--b-slate-50, 248 250 252)); }
+.uwc-all.copied { color: rgb(var(--t-emerald-700, 4 120 87)); border-color: #34d399; background: rgb(var(--b-emerald-50, 236 253 245)); }
 .uw-logo { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 0.55rem; overflow: hidden; background: #fff; }
 .uw-logo svg { width: 100%; height: 100%; display: block; }
 img.uw-logo { object-fit: cover; }
@@ -1896,6 +1948,16 @@ img.uw-logo { object-fit: cover; }
 /* الألوان نفسها متغيرات (build/tailwind.config.js) وبتتحول لحالها، وهون بس اللي إله شكل خاص بالداكن.
    <html data-theme="dark"> بيتحط من js/theme.js (ومن سكربت صغير بأول index.html قبل أول رسم) */
 html[data-theme="dark"] .modal { background-color: rgb(2 6 23 / 0.72); }
+/* بطاقات محافظ USDT: الزجاج أغمق واللون أفتح */
+html[data-theme="dark"] :is(.uw-card, .uwc-card) { --uw-ink: color-mix(in srgb, var(--uw, #64748b) 78%, #ffffff); }
+html[data-theme="dark"] .uw-card { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 18px 36px -24px rgb(0 0 0 / 0.85); }
+html[data-theme="dark"] .uw-card:hover { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 22px 40px -22px color-mix(in srgb, var(--uw, #64748b) 45%, transparent); }
+html[data-theme="dark"] .uw-card::before { opacity: 0.3; }
+html[data-theme="dark"] .uw-card::after { opacity: 0.1; }
+html[data-theme="dark"] .uw-card .uw-logo { box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--uw, #64748b) 60%, transparent), 0 0 0 1px rgb(255 255 255 / 0.08); }
+html[data-theme="dark"] :is(.uw-btn, .uwc-close) { background: rgb(255 255 255 / 0.06); border-color: rgb(255 255 255 / 0.1); box-shadow: none; }
+html[data-theme="dark"] .uw-btn:hover { background: rgb(255 255 255 / 0.12); }
+html[data-theme="dark"] .uw-main-chip { background: color-mix(in srgb, var(--uw, #64748b) 18%, transparent); }
 /* الزر الأساسي (bg-slate-900) بيقلب فاتح بالداكن، فنصه بيقلب غامق */
 html[data-theme="dark"] .bg-slate-900.text-white { color: rgb(var(--t-inv, 255 255 255)); }
 html[data-theme="dark"] .section-card { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03), 0 12px 30px -20px rgb(0 0 0 / 0.8); }

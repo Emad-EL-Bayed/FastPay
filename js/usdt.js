@@ -771,9 +771,17 @@ const sortedUsdtWallets = () => usdtWallets.slice().sort((a, b) => (b.isDefault 
 const defaultUsdtWallet = () => usdtWallets.find(w => w.isDefault) || sortedUsdtWallets()[0] || null;
 
 function usdtWalletName(w) {
-    if (!w) return 'محفظة محذوفة';
-    if (w.walletType === 'other') return w.holder || 'محفظة';
-    return w.holder ? `${USDT_WALLET_TYPES[w.walletType].label} · ${w.holder}` : USDT_WALLET_TYPES[w.walletType].label;
+    const t = usdtWalletTitle(w);
+    return t.sub ? `${t.name} · ${t.sub}` : t.name;
+}
+
+// اسم المحفظة وسطر تحته: النوع (Bybit) والاسم اللي انكتب، بدون تكرار ("Bybit · Bybit" لما الاسم نفس النوع)
+function usdtWalletTitle(w) {
+    if (!w) return { name: 'محفظة محذوفة', sub: '' };
+    const holder = String(w.holder || '').trim();
+    if (w.walletType === 'other') return { name: holder || 'محفظة', sub: '' };
+    const label = USDT_WALLET_TYPES[w.walletType].label;
+    return { name: label, sub: holder && holder.toLowerCase() !== label.toLowerCase() ? holder : '' };
 }
 
 function usdtWalletLogo(w, size = '') {
@@ -827,22 +835,35 @@ function renderUsdtWallets() {
         + (usdtMoves.some(m => !m.walletId) ? '<option value="none">بدون محفظة</option>' : '');
     sel.value = [...sel.options].some(o => o.value === cur) ? cur : 'ALL';
     $('usdt-transfer-btn').classList.toggle('hidden', list.length < 2);
+    // البطاقات بتتوزع على عرض الصفحة: 2 أو 3 بالسطر على الكمبيوتر (بطلب عماد 2026-10-24)
+    $('usdt-wallets').style.setProperty('--uw-cols', Math.min(3, Math.max(2, list.length)));
     $('usdt-wallets').innerHTML = list.length ? list.map(w => {
         const b = bal[w.id] || 0;
         const low = w.alertBelow > 0 && b < w.alertBelow;
-        const copy = (field, label) => w[field] ? `<button type="button" data-action="usdt-wallet-copy" data-id="${escapeHtml(w.id)}" data-field="${field}" class="uw-copy" title="${escapeHtml(w[field])}"><b>${label}</b><bdi dir="ltr">${escapeHtml(shortAddr(w[field]))}</bdi><span aria-hidden="true">⧉</span></button>` : '';
+        const t = usdtWalletTitle(w);
+        const fields = USDT_COPY_FIELDS.filter(([f]) => w[f]);
+        const id = escapeHtml(w.id);
         return `
-            <div class="uw-card${low ? ' low' : ''}" style="--uw:${USDT_WALLET_TYPES[w.walletType].color}">
-                <div class="uw-head">
-                    ${usdtWalletLogo(w)}
-                    <div class="min-w-0 flex-1">
-                        <b class="block truncate text-slate-900">${escapeHtml(usdtWalletName(w))}</b>
-                        <span class="flex flex-wrap gap-1 mt-0.5">${w.isDefault ? '<span class="uw-default">⭐ الأساسية</span>' : ''}${low ? '<span class="low-chip">⚠️ قليل</span>' : ''}</span>
+            <div class="uw-card${low ? ' low' : ''}${w.isDefault ? ' main' : ''}" style="--uw:${USDT_WALLET_TYPES[w.walletType].color}">
+                <div class="uw-top">
+                    ${usdtWalletLogo(w, 'lg')}
+                    <div class="uw-title">
+                        <b>${escapeHtml(t.name)}</b>
+                        ${t.sub ? `<span>${escapeHtml(t.sub)}</span>` : ''}
                     </div>
-                    <button type="button" data-action="edit-usdt-wallet" data-id="${escapeHtml(w.id)}" class="text-[11px] font-bold text-slate-400 hover:text-slate-700 px-1">تعديل</button>
+                    ${w.isDefault ? '<span class="uw-main-chip">★ الأساسية</span>' : ''}
                 </div>
-                <div class="uw-balance ${b < 0 ? 'neg' : ''}"><bdi class="num">${fmt(b)}</bdi> <small>USDT</small></div>
-                ${w.uid || w.trc20 || w.bep20 ? `<div class="uw-copies">${copy('uid', 'ID')}${copy('trc20', 'TRC20')}${copy('bep20', 'BEP20')}</div>` : ''}
+                <div class="uw-bal">
+                    <span class="uw-bal-label">الرصيد${low ? '<i class="uw-low">⚠️ قليل</i>' : ''}</span>
+                    <div class="uw-amount${b < 0 ? ' neg' : ''}"><bdi class="num count-up">${fmt(b)}</bdi><small>USDT</small></div>
+                </div>
+                <div class="uw-foot">
+                    <span class="uw-nets" dir="ltr">${fields.map(([, tag]) => tag).join(' · ')}</span>
+                    <span class="uw-actions">
+                        ${fields.length ? `<button type="button" data-action="usdt-wallet-copy-open" data-id="${id}" class="uw-btn">${USDT_COPY_SVG}نسخ</button>` : ''}
+                        <button type="button" data-action="edit-usdt-wallet" data-id="${id}" class="uw-btn uw-icon" title="تعديل" aria-label="تعديل المحفظة">${USDT_PEN_SVG}</button>
+                    </span>
+                </div>
             </div>`;
     }).join('') : `<div class="col-span-full text-xs text-slate-500">ضيف محافظك (Bybit، Binance، RedotPay…) حتى تعرف رصيد كل وحدة، وتنسخ الـ ID والعناوين بكبسة.</div>`;
     const loose = bal[''] || 0;
@@ -850,12 +871,53 @@ function renderUsdtWallets() {
     $('usdt-wallets-loose').innerHTML = `حركات قبل المحافظ (بدون محفظة): <bdi dir="ltr">${loose >= 0 ? '+' : '−'}${fmt(Math.abs(loose))}</bdi> USDT`;
 }
 
-function copyUsdtWalletField(btn) {
+// اللي بينسخ من المحفظة: [الحقل، الشارة، الوصف بنافذة النسخ]
+const USDT_COPY_FIELDS = [['uid', 'ID', 'رقم الحساب (ID)'], ['trc20', 'TRC20', 'عنوان شبكة Tron'], ['bep20', 'BEP20', 'عنوان شبكة BNB Smart Chain']];
+const USDT_COPY_SVG = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2.2"/><path d="M13 4.5A1.5 1.5 0 0 0 11.5 3h-6A2.5 2.5 0 0 0 3 5.5v6A1.5 1.5 0 0 0 4.5 13"/></svg>';
+const USDT_PEN_SVG = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.6 3.6a1.9 1.9 0 0 1 2.7 2.7L7.2 15.4l-3.6.9.9-3.6z"/><path d="M12.2 5l2.7 2.7"/></svg>';
+
+// زر "نسخ" بالكرت بيفتح نافذة بتختار منها شو تنسخ (بطلب عماد 2026-10-24)
+function openUsdtCopy(id) {
+    const w = usdtWallets.find(x => x.id === id);
+    if (!w) return;
+    const t = usdtWalletTitle(w);
+    const fields = USDT_COPY_FIELDS.filter(([f]) => w[f]);
+    const wid = escapeHtml(w.id);
+    $('usdtCopyCard').style.setProperty('--uw', USDT_WALLET_TYPES[w.walletType].color);
+    $('uwc_head').innerHTML = `
+        ${usdtWalletLogo(w, 'lg')}
+        <div class="uw-title">
+            <b>${escapeHtml(t.name)}</b>
+            <span>${t.sub ? escapeHtml(t.sub) + ' · ' : ''}اختار شو بدك تنسخ</span>
+        </div>
+        <button type="button" data-action="close-modal" data-modal="usdtCopyModal" class="uwc-close" aria-label="إغلاق">✕</button>`;
+    $('uwc_list').innerHTML = fields.map(([f, tag, desc]) => `
+        <button type="button" data-action="usdt-wallet-copy" data-id="${wid}" data-field="${f}" class="uwc-row">
+            <span class="uwc-tag">${tag}</span>
+            <span class="uwc-body"><small>${desc}</small><bdi dir="ltr">${escapeHtml(w[f])}</bdi></span>
+            <span class="uwc-ico" aria-hidden="true"><span class="c">${USDT_COPY_SVG}</span><span class="ok">✓</span></span>
+        </button>`).join('')
+        + (fields.length > 1 ? `<button type="button" data-action="usdt-wallet-copy" data-id="${wid}" data-field="all" class="uwc-all">${USDT_COPY_SVG}نسخ الكل (كل واحد بسطر)</button>` : '');
+    openModal('usdtCopyModal');
+}
+
+async function copyUsdtWalletField(btn) {
     const w = usdtWallets.find(x => x.id === btn.dataset.id);
     const field = btn.dataset.field;
-    if (!w || !w[field]) return;
-    const label = { uid: 'ID', trc20: 'عنوان TRC20', bep20: 'عنوان BEP20' }[field];
-    copyWithFlash(btn, { label: `${usdtWalletName(w)} · ${label}`, shown: shortAddr(w[field]), value: w[field] });
+    if (!w) return;
+    let item;
+    if (field === 'all') {
+        const lines = USDT_COPY_FIELDS.filter(([f]) => w[f]).map(([f, tag]) => `${tag}: ${w[f]}`);
+        if (!lines.length) return;
+        item = { label: usdtWalletName(w), shown: 'الـ ID والعناوين، كل واحد بسطر', value: lines.join('\n') };
+    } else {
+        if (!w[field]) return;
+        const label = { uid: 'ID', trc20: 'عنوان TRC20', bep20: 'عنوان BEP20' }[field];
+        item = { label: `${usdtWalletName(w)} · ${label}`, shown: shortAddr(w[field]), value: w[field] };
+    }
+    const inModal = !!btn.closest('#usdtCopyModal');
+    // من نافذة النسخ: بتتسكّر لحالها بعد ما يبين ✓ (وإذا المتصفح منع النسخ بتضل مفتوحة حتى تنسخه بإيدك)
+    if (await copyWithFlash(btn, item) && inModal) setTimeout(() => closeModal('usdtCopyModal'), 550);
 }
 
 // اختيار المحفظة بنافذة حركة USDT (أزرار بالشعارات)

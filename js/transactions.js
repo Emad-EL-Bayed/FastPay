@@ -346,7 +346,7 @@ function onTxCopy(btn) {
 
 async function copyWithFlash(btn, item) {
     const ok = await copyText(item.value);
-    if (!ok) return showToast('ما زبط النسخ', 'المتصفح منع النسخ، انسخه بإيدك', 'warning');
+    if (!ok) { showToast('ما زبط النسخ', 'المتصفح منع النسخ، انسخه بإيدك', 'warning'); return false; }
     // السجل ممكن ينرسم من جديد بالنص (تحديث حيّ): الزر الموجود هلّق بنفس الرقم
     const live = btn?.isConnected ? btn : btn && document.querySelector(`[data-action="${btn.dataset.action}"][data-id="${btn.dataset.id}"]${btn.dataset.field ? `[data-field="${btn.dataset.field}"]` : ''}`);
     if (live) {
@@ -354,6 +354,7 @@ async function copyWithFlash(btn, item) {
         setTimeout(() => live.classList.remove('copied'), 1200);
     }
     showToast('تم النسخ', item.all ? 'الاسم والأرقام والمبلغ، كل واحد بسطر' : `${item.label}: ${item.shown}`, 'success');
+    return true;
 }
 
 // القائمة الصغيرة جنب الزر (وحدة بس مفتوحة)

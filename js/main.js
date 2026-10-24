@@ -225,6 +225,7 @@ const CLICK_ACTIONS = {
     'edit-usdt-wallet': (el) => openUsdtWalletModal(usdtWallets.find(w => w.id === el.dataset.id)),
     'delete-usdt-wallet': deleteUsdtWalletPrompt,
     'usdt-wallet-copy': (el) => copyUsdtWalletField(el),
+    'usdt-wallet-copy-open': (el) => openUsdtCopy(el.dataset.id),
     'uw-type': (el) => setUsdtWalletType(el.dataset.type),
     'uw-logo-remove': removeUsdtWalletLogo,
     'us-wallet': (el) => pickUsdtWallet(el.dataset.id),
@@ -392,7 +393,7 @@ function bindGlobalEvents() {
 
 // النوافذ من فوق لتحت: Esc وزر الرجوع بيسكّروا اللي فوق بس
 // (الإشعار المهم و"مين عدّل قبلي" مش هون: ما بيتسكّروا إلا بالاختيار)
-const MODAL_ORDER = ['searchModal', 'fraudModal', 'custStatementModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'readySendModal', 'readyModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'usdtWalletModal', 'usdtTransferModal', 'accountModal', 'noticeModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal'];
+const MODAL_ORDER = ['searchModal', 'fraudModal', 'custStatementModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'readySendModal', 'readyModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'usdtCopyModal', 'usdtWalletModal', 'usdtTransferModal', 'accountModal', 'noticeModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal'];
 const topModalId = () => MODAL_ORDER.find(id => !$(id).classList.contains('hidden'));
 
 // ================= زر الرجوع بالجوال (بطلب عماد 2026-10-19) =================
