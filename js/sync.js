@@ -102,6 +102,7 @@ const COLLECTION_NORMALIZERS = {
     accountMoves: { get: () => accountMoves, set: (v) => { accountMoves = v; }, norm: (r) => normalizeAmove(r), ok: (x) => x.id && x.accountId },
     usdtMoves: { get: () => usdtMoves, set: (v) => { usdtMoves = v; }, norm: (r) => normalizeUsdt(r), ok: (x) => x.id },
     egpWallets: { get: () => egpWallets, set: (v) => { egpWallets = v; }, norm: (r) => normalizeEgpWallet(r), ok: (x) => x.id },
+    usdtWallets: { get: () => usdtWallets, set: (v) => { usdtWallets = v; }, norm: (r) => normalizeUsdtWallet(r), ok: (x) => x.id },
     egpMoves: { get: () => egpMoves, set: (v) => { egpMoves = v; }, norm: (r) => normalizeEgp(r), ok: (x) => x.id },
     closings: { get: () => closings, set: (v) => { closings = v; }, norm: (r) => normalizeClosing(r), ok: (x) => x.id },
     readyAccounts: { get: () => readyAccounts, set: (v) => { readyAccounts = v; }, norm: (r) => normalizeReady(r), ok: (x) => x.id && x.name },
@@ -172,6 +173,7 @@ const OP_ROWS = {
     upsert_amove: ['accountMoves', 'move'], delete_amove: ['accountMoves', null],
     upsert_usdt: ['usdtMoves', 'move'], delete_usdt: ['usdtMoves', null],
     upsert_egp_wallet: ['egpWallets', 'wallet'], delete_egp_wallet: ['egpWallets', null],
+    upsert_usdt_wallet: ['usdtWallets', 'wallet'], delete_usdt_wallet: ['usdtWallets', null],
     upsert_egp: ['egpMoves', 'move'], delete_egp: ['egpMoves', null],
     upsert_closing: ['closings', 'closing'],
     // الحسابات الجاهزة: السكربت ما بيفحص "مين عدّل قبلي" عليها (النسخ بيغيّر آخر تحديث كل شوي)، بس آخر تحديث بيتسجّل
@@ -305,6 +307,7 @@ async function loadFromSheets({ manual = false, silent = false } = {}) {
         runLiveCalc();
         dataEpoch = data.dataEpoch || '';
         egpWallets = (data.egpWallets || []).map(normalizeEgpWallet).filter(w => w.id);
+        usdtWallets = (data.usdtWallets || []).map(normalizeUsdtWallet).filter(w => w.id);
         egpMoves = (data.egpMoves || []).map(normalizeEgp).filter(m => m.id);
         closings = (data.closings || []).map(normalizeClosing).filter(c => c.id);
         readyAccounts = (data.readyAccounts || []).map(normalizeReady).filter(x => x.id && x.name);
@@ -373,9 +376,10 @@ const UPSERT_OPS = {
     upsert_closing: ['closings', 'closing'],
     upsert_egp: ['egpMoves', 'move'],
     upsert_egp_wallet: ['egpWallets', 'wallet'],
+    upsert_usdt_wallet: ['usdtWallets', 'wallet'],
     upsert_service: ['traderServices', 'service']
 };
-const DELETE_OPS = { delete_account: 'accounts', delete_amove: 'accountMoves', delete_usdt: 'usdtMoves', delete_egp: 'egpMoves', delete_egp_wallet: 'egpWallets', delete_service: 'traderServices', delete_ready: 'readyAccounts' };
+const DELETE_OPS = { delete_account: 'accounts', delete_amove: 'accountMoves', delete_usdt: 'usdtMoves', delete_egp: 'egpMoves', delete_egp_wallet: 'egpWallets', delete_usdt_wallet: 'usdtWallets', delete_service: 'traderServices', delete_ready: 'readyAccounts' };
 
 function applyOpLocally(op) {
     if (op.action === 'upsert') {

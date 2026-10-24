@@ -7,7 +7,9 @@
 // الحركات من ورقة "حركات USDT"؛ رصيد USDT = مجموع أثر كل حركة
 let usdtMoves = [];
 
-const USDT_KINDS = { deposit: 'إيداع', withdraw: 'سحب', adjust: 'تعديل رصيد' };
+const USDT_KINDS = { deposit: 'إيداع', withdraw: 'سحب', adjust: 'تعديل رصيد', transfer: 'تحويل بين المحافظ' };
+// إيداع وسحب = شغل مع زبون (ربح، فاتورة، دفع). التعديل والتحويل بين محافظنا لا
+const usdtTrade = (m) => m.kind === 'deposit' || m.kind === 'withdraw';
 // السكربت فيه عمود "تعديل على النهائي" (من features في رد list)؛ بدونه التعديل بيضيع، فالخانة مسكّرة
 let sheetSupportsFinalAdjust = false;
 // ملاحظة دفعات الحركة في الحسابات
@@ -34,6 +36,8 @@ const roundDownHalf = (v) => Math.floor(round2(v) * 2 + 1e-9) / 2;
 function computeUsdt({ kind, amount, networkFee, pct, rate, currency, discount, settle, fixedTotal = 0, finalAdjust = 0 }) {
     const ils = currency !== 'USD';
     if (kind === 'adjust') return { gross: 0, total: 0, usdtEffect: round2(amount), profitIls: 0 };
+    // التحويل بين محافظنا: المجموع بينقص رسوم التحويل بس
+    if (kind === 'transfer') return { gross: 0, total: 0, usdtEffect: -round2(Math.max(0, networkFee)), profitIls: 0 };
     if (kind === 'deposit') {
         const costUsd = amount + networkFee;
         const gross = (amount * (1 + pct / 100) + networkFee) * (ils ? rate : 1);
@@ -49,8 +53,9 @@ function computeUsdt({ kind, amount, networkFee, pct, rate, currency, discount, 
 
 function normalizeUsdt(m) {
     const kind = USDT_KINDS[m?.kind] ? m.kind : 'deposit';
+    const trade = kind === 'deposit' || kind === 'withdraw';
     const amount = round2(toNum(m?.amount, 0));
-    const fixedTotal = kind === 'adjust' ? 0 : Math.max(0, round2(toNum(m?.fixedTotal, 0)));
+    const fixedTotal = trade ? Math.max(0, round2(toNum(m?.fixedTotal, 0))) : 0;
     const base = {
         id: toNum(m?.id, 0),
         serial: toSerial(m?.serial),
@@ -59,15 +64,18 @@ function normalizeUsdt(m) {
         customerId: String(m?.customerId ?? '').trim(),
         customerName: String(m?.customerName ?? '').trim(),
         amount: kind === 'adjust' ? amount : Math.max(0, amount),
-        network: kind === 'deposit' ? String(m?.network ?? '').trim() : '',
-        networkFee: kind === 'deposit' ? Math.max(0, toNum(m?.networkFee, 0)) : 0,
-        pct: kind === 'adjust' ? 0 : Math.max(0, toNum(m?.pct, 0)),
+        network: kind === 'deposit' || kind === 'transfer' ? String(m?.network ?? '').trim() : '',
+        networkFee: kind === 'deposit' || kind === 'transfer' ? Math.max(0, toNum(m?.networkFee, 0)) : 0,
+        pct: trade ? Math.max(0, toNum(m?.pct, 0)) : 0,
         rate: Math.max(0, toNum(m?.rate, 0)),
         currency: m?.currency === 'USD' ? 'USD' : 'ILS',
         discount: kind === 'deposit' ? Math.max(0, toNum(m?.discount, 0)) : 0,
         fixedTotal,
-        finalAdjust: kind === 'adjust' || fixedTotal > 0 ? 0 : round2(toNum(m?.finalAdjust, 0)),
-        settle: kind === 'adjust' ? 0 : Math.max(0, round2(toNum(m?.settle, 0))),
+        finalAdjust: !trade || fixedTotal > 0 ? 0 : round2(toNum(m?.finalAdjust, 0)),
+        settle: trade ? Math.max(0, round2(toNum(m?.settle, 0))) : 0,
+        // محفظتنا (محافظ USDT)، وللتحويل: لوين
+        walletId: String(m?.walletId ?? '').trim(),
+        toWalletId: kind === 'transfer' ? String(m?.toWalletId ?? '').trim() : '',
         address: String(m?.address ?? '').trim(),
         note: String(m?.note ?? '').trim(),
         trackToken: String(m?.trackToken ?? '').trim(),
@@ -80,7 +88,7 @@ function normalizeUsdt(m) {
 const usdtDir = (m) => (m.kind === 'deposit' ? 1 : -1);
 
 function usdtPayState(m) {
-    if (m.kind === 'adjust') return null;
+    if (!usdtTrade(m)) return null;
     const paid = paidFor('usdt', m.id, m.currency, usdtDir(m));
     const remaining = round2(m.total - m.settle - paid);
     const state = remaining <= 0.004 ? 'paid' : paid > 0.004 ? 'partial' : 'unpaid';
@@ -185,8 +193,11 @@ function renderUsdtPage() {
     const monthFilter = $('usdt_month_filter').value;
     // يوم محدد (بطلب عماد 2026-10-21)
     const dateFilter = $('usdt_date_filter').value;
+    const walletFilter = $('usdt_wallet_filter').value;
+    const inWallet = (m) => walletFilter === 'ALL' || (walletFilter === 'none' ? !m.walletId : m.walletId === walletFilter || m.toWalletId === walletFilter);
+    renderUsdtWallets();
     const list = usdtMoves
-        .filter(m => (kindFilter === 'ALL' || m.kind === kindFilter) && (!monthFilter || m.date.startsWith(monthFilter)) && (!dateFilter || m.date === dateFilter))
+        .filter(m => (kindFilter === 'ALL' || m.kind === kindFilter) && (!monthFilter || m.date.startsWith(monthFilter)) && (!dateFilter || m.date === dateFilter) && inWallet(m))
         .filter(m => !q || (serialHit ? String(m.serial) === qNo : normName(m.customerName).includes(q) || String(m.id).includes(qNo) || normName(m.address).includes(q)))
         .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id)
         .slice(0, 300);
@@ -195,24 +206,28 @@ function renderUsdtPage() {
         ? `<tr><td colspan="10" class="p-6 text-center text-xs text-slate-400">${emptyMessage(usdtMoves.length, 'لا توجد نتائج', 'لا توجد حركات USDT بعد')}</td></tr>`
         : list.map(m => {
             const st = usdtPayState(m);
-            const kindCls = m.kind === 'deposit' ? 'bg-rose-50 text-rose-700' : m.kind === 'withdraw' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600';
+            const kindCls = m.kind === 'deposit' ? 'bg-rose-50 text-rose-700' : m.kind === 'withdraw' ? 'bg-emerald-50 text-emerald-700' : m.kind === 'transfer' ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-600';
+            const trade = usdtTrade(m);
+            const w = usdtWallets.find(x => x.id === m.walletId);
             const effect = `${m.usdtEffect >= 0 ? '+' : '−'}${fmt(Math.abs(m.usdtEffect))}`;
             return `
                 <tr class="hover:bg-slate-50">
                     <td class="p-3 text-[10px] text-slate-400 font-mono whitespace-nowrap" title="${auditTitle(m)}${m.serial ? ` · رقم الحركة ${m.id}` : ''}">${receiptNo(m)}</td>
                     <td class="p-3 text-xs text-slate-500 whitespace-nowrap num">${escapeHtml(m.date)}${lockMark(m.date)}</td>
-                    <td class="p-3 whitespace-nowrap"><span class="badge ${kindCls}">${USDT_KINDS[m.kind]}</span></td>
-                    <td class="p-3 font-bold text-slate-900 whitespace-nowrap">${m.kind !== 'adjust' && m.customerName
+                    <td class="p-3 whitespace-nowrap"><span class="inline-flex items-center gap-1.5">${w && m.kind !== 'transfer' ? usdtWalletLogo(w, 'xs') : ''}<span class="badge ${kindCls}">${m.kind === 'transfer' ? 'تحويل' : USDT_KINDS[m.kind]}</span></span></td>
+                    <td class="p-3 font-bold text-slate-900 whitespace-nowrap">${m.kind === 'transfer'
+                        ? usdtTransferLabel(m)
+                        : trade && m.customerName
                         ? `<button data-action="open-customer" data-id="${escapeHtml(m.customerId)}" data-name="${escapeHtml(m.customerName)}" class="font-bold hover:text-blue-700 hover:underline text-right" title="ملف الزبون">${escapeHtml(m.customerName)}</button>`
-                        : escapeHtml(m.kind === 'adjust' ? m.note || '—' : '—')}</td>
+                        : escapeHtml(!trade ? m.note || '—' : '—')}</td>
                     <td class="p-3 font-mono font-bold num whitespace-nowrap">${fmt(Math.abs(m.amount))} <span class="text-[10px] text-slate-400">USDT</span>${m.network ? `<div class="text-[10px] text-slate-400 font-sans">${escapeHtml(m.network)} · ${fmt(m.networkFee)}$</div>` : ''}</td>
                     <td class="p-3 font-mono text-xs num whitespace-nowrap ${m.usdtEffect >= 0 ? 'text-emerald-700' : 'text-rose-700'}">${effect}</td>
-                    <td class="p-3 font-mono font-black num whitespace-nowrap">${m.kind === 'adjust' ? '—' : `<button data-action="usdt-receipt" data-id="${m.id}" class="amount-link" title="الفاتورة">${moneyCur(m.total, m.currency)}</button>`}${m.kind !== 'adjust' ? `<div class="text-[10px] text-slate-400 font-sans">${m.pct}% · سعر ${fmt(m.rate, 2)}${m.discount ? ` · خصم ${fmt(m.discount)}` : ''}${m.finalAdjust ? ` · تعديل ${signedAmount(m.finalAdjust)}` : ''}</div>` : ''}</td>
+                    <td class="p-3 font-mono font-black num whitespace-nowrap">${!trade ? '—' : `<button data-action="usdt-receipt" data-id="${m.id}" class="amount-link" title="الفاتورة">${moneyCur(m.total, m.currency)}</button>`}${trade ? `<div class="text-[10px] text-slate-400 font-sans">${m.pct}% · سعر ${fmt(m.rate, 2)}${m.discount ? ` · خصم ${fmt(m.discount)}` : ''}${m.finalAdjust ? ` · تعديل ${signedAmount(m.finalAdjust)}` : ''}</div>` : ''}</td>
                     <td class="p-3 whitespace-nowrap">${st ? `<span class="badge ${PAY_STATE[st.state].cls}">${PAY_STATE[st.state].label}</span>${st.state === 'partial' ? `<div class="text-[10px] text-slate-500 mt-0.5">الباقي ${moneyCur(st.remaining, m.currency)}</div>` : ''}` : ''}</td>
-                    <td class="profit-only p-3 font-mono font-black num whitespace-nowrap ${m.profitIls >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${m.kind === 'adjust' ? '' : `${m.profitIls >= 0 ? '+' : ''}${fmt(m.profitIls)} ₪`}</td>
+                    <td class="profit-only p-3 font-mono font-black num whitespace-nowrap ${m.profitIls >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${!trade ? '' : `${m.profitIls >= 0 ? '+' : ''}${fmt(m.profitIls)} ₪`}</td>
                     <td class="p-3 text-center whitespace-nowrap">
                         ${st && st.state !== 'paid' ? `<button data-action="usdt-pay" data-id="${m.id}" class="text-white bg-slate-900 hover:bg-slate-800 font-bold text-xs px-2.5 py-1 rounded-lg">${m.kind === 'deposit' ? 'استلام' : 'دفع'}</button>` : ''}
-                        ${m.kind !== 'adjust' ? `<button data-action="usdt-receipt" data-id="${m.id}" class="text-slate-700 font-bold text-xs px-2.5 py-1 bg-slate-100 rounded-lg">فاتورة</button>` : ''}
+                        ${trade ? `<button data-action="usdt-receipt" data-id="${m.id}" class="text-slate-700 font-bold text-xs px-2.5 py-1 bg-slate-100 rounded-lg">فاتورة</button>` : ''}
                         <button data-action="edit-usdt" data-id="${m.id}" class="text-blue-600 font-bold text-xs px-2.5 py-1 bg-blue-50 rounded-lg">تعديل</button>
                         <button data-action="delete-usdt" data-id="${m.id}" class="text-slate-400 hover:text-red-600 p-1 font-bold" title="حذف">✕</button>
                     </td>
@@ -298,6 +313,8 @@ function openUsdtModal(kind = 'deposit', m = null) {
     $('us_currency').value = m ? m.currency : 'ILS';
     if (m && m.network) $('us_network').value = m.network;
     $('us_fee').value = m ? m.networkFee : '';
+    // المحفظة: الحركة القديمة بمحفظتها، والجديدة بالأساسية
+    $('us_wallet').value = m ? m.walletId : (defaultUsdtWallet()?.id || '');
     setUsdtKind(m ? m.kind : kind, { keepValues: !!m });
     if (m) {
         $('us_pct').value = m.pct;
@@ -319,6 +336,7 @@ function setUsdtKind(kind, { keepValues = false } = {}) {
     $('us_deposit_fields').classList.toggle('hidden', kind !== 'deposit');
     $('us_final_adjust_wrap').classList.toggle('hidden', adjust);
     $('us_copy').classList.toggle('hidden', adjust);
+    renderUsdtWalletPicker();
     updateUsdtCustomerStatus();
     $('us_amount_label').textContent = adjust ? 'كمية USDT' : kind === 'deposit' ? 'المبلغ الذي يريده الزبون (USDT)' : 'المبلغ الذي أرسله الزبون (USDT)';
     $('us_rate_label').textContent = kind === 'deposit' ? 'سعر الشراء' : 'سعر البيع';
@@ -359,7 +377,8 @@ function readUsdtForm() {
         currency: $('us_currency').value,
         discount: 0,
         finalAdjust: kind === 'adjust' ? 0 : readFinalAdjust('us'),
-        settle: editingUsdtId ? usdtMoves.find(m => m.id === editingUsdtId)?.settle || 0 : 0
+        settle: editingUsdtId ? usdtMoves.find(m => m.id === editingUsdtId)?.settle || 0 : 0,
+        walletId: $('us_wallet').value
     };
 }
 
@@ -502,6 +521,8 @@ async function saveUsdt(e, sameOk = false, blackOk = false) {
     const name = $('us_customer').value.trim();
     if (f.kind !== 'adjust' && !name) return showToast('تنبيه', 'اكتب اسم الزبون', 'warning');
     if (f.kind !== 'adjust' && f.currency === 'ILS' && !(f.rate > 0)) return showToast('تنبيه', 'سعر الدولار غير صحيح', 'warning');
+    // المحفظة إجبارية للحركة الجديدة لما يكون في محافظ (القديمة بدون محفظة بتضل زي ما هي)
+    if (!editingUsdtId && usdtWalletsOn() && !f.walletId) return showToast('تنبيه', 'اختار المحفظة', 'warning');
     if (!editingUsdtId && !blackOk) {
         const hit = usdtBlackHit();
         if (hit) return checkBlacklistThen(hit, () => saveUsdt({ preventDefault() {} }, sameOk, true));
@@ -560,7 +581,7 @@ async function saveUsdt(e, sameOk = false, blackOk = false) {
 
 function openUsdtPay(id) {
     const m = usdtMoves.find(x => x.id === id);
-    if (!m || m.kind === 'adjust' || !walletsReady()) return;
+    if (!m || !usdtTrade(m) || !walletsReady()) return;
     const st = usdtPayState(m);
     openPayModal({
         title: m.kind === 'deposit' ? `استلام دفعة إيداع USDT ${receiptNo(m)}` : `دفع سحب USDT ${receiptNo(m)}`,
@@ -700,4 +721,328 @@ function addUsdtTier(kind) {
 function removeUsdtTier(kind, i) {
     if (!(i > 0)) return;
     saveUsdtTiers(kind, usdtKindTiers(kind).filter((_, k) => k !== i));
+}
+
+// ================= محافظ USDT (بطلب عماد 2026-10-24، ميزة usdtWallets) =================
+// ورقة "محافظ USDT": Bybit (الأساسية)، Binance، RedotPay… رصيد كل وحدة من حركات USDT عليها (walletId)، والتحويل بين
+// المحافظ حركة kind = transfer: بتطلّع المبلغ من وحدة وبتوصّل المبلغ ناقص الرسوم للثانية (المجموع بينقص الرسوم بس).
+// كل محفظة إلها ID وعنوان TRC20 و BEP20 بأزرار نسخ. الأساسية بتنختار لحالها بكل حركة جديدة، وفي وحدة أساسية دايماً.
+// الزبون ما بيشوف المحفظة (لا فاتورة ولا تتبّع)
+let usdtWallets = [];
+let editingUsdtWalletId = null;
+let usdtWalletLogoDraft; // undefined = ما تغيّر، '' = بدون صورة، data:… = صورة مرفوعة
+let editingUsdtTransferId = null;
+
+const USDT_WALLET_TYPES = {
+    bybit: { label: 'Bybit', color: '#f7a600' },
+    binance: { label: 'Binance', color: '#f0b90b' },
+    redotpay: { label: 'RedotPay', color: '#e30613' },
+    other: { label: 'محفظة أخرى', color: '#64748b' }
+};
+// شعار Bybit و RedotPay مرسوم (Binance من شعارات الخدمات)
+const USDT_LOGO_SVG = {
+    bybit: '<svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="9" fill="#17181e"/><text x="20" y="24.4" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="10.4" fill="#fff">BYB<tspan fill="#f7a600">I</tspan>T</text></svg>',
+    redotpay: '<svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="9" fill="#e30613"/><text x="20" y="28" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="21" fill="#fff">R</text></svg>'
+};
+
+const usdtWalletsOn = () => sheetHas('usdtWallets') && usdtWallets.length > 0;
+
+function normalizeUsdtWallet(w) {
+    const walletType = USDT_WALLET_TYPES[w?.walletType] ? w.walletType : 'other';
+    const logo = String(w?.logo ?? '');
+    return {
+        id: String(w?.id ?? '').trim(),
+        walletType,
+        holder: String(w?.holder ?? '').trim(),
+        uid: latinDigits(String(w?.uid ?? '')).trim(),
+        trc20: String(w?.trc20 ?? '').trim(),
+        bep20: String(w?.bep20 ?? '').trim(),
+        isDefault: w?.isDefault === true || w?.isDefault === 'yes',
+        alertBelow: Math.max(0, toNum(w?.alertBelow, 0)),
+        logo: /^data:image\//.test(logo) ? logo : '',
+        order: toNum(w?.order, 0),
+        note: String(w?.note ?? '').trim(),
+        createdAt: String(w?.createdAt ?? '').slice(0, 10)
+    };
+}
+
+const usdtWalletPayload = (w) => ({ ...w, isDefault: w.isDefault ? 'yes' : 'no', alertBelow: w.alertBelow || '' });
+const sortedUsdtWallets = () => usdtWallets.slice().sort((a, b) => (b.isDefault - a.isDefault) || a.order - b.order);
+const defaultUsdtWallet = () => usdtWallets.find(w => w.isDefault) || sortedUsdtWallets()[0] || null;
+
+function usdtWalletName(w) {
+    if (!w) return 'محفظة محذوفة';
+    if (w.walletType === 'other') return w.holder || 'محفظة';
+    return w.holder ? `${USDT_WALLET_TYPES[w.walletType].label} · ${w.holder}` : USDT_WALLET_TYPES[w.walletType].label;
+}
+
+function usdtWalletLogo(w, size = '') {
+    const cls = `uw-logo${size ? ' ' + size : ''}`;
+    if (w?.logo) return `<img src="${escapeHtml(w.logo)}" alt="" class="${cls}">`;
+    const type = w?.walletType || 'other';
+    if (type === 'binance') {
+        const b = SERVICE_BRANDS.binance;
+        return `<span class="${cls}" style="background:#1e2329"><svg viewBox="-4 -4 32 32" aria-hidden="true"><path fill="#${b.hex}" d="${b.d}"/></svg></span>`;
+    }
+    if (USDT_LOGO_SVG[type]) return `<span class="${cls}">${USDT_LOGO_SVG[type]}</span>`;
+    return `<span class="${cls} uw-letter">${escapeHtml((w?.holder || '؟').trim().charAt(0) || '؟')}</span>`;
+}
+
+// رصيد كل محفظة ('' = حركات قبل المحافظ)
+function usdtWalletBalances() {
+    const bal = {};
+    const add = (id, v) => { const k = id || ''; bal[k] = round2((bal[k] || 0) + v); };
+    usdtMoves.forEach(m => {
+        if (m.kind === 'transfer') { add(m.walletId, -m.amount); add(m.toWalletId, m.amount - m.networkFee); }
+        else add(m.walletId, m.usdtEffect);
+    });
+    return bal;
+}
+
+function usdtTransferLabel(m) {
+    const from = usdtWallets.find(x => x.id === m.walletId), to = usdtWallets.find(x => x.id === m.toWalletId);
+    return `<span class="inline-flex items-center gap-1.5">${usdtWalletLogo(from, 'xs')}<span>${escapeHtml(usdtWalletName(from))}</span><span class="text-slate-400">←</span>${usdtWalletLogo(to, 'xs')}<span>${escapeHtml(usdtWalletName(to))}</span></span>${m.networkFee ? `<span class="block text-[10px] text-slate-400 font-normal">رسوم ${fmtTrim(m.networkFee)} USDT · وصل ${fmtTrim(m.amount - m.networkFee)}</span>` : ''}`;
+}
+
+const shortAddr = (v) => (v.length > 16 ? `${v.slice(0, 6)}…${v.slice(-5)}` : v);
+
+function renderUsdtWallets() {
+    const on = sheetHas('usdtWallets');
+    $('usdt-wallets-wrap').classList.toggle('hidden', !on);
+    $('usdt_wallet_filter').classList.toggle('hidden', !usdtWalletsOn());
+    if (!on) return;
+    const bal = usdtWalletBalances();
+    const list = sortedUsdtWallets();
+    // فلتر المحفظة بالسجل
+    const sel = $('usdt_wallet_filter');
+    const cur = sel.value || 'ALL';
+    sel.innerHTML = '<option value="ALL">كل المحافظ</option>' + list.map(w => `<option value="${escapeHtml(w.id)}">${escapeHtml(usdtWalletName(w))}</option>`).join('')
+        + (usdtMoves.some(m => !m.walletId) ? '<option value="none">بدون محفظة</option>' : '');
+    sel.value = [...sel.options].some(o => o.value === cur) ? cur : 'ALL';
+    $('usdt-transfer-btn').classList.toggle('hidden', list.length < 2);
+    $('usdt-wallets').innerHTML = list.length ? list.map(w => {
+        const b = bal[w.id] || 0;
+        const low = w.alertBelow > 0 && b < w.alertBelow;
+        const copy = (field, label) => w[field] ? `<button type="button" data-action="usdt-wallet-copy" data-id="${escapeHtml(w.id)}" data-field="${field}" class="uw-copy" title="${escapeHtml(w[field])}"><b>${label}</b><bdi dir="ltr">${escapeHtml(shortAddr(w[field]))}</bdi><span aria-hidden="true">⧉</span></button>` : '';
+        return `
+            <div class="uw-card${low ? ' low' : ''}" style="--uw:${USDT_WALLET_TYPES[w.walletType].color}">
+                <div class="uw-head">
+                    ${usdtWalletLogo(w)}
+                    <div class="min-w-0 flex-1">
+                        <b class="block truncate text-slate-900">${escapeHtml(usdtWalletName(w))}</b>
+                        <span class="flex flex-wrap gap-1 mt-0.5">${w.isDefault ? '<span class="uw-default">⭐ الأساسية</span>' : ''}${low ? '<span class="low-chip">⚠️ قليل</span>' : ''}</span>
+                    </div>
+                    <button type="button" data-action="edit-usdt-wallet" data-id="${escapeHtml(w.id)}" class="text-[11px] font-bold text-slate-400 hover:text-slate-700 px-1">تعديل</button>
+                </div>
+                <div class="uw-balance ${b < 0 ? 'neg' : ''}"><bdi class="num">${fmt(b)}</bdi> <small>USDT</small></div>
+                ${w.uid || w.trc20 || w.bep20 ? `<div class="uw-copies">${copy('uid', 'ID')}${copy('trc20', 'TRC20')}${copy('bep20', 'BEP20')}</div>` : ''}
+            </div>`;
+    }).join('') : `<div class="col-span-full text-xs text-slate-500">ضيف محافظك (Bybit، Binance، RedotPay…) حتى تعرف رصيد كل وحدة، وتنسخ الـ ID والعناوين بكبسة.</div>`;
+    const loose = bal[''] || 0;
+    $('usdt-wallets-loose').classList.toggle('hidden', !list.length || Math.abs(loose) < 0.005);
+    $('usdt-wallets-loose').innerHTML = `حركات قبل المحافظ (بدون محفظة): <bdi dir="ltr">${loose >= 0 ? '+' : '−'}${fmt(Math.abs(loose))}</bdi> USDT`;
+}
+
+function copyUsdtWalletField(btn) {
+    const w = usdtWallets.find(x => x.id === btn.dataset.id);
+    const field = btn.dataset.field;
+    if (!w || !w[field]) return;
+    const label = { uid: 'ID', trc20: 'عنوان TRC20', bep20: 'عنوان BEP20' }[field];
+    copyWithFlash(btn, { label: `${usdtWalletName(w)} · ${label}`, shown: shortAddr(w[field]), value: w[field] });
+}
+
+// اختيار المحفظة بنافذة حركة USDT (أزرار بالشعارات)
+function renderUsdtWalletPicker() {
+    const show = usdtWalletsOn();
+    $('us_wallet_wrap').classList.toggle('hidden', !show);
+    if (!show) return;
+    const kind = $('us_kind').value;
+    $('us_wallet_label').textContent = kind === 'deposit' ? 'طلع من محفظة' : kind === 'withdraw' ? 'وصل على محفظة' : 'المحفظة';
+    const sel = $('us_wallet').value;
+    $('us_wallets').innerHTML = sortedUsdtWallets().map(w => `
+        <button type="button" data-action="us-wallet" data-id="${escapeHtml(w.id)}" class="uw-chip${w.id === sel ? ' active' : ''}" aria-pressed="${w.id === sel}">
+            ${usdtWalletLogo(w, 'sm')}<span class="truncate">${escapeHtml(usdtWalletName(w))}</span>
+        </button>`).join('');
+}
+
+function pickUsdtWallet(id) {
+    $('us_wallet').value = id;
+    renderUsdtWalletPicker();
+}
+
+// ---------- نافذة المحفظة ----------
+function openUsdtWalletModal(w = null) {
+    if (!walletsReady()) return;
+    if (!sheetHas('usdtWallets')) return showToast('حدّث السكربت أولاً', 'محافظ USDT بدها نسخة السكربت الجديدة', 'warning');
+    editingUsdtWalletId = w ? w.id : null;
+    usdtWalletLogoDraft = undefined;
+    $('usdtWalletModalTitle').textContent = w ? `تعديل ${usdtWalletName(w)}` : 'محفظة USDT جديدة';
+    $('uw_type').value = w ? w.walletType : (usdtWallets.some(x => x.walletType === 'bybit') ? 'binance' : 'bybit');
+    $('uw_holder').value = w ? w.holder : '';
+    $('uw_uid').value = w ? w.uid : '';
+    $('uw_trc20').value = w ? w.trc20 : '';
+    $('uw_bep20').value = w ? w.bep20 : '';
+    $('uw_alert').value = w && w.alertBelow ? w.alertBelow : '';
+    // وحدة أساسية دايماً: أول محفظة أساسية، والأساسية ما بتنشال إلا لما تعلّم غيرها
+    $('uw_default').checked = w ? w.isDefault : !usdtWallets.length;
+    $('uw_default').disabled = !!(w && w.isDefault) || !usdtWallets.length;
+    $('uw_default_note').textContent = w && w.isDefault ? 'هاي الأساسية. لتغييرها علّم محفظة ثانية كأساسية.' : !usdtWallets.length ? 'أول محفظة بتكون الأساسية.' : 'بتنختار لحالها بكل حركة USDT جديدة.';
+    $('uw_opening_wrap').classList.toggle('hidden', !!w);
+    $('uw_opening').value = '';
+    $('uw_delete').classList.toggle('hidden', !w);
+    renderUsdtWalletTypeChips();
+    openModal('usdtWalletModal');
+    $('uw_holder').focus();
+}
+
+function renderUsdtWalletTypeChips() {
+    const type = $('uw_type').value;
+    const existing = usdtWallets.find(x => x.id === editingUsdtWalletId);
+    const logo = usdtWalletLogoDraft !== undefined ? usdtWalletLogoDraft : existing?.logo || '';
+    $('uw_types').innerHTML = Object.entries(USDT_WALLET_TYPES).map(([k, t]) => `
+        <button type="button" data-action="uw-type" data-type="${k}" class="uw-chip${k === type ? ' active' : ''}" aria-pressed="${k === type}">
+            ${usdtWalletLogo({ walletType: k, holder: $('uw_holder').value || t.label }, 'sm')}<span>${t.label}</span>
+        </button>`).join('');
+    $('uw_logo_preview').innerHTML = usdtWalletLogo({ walletType: type, holder: $('uw_holder').value, logo }, 'lg');
+    $('uw_logo_remove').classList.toggle('hidden', !logo);
+}
+
+function setUsdtWalletType(type) {
+    $('uw_type').value = USDT_WALLET_TYPES[type] ? type : 'other';
+    renderUsdtWalletTypeChips();
+}
+
+function onUsdtWalletLogoFile(file) {
+    cropSquareImage(file, 96, (dataUrl) => {
+        if (dataUrl.length > 15000) return showToast('الصورة كبيرة', 'جرّب صورة أبسط أو أصغر', 'warning');
+        usdtWalletLogoDraft = dataUrl;
+        renderUsdtWalletTypeChips();
+    });
+}
+
+function removeUsdtWalletLogo() {
+    usdtWalletLogoDraft = '';
+    $('uw_logo_file').value = '';
+    renderUsdtWalletTypeChips();
+}
+
+const TRC20_RE = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
+const BEP20_RE = /^0x[0-9a-fA-F]{40}$/;
+
+async function saveUsdtWallet(e) {
+    e.preventDefault();
+    if (!walletsReady() || !sheetHas('usdtWallets')) return;
+    const existing = usdtWallets.find(w => w.id === editingUsdtWalletId);
+    const trc20 = $('uw_trc20').value.replace(/\s+/g, '');
+    const bep20 = $('uw_bep20').value.replace(/\s+/g, '');
+    if (trc20 && !TRC20_RE.test(trc20)) { $('uw_trc20').focus(); return showToast('عنوان TRC20 مش صحيح', 'لازم يبدأ بـ T وطوله 34 حرف', 'warning'); }
+    if (bep20 && !BEP20_RE.test(bep20)) { $('uw_bep20').focus(); return showToast('عنوان BEP20 مش صحيح', 'لازم يبدأ بـ 0x وبعده 40 حرف', 'warning'); }
+    const makeDefault = $('uw_default').checked || !usdtWallets.some(w => w.id !== editingUsdtWalletId);
+    const wallet = normalizeUsdtWallet({
+        ...(existing || {}),
+        id: existing ? existing.id : 'uw' + nextId(),
+        walletType: $('uw_type').value,
+        holder: $('uw_holder').value.slice(0, 60),
+        uid: $('uw_uid').value.replace(/\s+/g, '').slice(0, 60),
+        trc20, bep20,
+        isDefault: existing?.isDefault || makeDefault,
+        alertBelow: $('uw_alert').value,
+        logo: usdtWalletLogoDraft !== undefined ? usdtWalletLogoDraft : existing?.logo,
+        order: existing ? existing.order : usdtWallets.reduce((m, w) => Math.max(m, w.order), -1) + 1,
+        createdAt: existing ? existing.createdAt : localDateStr()
+    });
+    const ops = [];
+    // وحدة أساسية بس
+    if (wallet.isDefault) usdtWallets.filter(w => w.id !== wallet.id && w.isDefault).forEach(w => { w.isDefault = false; ops.push({ action: 'upsert_usdt_wallet', wallet: usdtWalletPayload(w) }); });
+    if (existing) Object.assign(existing, wallet); else usdtWallets.push(wallet);
+    ops.unshift({ action: 'upsert_usdt_wallet', wallet: usdtWalletPayload(wallet) });
+    // الرصيد الحالي = تعديل رصيد على المحفظة
+    const opening = round2(toNum($('uw_opening').value, 0));
+    if (!existing && opening) {
+        const move = normalizeUsdt({ id: nextId(), date: localDateStr(), kind: 'adjust', amount: opening, walletId: wallet.id, note: 'رصيد افتتاحي', currency: 'ILS' });
+        usdtMoves.push(move);
+        ops.push({ action: 'upsert_usdt', move });
+    }
+    queueOps(...ops);
+    closeModal('usdtWalletModal');
+    renderUsdtPage();
+    const status = await flushOutbox();
+    showToast(existing ? 'تم تعديل المحفظة' : 'انضافت المحفظة', `${usdtWalletName(wallet)}${wallet.isDefault ? ' · الأساسية' : ''} — ${syncResultMessage(status)}`, syncToastType(status));
+}
+
+function deleteUsdtWalletPrompt() {
+    const w = usdtWallets.find(x => x.id === editingUsdtWalletId);
+    if (!w) return;
+    if (usdtMoves.some(m => m.walletId === w.id || m.toWalletId === w.id)) return showToast('ما بتنحذف', 'عليها حركات USDT. احذف حركاتها أول أو خلّيها.', 'warning');
+    showAppConfirm('حذف المحفظة', `حذف ${usdtWalletName(w)}؟`, async () => {
+        usdtWallets = usdtWallets.filter(x => x.id !== w.id);
+        const ops = [{ action: 'delete_usdt_wallet', id: w.id }];
+        // الأساسية انحذفت: اللي بعدها بتصير أساسية
+        const next = w.isDefault ? sortedUsdtWallets()[0] : null;
+        if (next) { next.isDefault = true; ops.push({ action: 'upsert_usdt_wallet', wallet: usdtWalletPayload(next) }); }
+        queueOps(...ops);
+        closeModal('usdtWalletModal');
+        renderUsdtPage();
+        const status = await flushOutbox();
+        showToast('انحذفت المحفظة', syncResultMessage(status), syncToastType(status));
+    });
+}
+
+// ---------- التحويل بين المحافظ ----------
+function openUsdtTransfer(m = null) {
+    if (!walletsReady()) return;
+    if (usdtWallets.length < 2) return showToast('بدك محفظتين', 'ضيف محفظة ثانية أول', 'warning');
+    editingUsdtTransferId = m ? m.id : null;
+    const list = sortedUsdtWallets();
+    const from = m ? m.walletId : list[0].id;
+    $('ut_from').value = from;
+    $('ut_to').value = m ? m.toWalletId : list.find(w => w.id !== from).id;
+    $('ut_amount').value = m ? m.amount : '';
+    $('ut_fee').value = m ? m.networkFee || '' : '';
+    $('ut_date').value = m ? m.date : localDateStr();
+    $('ut_note').value = m ? m.note : '';
+    $('usdtTransferTitle').textContent = m ? 'تعديل التحويل بين المحافظ' : 'تحويل بين المحافظ';
+    renderUsdtTransferForm();
+    openModal('usdtTransferModal');
+    $('ut_amount').focus();
+}
+
+function renderUsdtTransferForm() {
+    const chips = (field) => sortedUsdtWallets().map(w => `
+        <button type="button" data-action="ut-wallet" data-field="${field}" data-id="${escapeHtml(w.id)}" class="uw-chip${$('ut_' + field).value === w.id ? ' active' : ''}">
+            ${usdtWalletLogo(w, 'sm')}<span class="truncate">${escapeHtml(usdtWalletName(w))}</span>
+        </button>`).join('');
+    $('ut_from_chips').innerHTML = chips('from');
+    $('ut_to_chips').innerHTML = chips('to');
+    const amount = toNum($('ut_amount').value, 0), fee = toNum($('ut_fee').value, 0);
+    const to = usdtWallets.find(w => w.id === $('ut_to').value);
+    $('ut_preview').textContent = amount > 0 ? `بيوصل على ${usdtWalletName(to)}: ${fmtTrim(Math.max(0, amount - fee))} USDT${fee ? ` (رسوم ${fmtTrim(fee)})` : ''}` : '';
+}
+
+function pickUsdtTransferWallet(field, id) {
+    $('ut_' + field).value = id;
+    // نفس المحفظة بالطرفين: الثاني بيتبدّل
+    const other = field === 'from' ? 'to' : 'from';
+    if ($('ut_' + other).value === id) $('ut_' + other).value = sortedUsdtWallets().find(w => w.id !== id)?.id || '';
+    renderUsdtTransferForm();
+}
+
+async function saveUsdtTransfer(e) {
+    e.preventDefault();
+    const from = $('ut_from').value, to = $('ut_to').value;
+    const amount = round2(toNum($('ut_amount').value, 0));
+    const fee = round2(Math.max(0, toNum($('ut_fee').value, 0)));
+    if (!from || !to || from === to) return showToast('تنبيه', 'اختار محفظتين مختلفتين', 'warning');
+    if (!(amount > 0)) return showToast('تنبيه', 'اكتب المبلغ اللي طلع', 'warning');
+    if (fee >= amount) return showToast('تنبيه', 'الرسوم أكبر من المبلغ', 'warning');
+    const existing = usdtMoves.find(m => m.id === editingUsdtTransferId);
+    const move = normalizeUsdt({ id: existing ? existing.id : nextId(), date: $('ut_date').value || localDateStr(), kind: 'transfer', amount, networkFee: fee, walletId: from, toWalletId: to, note: $('ut_note').value, currency: 'ILS' });
+    if (editLocked('usdtMoves', existing && { ...existing }, move)) return lockWarn();
+    if (!existing && backdateLocked(move.date)) return lockWarn();
+    if (existing) Object.assign(existing, move); else usdtMoves.push(move);
+    queueOps({ action: 'upsert_usdt', move });
+    closeModal('usdtTransferModal');
+    renderUsdtPage();
+    const status = await flushOutbox();
+    showToast(existing ? 'تم تعديل التحويل' : 'تم التحويل', `${fmtTrim(amount)} USDT: ${usdtWalletName(usdtWallets.find(w => w.id === from))} ← ${usdtWalletName(usdtWallets.find(w => w.id === to))} — ${syncResultMessage(status)}`, syncToastType(status));
 }

@@ -121,7 +121,7 @@ function employeeDaySummaryHtml(date) {
     const rows = {};
     const get = (u) => (rows[u || 'بدون اسم'] ??= { tx: 0, txIls: 0, usdt: 0, egp: 0, paidOut: 0, paidIn: 0, exp: 0 });
     ledger.forEach(t => { if (t.date === date && t.status !== CANCELLED) { const r = get(t.createdBy); r.tx++; r.txIls += t.clientIls; } });
-    usdtMoves.forEach(m => { if (m.date === date && m.kind !== 'adjust') get(m.createdBy).usdt++; });
+    usdtMoves.forEach(m => { if (m.date === date && usdtTrade(m)) get(m.createdBy).usdt++; });
     egpMoves.forEach(m => { if (m.date === date && (m.kind === 'send' || m.kind === 'receive')) get(m.createdBy).egp++; });
     accountMoves.forEach(m => { if (m.date === date && REF_LABELS[m.refType] && m.currency === 'ILS') { const r = get(m.createdBy); if (m.amount < 0) r.paidOut -= m.amount; else r.paidIn += m.amount; } });
     expenses.forEach(e => { if (e.date === date) get(e.createdBy).exp += e.amount; });

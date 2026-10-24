@@ -47,7 +47,7 @@ function buildCustomerStatsIndex() {
     });
     // الإيداع والسحب فقط (تعديل الرصيد ليس لزبون)
     usdtMoves.forEach(m => {
-        if (m.kind === 'adjust') return;
+        if (!usdtTrade(m)) return;
         const s = statsFor(usdtCustomerKey(m));
         s.usdt.push(m);
         s.usdtCount++;
@@ -670,7 +670,7 @@ function renameCustomerOps(c, oldName) {
         });
     }
     if (hasPerm('usdt')) {
-        usdtMoves.filter(m => m.kind !== 'adjust' && mine(m.customerId, m.customerName) && m.customerName !== c.name).forEach(m => {
+        usdtMoves.filter(m => usdtTrade(m) && mine(m.customerId, m.customerName) && m.customerName !== c.name).forEach(m => {
             m.customerName = c.name;
             ops.push({ action: 'upsert_usdt', move: m }, ...relinkNotesOps('usdt', m.id, usdtPayNote(m), isUsdtPayNote));
             count++;

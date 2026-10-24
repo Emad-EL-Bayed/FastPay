@@ -50,7 +50,7 @@ function monthlyStats() {
     });
     // ربح USDT (إيداع وسحب) يُضاف لربح الشهر
     usdtMoves.forEach(m => {
-        if (m.kind === 'adjust' || !m.date) return;
+        if (!usdtTrade(m) || !m.date) return;
         const s = get(monthKeyOf(m.date));
         s.profit += m.profitIls;
         s.count++;
@@ -490,7 +490,7 @@ function updateReportsData() {
     });
 
     usdtMoves.forEach(m => {
-        if (m.kind === 'adjust') return;
+        if (!usdtTrade(m)) return;
         profitTotal += m.profitIls;
         byCountry['₮ USDT'] ??= { count: 0, profit: 0, payout: 0 };
         byCountry['₮ USDT'].count++;
@@ -605,7 +605,7 @@ function dailyUsdWork(fromDate) {
         s.count++;
     });
     usdtMoves.forEach(m => {
-        if (m.kind === 'adjust' || !m.date || m.date < fromDate) return;
+        if (!usdtTrade(m) || !m.date || m.date < fromDate) return;
         const s = get(m.date);
         s.usd += Math.abs(m.amount);
         s.profit += m.profitIls;

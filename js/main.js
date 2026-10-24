@@ -217,7 +217,19 @@ const CLICK_ACTIONS = {
     'tx-final-adjust': (el) => bumpTxFinalAdjust(el.dataset.step),
     'calc-adjust': (el) => bumpCalcAdjust(el.dataset.step),
     'usdt-receipt': (el) => openUsdtReceipt(toNum(el.dataset.id, NaN)),
-    'edit-usdt': (el) => openUsdtModal('deposit', usdtMoves.find(m => m.id === toNum(el.dataset.id, NaN))),
+    'edit-usdt': (el) => {
+        const m = usdtMoves.find(x => x.id === toNum(el.dataset.id, NaN));
+        if (m?.kind === 'transfer') openUsdtTransfer(m); else openUsdtModal('deposit', m);
+    },
+    'usdt-wallet-new': () => openUsdtWalletModal(),
+    'edit-usdt-wallet': (el) => openUsdtWalletModal(usdtWallets.find(w => w.id === el.dataset.id)),
+    'delete-usdt-wallet': deleteUsdtWalletPrompt,
+    'usdt-wallet-copy': (el) => copyUsdtWalletField(el),
+    'uw-type': (el) => setUsdtWalletType(el.dataset.type),
+    'uw-logo-remove': removeUsdtWalletLogo,
+    'us-wallet': (el) => pickUsdtWallet(el.dataset.id),
+    'usdt-transfer': () => openUsdtTransfer(),
+    'ut-wallet': (el) => pickUsdtTransferWallet(el.dataset.field, el.dataset.id),
     'delete-usdt': (el) => deleteUsdtPrompt(toNum(el.dataset.id, NaN)),
     'usdt-net-add': addUsdtNetwork,
     'usdt-net-remove': (el) => removeUsdtNetwork(toNum(el.dataset.index, -1)),
@@ -378,7 +390,7 @@ function bindGlobalEvents() {
 
 // النوافذ من فوق لتحت: Esc وزر الرجوع بيسكّروا اللي فوق بس
 // (الإشعار المهم و"مين عدّل قبلي" مش هون: ما بيتسكّروا إلا بالاختيار)
-const MODAL_ORDER = ['searchModal', 'fraudModal', 'custStatementModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'readySendModal', 'readyModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'accountModal', 'noticeModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal'];
+const MODAL_ORDER = ['searchModal', 'fraudModal', 'custStatementModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'readySendModal', 'readyModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'usdtWalletModal', 'usdtTransferModal', 'accountModal', 'noticeModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal'];
 const topModalId = () => MODAL_ORDER.find(id => !$(id).classList.contains('hidden'));
 
 // ================= زر الرجوع بالجوال (بطلب عماد 2026-10-19) =================
@@ -533,7 +545,12 @@ function bindUsdtEvents() {
     $('us_customer').addEventListener('keydown', onUsdtCustomerKey);
     ['us_phone', 'us_np_account'].forEach(id => $(id).addEventListener('input', renderUsdtBlackNote));
     $('usdt_search').addEventListener('input', (e) => { usdtSearch = e.target.value; renderUsdtPage(); });
-    ['usdt_kind_filter', 'usdt_month_filter', 'usdt_date_filter'].forEach(id => $(id).addEventListener('change', renderUsdtPage));
+    ['usdt_kind_filter', 'usdt_month_filter', 'usdt_date_filter', 'usdt_wallet_filter'].forEach(id => $(id).addEventListener('change', renderUsdtPage));
+    $('usdtWalletForm').addEventListener('submit', saveUsdtWallet);
+    $('usdtTransferForm').addEventListener('submit', saveUsdtTransfer);
+    ['ut_amount', 'ut_fee'].forEach(id => $(id).addEventListener('input', renderUsdtTransferForm));
+    $('uw_holder').addEventListener('input', renderUsdtWalletTypeChips);
+    $('uw_logo_file').addEventListener('change', (e) => onUsdtWalletLogoFile(e.target.files[0]));
     $('usdt-settings').addEventListener('change', (e) => onUsdtSettingInput(e.target));
 }
 

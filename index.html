@@ -28,41 +28,41 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=128">
+    <link rel="stylesheet" href="styles.css?v=130">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=128">
+    <link rel="stylesheet" href="tailwind.css?v=130">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=128" defer></script>
-    <script src="js/core.js?v=128" defer></script>
-    <script src="js/theme.js?v=128" defer></script>
-    <script src="js/logo-data.js?v=128" defer></script>
-    <script src="js/shell.js?v=128" defer></script>
-    <script src="js/calculator.js?v=128" defer></script>
-    <script src="js/reports.js?v=128" defer></script>
-    <script src="js/sync.js?v=128" defer></script>
-    <script src="js/conflicts.js?v=128" defer></script>
-    <script src="js/cache.js?v=128" defer></script>
-    <script src="js/bgsync.js?v=128" defer></script>
-    <script src="js/transactions.js?v=128" defer></script>
-    <script src="js/receipts.js?v=128" defer></script>
-    <script src="js/customers.js?v=128" defer></script>
-    <script src="js/countries.js?v=128" defer></script>
-    <script src="js/service-logos.js?v=128" defer></script>
-    <script src="js/traders.js?v=128" defer></script>
-    <script src="js/expenses.js?v=128" defer></script>
-    <script src="js/ready.js?v=128" defer></script>
-    <script src="js/settings.js?v=128" defer></script>
-    <script src="js/accounts.js?v=128" defer></script>
-    <script src="js/usdt.js?v=128" defer></script>
-    <script src="js/egp.js?v=128" defer></script>
-    <script src="js/closing.js?v=128" defer></script>
-    <script src="js/admin.js?v=128" defer></script>
-    <script src="js/position.js?v=128" defer></script>
-    <script src="js/search.js?v=128" defer></script>
-    <script src="js/notify.js?v=128" defer></script>
-    <script src="js/push.js?v=128" defer></script>
-    <script src="js/auth.js?v=128" defer></script>
-    <script src="js/main.js?v=128" defer></script>
+    <script src="js/endpoint.js?v=130" defer></script>
+    <script src="js/core.js?v=130" defer></script>
+    <script src="js/theme.js?v=130" defer></script>
+    <script src="js/logo-data.js?v=130" defer></script>
+    <script src="js/shell.js?v=130" defer></script>
+    <script src="js/calculator.js?v=130" defer></script>
+    <script src="js/reports.js?v=130" defer></script>
+    <script src="js/sync.js?v=130" defer></script>
+    <script src="js/conflicts.js?v=130" defer></script>
+    <script src="js/cache.js?v=130" defer></script>
+    <script src="js/bgsync.js?v=130" defer></script>
+    <script src="js/transactions.js?v=130" defer></script>
+    <script src="js/receipts.js?v=130" defer></script>
+    <script src="js/customers.js?v=130" defer></script>
+    <script src="js/countries.js?v=130" defer></script>
+    <script src="js/service-logos.js?v=130" defer></script>
+    <script src="js/traders.js?v=130" defer></script>
+    <script src="js/expenses.js?v=130" defer></script>
+    <script src="js/ready.js?v=130" defer></script>
+    <script src="js/settings.js?v=130" defer></script>
+    <script src="js/accounts.js?v=130" defer></script>
+    <script src="js/usdt.js?v=130" defer></script>
+    <script src="js/egp.js?v=130" defer></script>
+    <script src="js/closing.js?v=130" defer></script>
+    <script src="js/admin.js?v=130" defer></script>
+    <script src="js/position.js?v=130" defer></script>
+    <script src="js/search.js?v=130" defer></script>
+    <script src="js/notify.js?v=130" defer></script>
+    <script src="js/push.js?v=130" defer></script>
+    <script src="js/auth.js?v=130" defer></script>
+    <script src="js/main.js?v=130" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -736,6 +736,20 @@
                     <div class="section-card p-4 profit-only"><span class="text-[11px] text-slate-500 font-bold">ربح الشهر</span><b id="usdt-profit-month" class="count-up block text-xl font-black text-emerald-600 num mt-1">0</b></div>
                     <div class="section-card p-4"><span class="text-[11px] text-slate-500 font-bold">بانتظار الدفع من الزبائن</span><b id="usdt-unpaid" class="count-up block text-xl font-black text-amber-600 num mt-1">0</b></div>
                 </div>
+                <!-- محافظ USDT (usdt.js renderUsdtWallets، ميزة usdtWallets): رصيد كل محفظة ونسخ الـ ID والعناوين -->
+                <div id="usdt-wallets-wrap" class="hidden section-card p-4 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900">محافظ USDT</h3>
+                            <p id="usdt-wallets-loose" class="hidden text-[11px] text-slate-400"></p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="usdt-transfer-btn" data-action="usdt-transfer" class="hidden text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-800 px-3 py-2 rounded-lg transition">⇄ تحويل بين المحافظ</button>
+                            <button data-action="usdt-wallet-new" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg transition">+ محفظة</button>
+                        </div>
+                    </div>
+                    <div id="usdt-wallets" class="uw-grid"></div>
+                </div>
                 <div class="section-card p-4 flex flex-wrap gap-3 justify-between items-center">
                     <div class="flex gap-2 w-full sm:w-auto">
                         <button data-action="usdt-new" data-kind="deposit" class="flex-1 md:flex-none bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition">+ إيداع (الزبون يشتري)</button>
@@ -750,6 +764,10 @@
                             <option value="deposit">إيداع</option>
                             <option value="withdraw">سحب</option>
                             <option value="adjust">تعديل رصيد</option>
+                            <option value="transfer">تحويل بين المحافظ</option>
+                        </select>
+                        <select id="usdt_wallet_filter" class="hidden text-xs border border-slate-200 rounded-lg p-2 bg-white font-semibold" aria-label="المحفظة">
+                            <option value="ALL">كل المحافظ</option>
                         </select>
                         <button id="usdt-settings-link" data-action="settings-card" data-target="usdt-settings" class="hidden shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-lg transition" title="نسب الإيداع والسحب وشرائحها والشبكات">⚙️ النسب</button>
                     </div>
@@ -2459,6 +2477,12 @@
                     <button type="button" data-action="usdt-kind" data-kind="withdraw" class="kind-btn mine">سحب<span>الزبون يبيع USDT</span></button>
                     <button type="button" data-action="usdt-kind" data-kind="adjust" class="kind-btn settle">تعديل رصيد<span>رصيدي من USDT</span></button>
                 </div>
+                <!-- المحفظة (usdt.js renderUsdtWalletPicker): الأساسية مختارة لحالها -->
+                <div id="us_wallet_wrap" class="hidden">
+                    <span id="us_wallet_label" class="font-bold block mb-1 text-slate-700">المحفظة</span>
+                    <input type="hidden" id="us_wallet">
+                    <div id="us_wallets" class="uw-chips"></div>
+                </div>
                 <div id="us_customer_wrap" class="relative">
                     <label for="us_customer" class="font-bold block mb-1 text-slate-700">اسم الزبون * <span id="us_customer_status" class="text-[10px] font-bold"></span></label>
                     <input type="hidden" id="us_customer_id">
@@ -2943,6 +2967,110 @@
                     <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg transition">حفظ</button>
                     <button type="button" id="acc_delete" data-action="delete-account" class="hidden px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg font-bold">حذف</button>
                 </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: محفظة USDT (usdt.js openUsdtWalletModal/saveUsdtWallet) -->
+    <div id="usdtWalletModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="section-card max-w-md w-full p-6 my-auto">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                <h3 id="usdtWalletModalTitle" class="text-base font-bold text-slate-900">محفظة USDT جديدة</h3>
+                <button data-action="close-modal" data-modal="usdtWalletModal" class="text-slate-400 hover:text-slate-700">✕</button>
+            </div>
+            <form id="usdtWalletForm" class="mt-4 space-y-3 text-xs">
+                <input type="hidden" id="uw_type" value="bybit">
+                <div>
+                    <span class="font-bold block mb-1 text-slate-700">النوع</span>
+                    <div id="uw_types" class="uw-chips"></div>
+                </div>
+                <div>
+                    <label for="uw_holder" class="font-bold block mb-1 text-slate-700">الاسم <span class="font-medium text-slate-400">(اختياري، مثلاً: حساب عماد)</span></label>
+                    <input type="text" id="uw_holder" autocomplete="off" class="w-full field font-bold">
+                </div>
+                <div>
+                    <label for="uw_uid" class="font-bold block mb-1 text-slate-700">ID <span class="font-medium text-slate-400">(UID أو Pay ID)</span></label>
+                    <input type="text" id="uw_uid" data-latin dir="ltr" autocomplete="off" spellcheck="false" class="w-full field font-mono font-bold text-left">
+                </div>
+                <div>
+                    <label for="uw_trc20" class="font-bold block mb-1 text-slate-700">عنوان TRC20 <span class="font-medium text-slate-400">(اختياري)</span></label>
+                    <input type="text" id="uw_trc20" dir="ltr" autocomplete="off" spellcheck="false" placeholder="T…" class="w-full field font-mono text-[11px] text-left">
+                </div>
+                <div>
+                    <label for="uw_bep20" class="font-bold block mb-1 text-slate-700">عنوان BEP20 <span class="font-medium text-slate-400">(اختياري)</span></label>
+                    <input type="text" id="uw_bep20" dir="ltr" autocomplete="off" spellcheck="false" placeholder="0x…" class="w-full field font-mono text-[11px] text-left">
+                </div>
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <span id="uw_logo_preview" class="shrink-0"></span>
+                    <div class="min-w-0 flex-1">
+                        <b class="block text-slate-700">الشعار</b>
+                        <span class="text-[10px] text-slate-400">تلقائي حسب النوع، أو ارفع صورة</span>
+                    </div>
+                    <label class="text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg cursor-pointer">ارفع صورة<input type="file" id="uw_logo_file" accept="image/*" class="hidden"></label>
+                    <button type="button" id="uw_logo_remove" data-action="uw-logo-remove" class="hidden text-[11px] font-bold text-slate-500 hover:text-rose-600 px-1">شيلها</button>
+                </div>
+                <label class="flex items-start gap-2 cursor-pointer">
+                    <input type="checkbox" id="uw_default" class="mt-0.5">
+                    <span><b class="text-slate-800">⭐ المحفظة الأساسية</b><span id="uw_default_note" class="block text-[10px] text-slate-400"></span></span>
+                </label>
+                <div class="grid grid-cols-2 gap-3">
+                    <div id="uw_opening_wrap">
+                        <label for="uw_opening" class="font-bold block mb-1 text-slate-700">الرصيد الحالي فيها</label>
+                        <input type="number" step="any" id="uw_opening" placeholder="0 USDT" class="w-full field font-bold num">
+                    </div>
+                    <div>
+                        <label for="uw_alert" class="font-bold block mb-1 text-slate-700">نبّهني تحت (USDT)</label>
+                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="uw_alert" placeholder="اختياري" class="w-full field font-bold num">
+                    </div>
+                </div>
+                <div class="pt-2 flex gap-2">
+                    <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg transition">حفظ</button>
+                    <button type="button" id="uw_delete" data-action="delete-usdt-wallet" class="hidden px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg font-bold">حذف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: تحويل USDT بين المحافظ (usdt.js openUsdtTransfer/saveUsdtTransfer) -->
+    <div id="usdtTransferModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="section-card max-w-md w-full p-6 my-auto">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                <h3 id="usdtTransferTitle" class="text-base font-bold text-slate-900">تحويل بين المحافظ</h3>
+                <button data-action="close-modal" data-modal="usdtTransferModal" class="text-slate-400 hover:text-slate-700">✕</button>
+            </div>
+            <form id="usdtTransferForm" class="mt-4 space-y-3 text-xs">
+                <input type="hidden" id="ut_from">
+                <input type="hidden" id="ut_to">
+                <div>
+                    <span class="font-bold block mb-1 text-slate-700">من</span>
+                    <div id="ut_from_chips" class="uw-chips"></div>
+                </div>
+                <div>
+                    <span class="font-bold block mb-1 text-slate-700">إلى</span>
+                    <div id="ut_to_chips" class="uw-chips"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="ut_amount" class="font-bold block mb-1 text-slate-700">المبلغ اللي طلع (USDT)</label>
+                        <input type="text" inputmode="decimal" autocomplete="off" data-commas id="ut_amount" class="w-full field font-bold num">
+                    </div>
+                    <div>
+                        <label for="ut_fee" class="font-bold block mb-1 text-slate-700">رسوم التحويل</label>
+                        <input type="number" step="any" min="0" id="ut_fee" placeholder="0" class="w-full field font-bold num">
+                    </div>
+                </div>
+                <p id="ut_preview" class="text-[11px] font-bold text-indigo-700"></p>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="ut_date" class="font-bold block mb-1 text-slate-700">التاريخ</label>
+                        <input type="date" id="ut_date" class="w-full field">
+                    </div>
+                    <div>
+                        <label for="ut_note" class="font-bold block mb-1 text-slate-700">ملاحظة</label>
+                        <input type="text" id="ut_note" placeholder="اختياري" class="w-full field">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg transition">حفظ التحويل</button>
             </form>
         </div>
     </div>

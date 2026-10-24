@@ -46,7 +46,7 @@ function searchAll(raw) {
         }));
     }
     if (hasPerm('usdt')) {
-        add('USDT', latestFirst(usdtMoves.filter(m => m.kind !== 'adjust' && (has(m.customerName) || num(m.id) || exact(m)))), m => ({
+        add('USDT', latestFirst(usdtMoves.filter(m => usdtTrade(m) && (has(m.customerName) || num(m.id) || exact(m)))), m => ({
             icon: '₮', title: m.customerName, sub: `${receiptNo(m)} · ${USDT_KINDS[m.kind]} ${fmt(m.amount)} USDT · ${escapeHtml(m.date)}`,
             run: () => gotoRef('usdt', m.id)
         }));

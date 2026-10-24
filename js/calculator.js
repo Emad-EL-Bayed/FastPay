@@ -666,7 +666,7 @@ function customerLastDates() {
     const last = {};
     const seen = (key, date) => { if (date && (!last[key] || date > last[key])) last[key] = date; };
     ledger.forEach(t => seen(t.customerId || 'n:' + normName(t.recipient), t.date));
-    usdtMoves.forEach(m => { if (m.kind !== 'adjust') seen(m.customerId || 'n:' + normName(m.customerName), m.date); });
+    usdtMoves.forEach(m => { if (usdtTrade(m)) seen(m.customerId || 'n:' + normName(m.customerName), m.date); });
     egpMoves.forEach(m => { if (m.customerName) seen(m.customerId || 'n:' + normName(m.customerName), m.date); });
     return last;
 }
