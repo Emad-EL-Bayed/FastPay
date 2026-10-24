@@ -28,41 +28,41 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=122">
+    <link rel="stylesheet" href="styles.css?v=125">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=122">
+    <link rel="stylesheet" href="tailwind.css?v=125">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=122" defer></script>
-    <script src="js/core.js?v=122" defer></script>
-    <script src="js/theme.js?v=122" defer></script>
-    <script src="js/logo-data.js?v=122" defer></script>
-    <script src="js/shell.js?v=122" defer></script>
-    <script src="js/calculator.js?v=122" defer></script>
-    <script src="js/reports.js?v=122" defer></script>
-    <script src="js/sync.js?v=122" defer></script>
-    <script src="js/conflicts.js?v=122" defer></script>
-    <script src="js/cache.js?v=122" defer></script>
-    <script src="js/bgsync.js?v=122" defer></script>
-    <script src="js/transactions.js?v=122" defer></script>
-    <script src="js/receipts.js?v=122" defer></script>
-    <script src="js/customers.js?v=122" defer></script>
-    <script src="js/countries.js?v=122" defer></script>
-    <script src="js/service-logos.js?v=122" defer></script>
-    <script src="js/traders.js?v=122" defer></script>
-    <script src="js/expenses.js?v=122" defer></script>
-    <script src="js/ready.js?v=122" defer></script>
-    <script src="js/settings.js?v=122" defer></script>
-    <script src="js/accounts.js?v=122" defer></script>
-    <script src="js/usdt.js?v=122" defer></script>
-    <script src="js/egp.js?v=122" defer></script>
-    <script src="js/closing.js?v=122" defer></script>
-    <script src="js/admin.js?v=122" defer></script>
-    <script src="js/position.js?v=122" defer></script>
-    <script src="js/search.js?v=122" defer></script>
-    <script src="js/notify.js?v=122" defer></script>
-    <script src="js/push.js?v=122" defer></script>
-    <script src="js/auth.js?v=122" defer></script>
-    <script src="js/main.js?v=122" defer></script>
+    <script src="js/endpoint.js?v=125" defer></script>
+    <script src="js/core.js?v=125" defer></script>
+    <script src="js/theme.js?v=125" defer></script>
+    <script src="js/logo-data.js?v=125" defer></script>
+    <script src="js/shell.js?v=125" defer></script>
+    <script src="js/calculator.js?v=125" defer></script>
+    <script src="js/reports.js?v=125" defer></script>
+    <script src="js/sync.js?v=125" defer></script>
+    <script src="js/conflicts.js?v=125" defer></script>
+    <script src="js/cache.js?v=125" defer></script>
+    <script src="js/bgsync.js?v=125" defer></script>
+    <script src="js/transactions.js?v=125" defer></script>
+    <script src="js/receipts.js?v=125" defer></script>
+    <script src="js/customers.js?v=125" defer></script>
+    <script src="js/countries.js?v=125" defer></script>
+    <script src="js/service-logos.js?v=125" defer></script>
+    <script src="js/traders.js?v=125" defer></script>
+    <script src="js/expenses.js?v=125" defer></script>
+    <script src="js/ready.js?v=125" defer></script>
+    <script src="js/settings.js?v=125" defer></script>
+    <script src="js/accounts.js?v=125" defer></script>
+    <script src="js/usdt.js?v=125" defer></script>
+    <script src="js/egp.js?v=125" defer></script>
+    <script src="js/closing.js?v=125" defer></script>
+    <script src="js/admin.js?v=125" defer></script>
+    <script src="js/position.js?v=125" defer></script>
+    <script src="js/search.js?v=125" defer></script>
+    <script src="js/notify.js?v=125" defer></script>
+    <script src="js/push.js?v=125" defer></script>
+    <script src="js/auth.js?v=125" defer></script>
+    <script src="js/main.js?v=125" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -2850,7 +2850,16 @@
                 <button data-action="close-modal" data-modal="noticeModal" class="text-slate-400 hover:text-slate-700">✕</button>
             </div>
             <div class="mt-4 space-y-3 text-xs">
-                <textarea id="nt_text" rows="4" class="w-full field text-sm leading-relaxed" placeholder="الصق هون رسالة أو إشعار التحويل (بال باي، جوال باي، البنك)"></textarea>
+                <textarea id="nt_text" rows="4" class="w-full field text-sm leading-relaxed" placeholder="الصق هون نص الإشعار أو صورته (سكرين شوت من بال باي، جوال باي، البنك)"></textarea>
+                <!-- صورة الإشعار (accounts.js readNoticeImage): من الجوال بتختارها، وعالكمبيوتر بتلصقها أو بتسحبها -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <label class="nt-pick">🖼️ اختار صورة الإشعار<input type="file" id="nt_image" accept="image/*" class="hidden"></label>
+                    <span class="text-[10px] text-slate-400">أو الصق السكرين شوت بالمربع فوق</span>
+                </div>
+                <div id="nt_ocr" class="nt-ocr hidden">
+                    <img id="nt_ocr_img" alt="صورة الإشعار">
+                    <span id="nt_ocr_text"></span>
+                </div>
                 <div id="nt_read" class="hidden space-y-2">
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         <div>

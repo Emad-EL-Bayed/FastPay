@@ -659,7 +659,8 @@ const NOTICE_OUT = /دفعت|تم\s*الدفع|خصم|صادر|صادرة|أرس
 const NOTICE_CUR = { ILS: /₪|شيكل|شيقل|شواكل|\bILS\b|\bNIS\b|ش\.ج/i, USD: /\$|دولار|\bUSD\b/i };
 
 function parseTransferNotice(raw) {
-    const text = latinDigits(String(raw || '')).replace(/٫/g, '.').replace(/٬/g, ',');
+    // علامات الاتجاه المخفية (من القراءة أو النسخ من التطبيقات) بتخرّب البحث عن الكلمات
+    const text = latinDigits(String(raw || '')).replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '').replace(/٫/g, '.').replace(/٬/g, ',');
     const out = { amount: 0, currency: '', dir: 0, accType: '', phone: '', name: '' };
     if (!text.trim()) return out;
     // الأرقام مع مكانها؛ بنشيل الجوال والتاريخ والوقت وأرقام الحسابات الطويلة
@@ -714,7 +715,12 @@ function noticeMatches(n) {
 
 function openNoticeModal() {
     if (!walletsReady()) return;
+    noticeOcrRun++;
+    $('nt_ocr').classList.add('hidden');
+    $('nt_image').value = '';
     $('nt_text').value = '';
+    // الحساب من الإشعار السابق ما بيضل
+    $('nt_account').innerHTML = '';
     $('nt_read').classList.add('hidden');
     $('nt_matches').innerHTML = '';
     openModal('noticeModal');
@@ -800,4 +806,106 @@ function noticeManual() {
     $('am_dir').value = n.dir < 0 ? 'out' : 'in';
     $('am_amount').value = n.amount || '';
     $('am_note').value = [n.name, n.phone && '0' + n.phone].filter(Boolean).join(' · ');
+}
+
+// ---------- صورة الإشعار (سكرين شوت) ← نص (بطلب عماد 2026-10-24: "ما بقبل صور") ----------
+// القراءة بالمتصفح نفسه (Tesseract.js، عربي وإنجليزي، من jsdelivr؛ أول مرة بينزّل ~5 ميغا وبعدها من الذاكرة)،
+// والنص بينحط بالمربع فبتشوفه وبتصلّحه، وبعدها نفس المطابقة. ما بيطلع إشي للشيت
+const OCR_LIB = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+const OCR_STEPS = {
+    'loading tesseract core': 'عم بجهّز القارئ',
+    'initializing tesseract': 'عم بجهّز القارئ',
+    'loading language traineddata': 'عم بنزّل العربي (أول مرة بس)',
+    'initializing api': 'عم بجهّز القارئ',
+    'recognizing text': 'عم بقرا الصورة'
+};
+let ocrWorkerPromise = null;
+let ocrProgressCb = null;
+let noticeOcrRun = 0;
+let noticeThumbUrl = '';
+
+function noticeOcrWorker() {
+    ocrWorkerPromise ??= (async () => {
+        await loadScript(OCR_LIB);
+        return Tesseract.createWorker(['ara', 'eng'], 1, { logger: (m) => ocrProgressCb?.(m) });
+    })().catch(err => { ocrWorkerPromise = null; throw err; });
+    return ocrWorkerPromise;
+}
+
+// أوضح للقراءة: رمادي، مقلوبة إذا الخلفية غامقة (الوضع الداكن بالجوال)، ومكبّرة إذا الصورة صغيرة
+async function prepareOcrImage(file) {
+    const url = URL.createObjectURL(file);
+    try {
+        const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+        const scale = img.width < 1000 ? 2 : img.width > 2600 ? 2600 / img.width : 1;
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        const ctx = c.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        const d = ctx.getImageData(0, 0, c.width, c.height);
+        const px = d.data;
+        let sum = 0;
+        for (let i = 0; i < px.length; i += 4) {
+            const g = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+            px[i] = px[i + 1] = px[i + 2] = g;
+            sum += g;
+        }
+        if (sum / (px.length / 4) < 110) for (let i = 0; i < px.length; i += 4) px[i] = px[i + 1] = px[i + 2] = 255 - px[i];
+        ctx.putImageData(d, 0, 0);
+        return c;
+    } finally {
+        URL.revokeObjectURL(url);
+    }
+}
+
+async function readNoticeImage(file) {
+    if (!file || !/^image\//.test(file.type)) return;
+    const run = ++noticeOcrRun;
+    const status = (text, cls = 'text-slate-500') => { $('nt_ocr_text').textContent = text; $('nt_ocr_text').className = cls; };
+    $('nt_ocr').classList.remove('hidden');
+    if (noticeThumbUrl) URL.revokeObjectURL(noticeThumbUrl);
+    noticeThumbUrl = URL.createObjectURL(file);
+    $('nt_ocr_img').src = noticeThumbUrl;
+    status('عم بقرا الصورة…');
+    ocrProgressCb = (m) => {
+        if (run === noticeOcrRun && OCR_STEPS[m.status]) status(`${OCR_STEPS[m.status]}… ${Math.round((m.progress || 0) * 100)}%`);
+    };
+    try {
+        const [worker, canvas] = await Promise.all([noticeOcrWorker(), prepareOcrImage(file)]);
+        const { data } = await worker.recognize(canvas);
+        if (run !== noticeOcrRun) return;
+        const text = String(data.text || '').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '').replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
+        $('nt_text').value = text;
+        onNoticeText();
+        const found = parseTransferNotice(text).amount > 0;
+        status(found ? '✓ قريت الصورة. راجع المبلغ والحساب تحت' : 'قريت الصورة بس ما لقيت مبلغ واضح، اكتبه بإيدك تحت', found ? 'text-emerald-700 font-bold' : 'text-amber-700 font-bold');
+        if (!found) showNoticeManualFields();
+    } catch (err) {
+        if (run !== noticeOcrRun) return;
+        status(navigator.onLine === false ? 'قراءة الصور بدها نت أول مرة' : 'ما قدرت أقرا الصورة. اكتب المبلغ بإيدك تحت', 'text-rose-700 font-bold');
+        showNoticeManualFields();
+    }
+}
+
+// الخانات فاضية بتنكتب بإيدك
+function showNoticeManualFields() {
+    $('nt_read').classList.remove('hidden');
+    if (!$('nt_account').options.length) fillNoticeAccounts('');
+    $('nt_amount').focus();
+}
+
+// الصق أو اسحب صورة على المربع
+function onNoticePaste(e) {
+    const file = [...(e.clipboardData?.items || [])].find(i => i.kind === 'file' && /^image\//.test(i.type))?.getAsFile();
+    if (!file) return;
+    e.preventDefault();
+    readNoticeImage(file);
+}
+
+function onNoticeDrop(e) {
+    const file = [...(e.dataTransfer?.files || [])].find(f => /^image\//.test(f.type));
+    if (!file) return;
+    e.preventDefault();
+    readNoticeImage(file);
 }

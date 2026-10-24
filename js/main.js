@@ -499,6 +499,10 @@ function bindAccountEvents() {
     $('am_account').addEventListener('change', fillAmoveAccounts);
     $('pay-accounts').addEventListener('input', updatePaySummary);
     $('nt_text').addEventListener('input', onNoticeText);
+    $('nt_text').addEventListener('paste', onNoticePaste);
+    $('nt_text').addEventListener('dragover', (e) => e.preventDefault());
+    $('nt_text').addEventListener('drop', onNoticeDrop);
+    $('nt_image').addEventListener('change', () => readNoticeImage($('nt_image').files[0]));
     $('nt_amount').addEventListener('input', renderNoticeMatches);
     ['nt_dir', 'nt_account'].forEach(id => $(id).addEventListener('change', renderNoticeMatches));
     $('nt_currency').addEventListener('change', () => { fillNoticeAccounts(''); renderNoticeMatches(); });
