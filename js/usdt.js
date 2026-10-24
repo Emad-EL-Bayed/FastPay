@@ -734,7 +734,7 @@ let usdtWalletLogoDraft; // undefined = ما تغيّر، '' = بدون صورة
 let editingUsdtTransferId = null;
 
 const USDT_WALLET_TYPES = {
-    bybit: { label: 'Bybit', color: '#f7a600' },
+    bybit: { label: 'Bybit', color: '#ff7a1a' }, // برتقالي (بطلب عماد، كان أصفر زي Binance)
     binance: { label: 'Binance', color: '#f0b90b' },
     redotpay: { label: 'RedotPay', color: '#e30613' },
     other: { label: 'محفظة أخرى', color: '#64748b' }
@@ -853,7 +853,7 @@ function renderUsdtWallets() {
                     </div>
                     ${w.isDefault ? '<span class="uw-main-chip">★ الأساسية</span>' : ''}
                 </div>
-                <div class="uw-bal">
+                <div class="uw-bal ${b > 0.004 ? 'pos' : b < -0.004 ? 'neg' : 'zero'}">
                     <span class="uw-bal-label">الرصيد${low ? '<i class="uw-low">⚠️ قليل</i>' : ''}</span>
                     <div class="uw-amount${b < 0 ? ' neg' : ''}"><bdi class="num count-up">${fmt(b)}</bdi><small>USDT</small></div>
                 </div>

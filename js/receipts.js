@@ -111,7 +111,7 @@ const RECEIPT_ICONS = {
 };
 
 // قالب واحد لكل الفواتير. status: اسم الحالة (أو فاضي)، party: { label, name } الزبون تحت المبلغ
-function receiptHtml({ title, no, dateLabel, date, amountLabel, amount, rows, status, party, qr }) {
+function receiptHtml({ title, no, dateLabel, date, amountLabel, amount, rows, status, party, qr, qrLabel = 'تتبّع الحوالة' }) {
     const now = new Date();
     const issued = `${localDateStr(now)} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const tone = RECEIPT_TONE[status] || 'info';
@@ -145,7 +145,7 @@ function receiptHtml({ title, no, dateLabel, date, amountLabel, amount, rows, st
                 ${globalConfig.receiptFooter ? `<div class="rc-thanks">${escapeHtml(globalConfig.receiptFooter)}</div>` : ''}
                 <div class="rc-issued">أُصدرت: ${ltr(escapeHtml(issued))}</div>
             </div>
-            ${qr ? `<div class="rc-qr">${qr}<span>امسح للتأكد</span></div>` : ''}
+            ${qr ? `<div class="rc-qr">${qr}<span>${qrLabel}</span></div>` : ''}
         </div>
         <div class="rc-bar"></div>`;
 }
@@ -211,7 +211,7 @@ function renderUsdtReceipt(m) {
         title: deposit ? 'فاتورة إيداع USDT' : 'إيصال سحب USDT', no: receiptNo(m), dateLabel: 'التاريخ', date: m.date,
         amountLabel: deposit ? 'المبلغ المطلوب من الزبون' : 'المبلغ المسلّم للزبون',
         amount: cur === 'USD' ? `$ ${fmt(m.total - m.settle)}` : `${fmt(m.total - m.settle)} ₪`, rows,
-        status: PAY_STATE[st.state].label, party: { label: 'الزبون:', name: m.customerName }, qr: receiptQrSvg(m)
+        status: PAY_STATE[st.state].label, party: { label: 'الزبون:', name: m.customerName }, qr: receiptQrSvg(m), qrLabel: 'تتبّع الطلب'
     });
 }
 
@@ -234,7 +234,7 @@ function renderEgpReceipt(m) {
         title: send ? 'إيصال إرسال جنيه' : 'إيصال استلام جنيه', no: receiptNo(m), dateLabel: 'التاريخ', date: m.date,
         amountLabel: send ? 'المبلغ المطلوب من الزبون' : 'المبلغ المسلّم للزبون',
         amount: cur === 'USD' ? `$ ${fmt(m.total - m.settle)}` : `${fmt(m.total - m.settle)} ₪`, rows,
-        status: st ? PAY_STATE[st.state].label : '', party: { label: 'الزبون:', name: m.customerName }, qr: receiptQrSvg(m)
+        status: st ? PAY_STATE[st.state].label : '', party: { label: 'الزبون:', name: m.customerName }, qr: receiptQrSvg(m), qrLabel: 'تتبّع الطلب'
     });
 }
 
