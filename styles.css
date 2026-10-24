@@ -1889,6 +1889,9 @@ img.uw-logo { object-fit: cover; }
 .uw-chip:hover { border-color: rgb(var(--c-slate-400, 148 163 184)); }
 .uw-chip.active { border-color: rgb(var(--c-slate-900, 15 23 42)); background: rgb(var(--b-slate-50, 248 250 252)); color: rgb(var(--t-slate-900, 15 23 42)); box-shadow: 0 0 0 1px rgb(var(--c-slate-900, 15 23 42)); }
 
+.dev-out-all { width: 100%; margin-top: 0.25rem; padding: 0.55rem; border-radius: 0.7rem; font-size: 0.75rem; font-weight: 800; color: rgb(var(--t-rose-700, 190 18 60)); background: rgb(var(--b-rose-50, 255 241 242)); border: 1px dashed rgb(var(--c-rose-200, 254 205 211)); }
+.dev-out-all:hover { background: rgb(var(--b-rose-100, 255 228 230)); }
+
 /* ================= الوضع الداكن ================= */
 /* الألوان نفسها متغيرات (build/tailwind.config.js) وبتتحول لحالها، وهون بس اللي إله شكل خاص بالداكن.
    <html data-theme="dark"> بيتحط من js/theme.js (ومن سكربت صغير بأول index.html قبل أول رسم) */

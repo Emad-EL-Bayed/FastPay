@@ -274,6 +274,7 @@ const CLICK_ACTIONS = {
     'toggle-payout-ready': togglePayoutReady,
     'receipt-track-copy': (el) => copyReceiptTrackLink(el),
     'track-expire-toggle': toggleTrackExpire,
+    'sessions-out-others': askRevokeOtherSessions,
     'session-revoke': (el) => askRevokeSession(el.dataset.sid),
     'np-provider': (el) => setNewPayout(el.dataset.prefix, newPayoutState[el.dataset.prefix]?.payout, el.dataset.provider),
     'set-cost-mode': (el) => {

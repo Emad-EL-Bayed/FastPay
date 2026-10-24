@@ -240,7 +240,12 @@ function renderSessionList(box, mineOnly, error = '') {
     }
     const list = sessionsCache.sessions.filter(x => !mineOnly || x.user === session?.username);
     if (!list.length) { box.innerHTML = '<p class="text-xs text-slate-400">ما في أجهزة</p>'; return; }
-    if (mineOnly || !sessionsCache.manager) { box.innerHTML = list.map(sessionRowHtml).join(''); return; }
+    // أجهزتي الثانية: زر يطلّعهم كلهم مرة وحدة (السكربت session_revoke_others)
+    const others = list.filter(x => x.user === session?.username && !x.current).length;
+    const outAll = others && sheetHas('sessionDevice')
+        ? `<button type="button" data-action="sessions-out-others" class="dev-out-all">طلّع ${others === 1 ? 'جهازي الثاني' : `أجهزتي الثانية (${others})`}</button>` : '';
+    const idleNote = sheetHas('sessionDevice') ? '<p class="text-[10px] text-slate-400">إغلاق المتصفح ما بيطلّع من الحساب. الجهاز اللي ما بينفتح عليه البرنامج 14 يوم بيطلع لحاله، والدخول من جديد من نفس المتصفح بيبدّل جلسته القديمة.</p>' : '';
+    if (mineOnly || !sessionsCache.manager) { box.innerHTML = list.map(sessionRowHtml).join('') + outAll + idleNote; return; }
     // المدير: مجمّعين حسب الموظف، أنا أول
     const users = [...new Set(list.map(x => x.user))].sort((a, b) => (b === session?.username) - (a === session?.username) || personName(a).localeCompare(personName(b), 'ar'));
     box.innerHTML = users.map(u => {
@@ -249,8 +254,24 @@ function renderSessionList(box, mineOnly, error = '') {
             <div class="space-y-1.5">
                 <div class="dev-user">${escapeHtml(personName(u))}<span>${mine.length === 1 ? 'جهاز واحد' : mine.length === 2 ? 'جهازين' : mine.length + ' أجهزة'}</span></div>
                 ${mine.map(sessionRowHtml).join('')}
+                ${u === session?.username ? outAll : ''}
             </div>`;
-    }).join('');
+    }).join('') + idleNote;
+}
+
+function askRevokeOtherSessions() {
+    const n = (sessionsCache?.sessions || []).filter(x => x.user === session?.username && !x.current).length;
+    if (!n) return;
+    showAppConfirm('تطليع أجهزتي الثانية', `بدك تطلّع ${n === 1 ? 'جهازك الثاني' : `${n} أجهزة`} من حسابك؟ بتضل داخل بس على هالجهاز.`, async () => {
+        const r = await postToSheets({ action: 'session_revoke_others' });
+        if (r.status === 'ok' && r.data?.ok) {
+            sessionsCache.sessions = sessionsCache.sessions.filter(s => s.user !== session?.username || s.current);
+            refreshSessionViews();
+            showToast('انطلعوا', `${r.data.removed || n} ${n === 1 ? 'جهاز' : 'أجهزة'} طلعوا من حسابك`, 'success');
+        } else {
+            showToast('ما زبط', 'ما وصل رد، جرّب كمان مرة', 'warning');
+        }
+    });
 }
 
 function askRevokeSession(sid) {

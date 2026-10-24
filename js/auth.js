@@ -171,7 +171,7 @@ async function submitLogin(e) {
     btn.disabled = true;
     $('login-error').textContent = '';
     try {
-        const r = await postToSheets({ action: 'login', username, password, device: pushDeviceLabel() }, { noSession: true });
+        const r = await postToSheets({ action: 'login', username, password, device: pushDeviceLabel(), deviceId: browserDeviceId() }, { noSession: true });
         const data = r.data;
         if (r.status !== 'ok' || !data?.session) {
             $('login-error').textContent = LOGIN_ERRORS[r.error] || 'تعذر تسجيل الدخول، تأكد من الاتصال';
@@ -455,4 +455,19 @@ function deleteUserPrompt(name) {
         showToast('تم حذف المستخدم', name, 'info');
         renderUsersPage();
     });
+}
+
+// رقم ثابت لهالمتصفح (مش سرّي، ما بيتغير مع الخروج): الدخول من جديد من نفس المتصفح بيبدّل جلسته القديمة بالأجهزة
+// المسجّلة بدل ما يضيف وحدة جديدة (السكربت replaceDeviceSessions)
+function browserDeviceId() {
+    try {
+        let id = localStorage.getItem('fastpay_device_id');
+        if (!/^[a-z0-9]{8,40}$/.test(id || '')) {
+            id = [...crypto.getRandomValues(new Uint8Array(12))].map(b => b.toString(16).padStart(2, '0')).join('');
+            localStorage.setItem('fastpay_device_id', id);
+        }
+        return id;
+    } catch (e) {
+        return '';
+    }
 }
