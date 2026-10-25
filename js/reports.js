@@ -778,7 +778,8 @@ function renderInsightsPage() {
     const h0 = hours.length ? Math.min(...hours) : 8, h1 = hours.length ? Math.max(...hours) : 22;
     const span = []; for (let h = Math.min(h0, 22); h <= Math.max(h1, h0 + 5, 0) && h < 24; h++) span.push(h);
     const maxCell = Math.max(1e-9, ...Object.values(cells).map(metric));
-    const busyDay = [...byDay].sort((a, b) => metric(b) - metric(a))[0];
+    // أشغل يوم دايماً بعدد الحركات (مش حسب الخريطة عدد/ربح)
+    const busyDay = [...byDay].sort((a, b) => b.count - a.count)[0];
     // أكثر 3 ساعات ورا بعض شغل
     let bestWin = null;
     for (let h = 0; h <= 21; h++) {
