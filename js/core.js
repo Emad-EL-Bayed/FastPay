@@ -389,6 +389,8 @@ function loadArray(key, fallback) {
 }
 
 let globalConfig = { ...DEFAULT_CONFIG, ...loadJSON(STORAGE.config, {}) };
+// الشيت انتقل للجيميل الجديد (رابط سكربت جديد): الجهاز الحافظ الرابط القديم بيتحوّل لحاله
+if (typeof OLD_WEBHOOKS !== 'undefined' && OLD_WEBHOOKS.includes(globalConfig.driveWebhook)) globalConfig.driveWebhook = DEFAULT_WEBHOOK;
 delete globalConfig.syncCustomers;
 delete globalConfig.companyLogo; // الشعار صار ملفاً ثابتاً: assets/logo.png
 delete globalConfig.rateOffset; // أُلغي هامش الشاشة: سعر الشاشة = سعر السوق، والفروق في البيع والشراء
