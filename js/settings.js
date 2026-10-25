@@ -502,7 +502,18 @@ function pricesCfg() {
     return {
         on: c.on === 'yes' ? 'yes' : 'no', wa: String(c.wa || ''), welcome: String(c.welcome || ''),
         usd: c.usd === 'no' ? 'no' : 'yes', usdt: c.usdt === 'no' ? 'no' : 'yes', egp: c.egp === 'no' ? 'no' : 'yes',
-        sources: Array.isArray(c.sources) ? c.sources.map(String) : [], ready: Array.isArray(c.ready) ? c.ready.map(String) : []
+        ready: Array.isArray(c.ready) ? c.ready.map(String) : [], readyOn: c.readyOn === 'no' ? 'no' : 'yes',
+        methods: Array.isArray(c.methods) ? c.methods.map(normPriceMethod).filter(m => m.name) : []
+    };
+}
+
+// طريقة (باي بال، وايز، ريفولت…): من أي دول بتشتغل، ومربوطة بتسعير دولة (اختياري) حتى يطلع للزبون المبلغ
+function normPriceMethod(m) {
+    return {
+        id: String(m?.id || ''), name: String(m?.name || '').trim().slice(0, 40), brand: SERVICE_BRANDS[m?.brand] ? m.brand : '',
+        mode: m?.mode === 'except' ? 'except' : 'only',
+        countries: [...new Set((Array.isArray(m?.countries) ? m.countries : []).map(String).filter(c => /^[A-Z]{2}$/.test(c)))],
+        source: String(m?.source || ''), on: m?.on === 'no' ? 'no' : 'yes'
     };
 }
 
@@ -530,8 +541,9 @@ function renderPricesSettings() {
     $('prices-wa-warn').classList.toggle('hidden', !on || (wa.length >= 11 && !wa.startsWith('0')));
     const chip = (action, id, label, active) => `<button type="button" data-action="${action}" data-id="${escapeHtml(id)}" class="tf-chip ${active ? 'active' : ''}" aria-pressed="${active}">${active ? '✓ ' : ''}${escapeHtml(label)}</button>`;
     $('prices-sections').innerHTML = PRICES_SECTIONS.map(([k, label]) => chip('prices-sec', k, label, cfg[k] === 'yes')).join('');
-    const srcs = [...countries].filter(c => c.id && !isUsdtSource(c)).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    $('prices-sources').innerHTML = srcs.length ? srcs.map(c => chip('prices-src', c.id, c.name, cfg.sources.includes(String(c.id)))).join('') : '<span class="text-[11px] text-slate-400">ما في دول بالتسعير</span>';
+    renderPriceMethods(cfg);
+    setToggle($('prices-ready-toggle'), cfg.readyOn === 'yes', 'ظاهر', 'مخفي');
+    $('prices-ready').classList.toggle('opacity-50', cfg.readyOn !== 'yes');
     const ready = (typeof readyAccounts !== 'undefined' ? readyAccounts : []).filter(r => r.id);
     $('prices-ready').innerHTML = ready.length ? ready.map(r => chip('prices-ready', r.id, r.name, cfg.ready.includes(String(r.id)))).join('') : '<span class="text-[11px] text-slate-400">ما في حسابات جاهزة</span>';
     const url = pricesUrl();
@@ -562,7 +574,108 @@ function togglePricesList(key, id) {
     savePricesCfg({ [key]: list });
 }
 
+// ---------- الطرق (بطلب عماد 2026-10-25: "بدعم مثلاً ريفولت دولة سنغافورة") ----------
+const METHOD_BRANDS = ['paypal', 'wise', 'revolut', 'payoneer', 'westernunion', 'moneygram', 'binance', 'applepay', 'googlepay', 'visa', 'mastercard'];
+let methodDraft = null;
+
+const methodLogoHtml = (m, size = 'md') => (m.brand ? `<span class="sv-logo ${size}">${brandSvg(m.brand)}</span>` : `<span class="sv-logo ${size} pm-initial">${escapeHtml((m.name || '؟').charAt(0))}</span>`);
+const methodSourceName = (id) => countries.find(c => String(c.id) === String(id))?.name || '';
+
+function methodCountriesText(m) {
+    const n = m.countries.length;
+    const names = m.countries.slice(0, 3).map(c => worldFlag(c) + ' ' + (worldCountry(c)?.[1] || c)).join('، ');
+    if (m.mode === 'except') return n ? `كل الدول ما عدا ${names}${n > 3 ? ` و${n - 3} غيرهم` : ''}` : 'كل الدول';
+    return n ? `${names}${n > 3 ? ` و${n - 3} دول ثانية` : ''}` : 'ما في دول مختارة';
+}
+
+function renderPriceMethods(cfg = pricesCfg()) {
+    const box = $('prices-methods');
+    if (!box) return;
+    box.innerHTML = cfg.methods.length ? cfg.methods.map(m => `
+        <div class="pm-row ${m.on === 'no' ? 'off' : ''}">
+            ${methodLogoHtml(m)}
+            <div class="min-w-0 flex-1">
+                <b class="block text-sm text-slate-900">${escapeHtml(m.name)}</b>
+                <span class="block text-[11px] text-slate-500 truncate">${escapeHtml(methodCountriesText(m))}</span>
+                <span class="block text-[10px] ${m.source ? 'text-emerald-700' : 'text-slate-400'} font-bold">${m.source && methodSourceName(m.source) ? `السعر من تسعير "${escapeHtml(methodSourceName(m.source))}"` : 'بدون سعر · واتساب بس'}</span>
+            </div>
+            <button type="button" data-action="pm-toggle" data-id="${escapeHtml(m.id)}" class="status-toggle ${m.on !== 'no' ? 'on' : ''}" style="--c:#10b981" aria-pressed="${m.on !== 'no'}"><span class="sw"></span>${m.on !== 'no' ? 'ظاهرة' : 'مخفية'}</button>
+            <button type="button" data-action="pm-edit" data-id="${escapeHtml(m.id)}" class="text-xs font-bold text-blue-700 hover:underline">تعديل</button>
+        </div>`).join('') : '<p class="text-[11px] text-slate-400">ما في طرق لسا. ضيف باي بال، وايز، ريفولت… والدول اللي بتشتغل منها.</p>';
+}
+
+function openMethodModal(id = '') {
+    const m = pricesCfg().methods.find(x => x.id === id);
+    methodDraft = m ? { ...m, countries: [...m.countries] } : { id: '', name: '', brand: '', mode: 'only', countries: [], source: '', on: 'yes' };
+    $('pm_title').textContent = m ? `تعديل ${m.name}` : 'طريقة جديدة';
+    $('pm_name').value = methodDraft.name;
+    $('pm_search').value = '';
+    $('pm_delete').classList.toggle('hidden', !m);
+    const srcs = [...countries].filter(c => c.id && !isUsdtSource(c)).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    $('pm_source').innerHTML = '<option value="">بدون سعر · الزبون بيطلب على واتساب</option>' + srcs.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
+    $('pm_source').value = methodDraft.source && srcs.some(c => String(c.id) === methodDraft.source) ? methodDraft.source : '';
+    renderMethodModal();
+    openModal('methodModal');
+    $('pm_name').focus();
+}
+
+function renderMethodModal() {
+    const d = methodDraft;
+    if (!d) return;
+    $('pm_brands').innerHTML = `<button type="button" data-action="pm-brand" data-k="" class="pm-brand ${!d.brand ? 'on' : ''}"><span class="sv-logo md pm-initial">${escapeHtml((d.name || '؟').charAt(0))}</span><span>بدون</span></button>`
+        + METHOD_BRANDS.filter(k => SERVICE_BRANDS[k]).map(k => `<button type="button" data-action="pm-brand" data-k="${k}" class="pm-brand ${d.brand === k ? 'on' : ''}"><span class="sv-logo md">${brandSvg(k)}</span><span>${escapeHtml(SERVICE_BRANDS[k].name)}</span></button>`).join('');
+    document.querySelectorAll('#pm_modes [data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === d.mode));
+    $('pm_countries_label').textContent = d.mode === 'except' ? 'الدول اللي ما بتشتغل منها' : 'الدول اللي بتشتغل منها';
+    $('pm_selected').innerHTML = d.countries.length
+        ? d.countries.map(c => `<button type="button" data-action="pm-country" data-c="${c}" class="pm-chip on">${worldFlag(c)} ${escapeHtml(worldCountry(c)?.[1] || c)} <b>×</b></button>`).join('')
+        : `<span class="text-[11px] text-slate-400">${d.mode === 'except' ? 'ولا دولة: بتشتغل من كل الدول' : 'اختار دولة وحدة على الأقل'}</span>`;
+    renderMethodSearch();
+}
+
+function renderMethodSearch() {
+    const q = $('pm_search').value;
+    const list = q.trim() ? worldSearch(q, 12) : WORLD_COUNTRIES.slice(0, 24);
+    $('pm_results').innerHTML = list.map(c => {
+        const on = methodDraft.countries.includes(c[0]);
+        return `<button type="button" data-action="pm-country" data-c="${c[0]}" class="pm-chip ${on ? 'on' : ''}">${on ? '✓ ' : ''}${worldFlag(c[0])} ${escapeHtml(c[1])}</button>`;
+    }).join('') || '<span class="text-[11px] text-slate-400">ما لقينا دولة بهالاسم</span>';
+}
+
+function toggleMethodCountry(iso) {
+    const d = methodDraft;
+    d.countries = d.countries.includes(iso) ? d.countries.filter(c => c !== iso) : [...d.countries, iso];
+    renderMethodModal();
+}
+
+function saveMethod() {
+    const d = methodDraft;
+    d.name = $('pm_name').value.trim().slice(0, 40) || (d.brand ? SERVICE_BRANDS[d.brand].name : '');
+    d.source = $('pm_source').value;
+    if (!d.name) return showToast('تنبيه', 'اكتب اسم الطريقة', 'warning');
+    if (d.mode === 'only' && !d.countries.length) return showToast('تنبيه', 'اختار الدول اللي بتشتغل منها', 'warning');
+    const list = pricesCfg().methods;
+    if (!d.id) d.id = 'm' + Date.now().toString(36);
+    const i = list.findIndex(x => x.id === d.id);
+    if (i >= 0) list[i] = normPriceMethod(d); else list.push(normPriceMethod(d));
+    savePricesCfg({ methods: list }, `${d.name} انحفظت`);
+    closeModal('methodModal');
+}
+
+function deleteMethod() {
+    const d = methodDraft;
+    showAppConfirm('تحذف الطريقة؟', `${d.name} بتنشال من صفحة الزبائن.`, () => {
+        savePricesCfg({ methods: pricesCfg().methods.filter(x => x.id !== d.id) }, 'انحذفت');
+        closeModal('methodModal');
+    });
+}
+
+function toggleMethodOn(id) {
+    savePricesCfg({ methods: pricesCfg().methods.map(m => (m.id === id ? { ...m, on: m.on === 'no' ? 'yes' : 'no' } : m)) });
+}
+
 function bindPricesSettingsEvents() {
+    $('pm_search')?.addEventListener('input', renderMethodSearch);
+    $('pm_name')?.addEventListener('input', () => { if (methodDraft) { methodDraft.name = $('pm_name').value; if (!methodDraft.brand) renderMethodModal(); } });
     $('prices_wa')?.addEventListener('change', (e) => {
         const wa = whatsappDigits(e.target.value);
         savePricesCfg({ wa }, wa ? 'الطلبات بتوصل على هالرقم' : '');

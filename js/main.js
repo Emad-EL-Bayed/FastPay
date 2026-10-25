@@ -154,7 +154,15 @@ const CLICK_ACTIONS = {
     'open-closing': openClosingModal,
     'prices-toggle': () => savePricesCfg({ on: pricesCfg().on === 'yes' ? 'no' : 'yes' }, pricesCfg().on === 'yes' ? 'صفحة الأسعار مسكّرة للزبائن' : 'صفحة الأسعار صارت شغّالة'),
     'prices-sec': (el) => savePricesCfg({ [el.dataset.id]: pricesCfg()[el.dataset.id] === 'yes' ? 'no' : 'yes' }),
-    'prices-src': (el) => togglePricesList('sources', el.dataset.id),
+    'prices-ready-toggle': () => savePricesCfg({ readyOn: pricesCfg().readyOn === 'yes' ? 'no' : 'yes' }),
+    'pm-new': () => openMethodModal(),
+    'pm-edit': (el) => openMethodModal(el.dataset.id),
+    'pm-toggle': (el) => toggleMethodOn(el.dataset.id),
+    'pm-brand': (el) => { methodDraft.brand = el.dataset.k; if (el.dataset.k && !$('pm_name').value.trim()) $('pm_name').value = SERVICE_BRANDS[el.dataset.k].name; renderMethodModal(); },
+    'pm-mode': (el) => { methodDraft.mode = el.dataset.mode; renderMethodModal(); },
+    'pm-country': (el) => toggleMethodCountry(el.dataset.c),
+    'pm-save': saveMethod,
+    'pm-delete': deleteMethod,
     'prices-ready': (el) => togglePricesList('ready', el.dataset.id),
     'prices-copy': (el) => copyPricesUrl(el),
     'closing-count': toggleClosingCount,
@@ -402,7 +410,7 @@ function bindGlobalEvents() {
 
 // النوافذ من فوق لتحت: Esc وزر الرجوع بيسكّروا اللي فوق بس
 // (الإشعار المهم و"مين عدّل قبلي" مش هون: ما بيتسكّروا إلا بالاختيار)
-const MODAL_ORDER = ['searchModal', 'fraudModal', 'custStatementModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'readySendModal', 'readyModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'usdtCopyModal', 'usdtWalletModal', 'usdtTransferModal', 'accountModal', 'noticeModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal'];
+const MODAL_ORDER = ['searchModal', 'methodModal', 'fraudModal', 'custStatementModal', 'notifyComposeModal', 'notifyModal', 'resetModal', 'restoreModal', 'editsModal', 'readySendModal', 'readyModal', 'waShareModal', 'closingModal', 'passwordModal', 'userModal', 'payModal', 'receiptModal', 'usdtModal', 'egpModal', 'egpWalletModal', 'egpRatesModal', 'usdtCopyModal', 'usdtWalletModal', 'usdtTransferModal', 'accountModal', 'noticeModal', 'amoveModal', 'tmoveModal', 'serviceModal', 'traderModal', 'custModal', 'editTxModal', 'txDetailsModal', 'countryModal', 'customerModal'];
 const topModalId = () => MODAL_ORDER.find(id => !$(id).classList.contains('hidden'));
 
 // ================= زر الرجوع بالجوال (بطلب عماد 2026-10-19) =================

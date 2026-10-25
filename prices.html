@@ -4,27 +4,29 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0f172a">
-    <title>أسعار اليوم · فاست باي</title>
-    <meta name="description" content="أسعار اليوم: الدولار، USDT، الجنيه المصري والحوالات. احسب المبلغ واطلب على واتساب">
+    <title>شو بدك؟ · فاست باي</title>
+    <meta name="description" content="اكتب الدولة اللي بدك تبعت منها وشوف الطرق والسعر، واطلب على واتساب بكبسة">
     <!-- معاينة الرابط بواتساب -->
-    <meta property="og:title" content="أسعار اليوم · فاست باي">
-    <meta property="og:description" content="احسب المبلغ بالضبط واطلب على واتساب بكبسة">
+    <meta property="og:title" content="فاست باي · شو بدك؟">
+    <meta property="og:description" content="اختار الدولة والطريقة، احسب المبلغ، واطلب على واتساب">
     <meta property="og:image" content="https://emad-el-bayed.github.io/FastPay/assets/icon-512.png">
     <link rel="icon" href="assets/icon-192.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800;900&display=swap" rel="stylesheet">
     <!--
-        فاست باي — صفحة الأسعار للزبائن (بطلب عماد 2026-10-25). رابط عام prices.html بدون دخول:
-        - السكربت (action: prices، publicPrices) بيرجّع بس اللي المدير مشغّله من الإعدادات ← صفحة الزبائن.
-        - الحساب بنفس كود البرنامج بالضبط (js/pricing.js): شرائح USDT والجنيه والدول، رسوم الشبكة، والتقريب.
-        - "اطلب على واتساب" بيفتح محادثة الشركة برسالة جاهزة (ما في إشي بينحفظ بالشيت).
-        بتحمّل بس: js/endpoint.js (رابط السكربت)، js/pricing.js (الحساب)، js/service-logos.js (شعارات المصادر)، الشعار والخط.
+        فاست باي — صفحة الزبائن (بطلب عماد 2026-10-25). رابط عام prices.html بدون دخول (و ?c=SG بتفتح على دولة):
+        - "شو بدك؟": الزبون بيكتب الدولة اللي بدّه يبعت منها، وبتطلعله الطرق اللي بتشتغل منها (باي بال، وايز، ريفولت…)،
+          وتحتها خدمات سريعة (USDT، الجنيه، الدولار). الطرق والدول من الإعدادات ← صفحة الزبائن ← الطرق.
+        - الطريقة المربوطة بتسعير دولة: الزبون بيكتب المبلغ وبيشوف قديش بيستلم بنفس حساب البرنامج (js/pricing.js)؛
+          بدون تسعير: بيطلب على واتساب وعماد بيحكيله السعر.
+        - السكربت (action: prices، publicPrices) بيرجّع بس اللي المدير مشغّله، و"اطلب على واتساب" بيفتح محادثة الشركة برسالة جاهزة.
+        بتحمّل بس: js/endpoint.js، js/pricing.js، js/service-logos.js (شعارات الطرق)، js/world-countries.js (الدول)، الشعار والخط.
     -->
     <style>
         :root {
             --bg: #eef2f7; --card: rgba(255, 255, 255, 0.78); --card-solid: #ffffff; --line: rgba(15, 23, 42, 0.08); --ink: #0f172a; --muted: #64748b; --soft: #f1f5f9;
-            --gold: #d4a017; --green: #10b981; --wa: #25d366; --shadow: 0 24px 50px -32px rgba(15, 23, 42, 0.45);
+            --accent: #6366f1; --green: #10b981; --wa: #25d366; --shadow: 0 24px 50px -32px rgba(15, 23, 42, 0.45);
         }
         @media (prefers-color-scheme: dark) {
             :root {
@@ -38,106 +40,127 @@
         button, input { font: inherit; color: inherit; }
         button { cursor: pointer; border: 0; background: none; -webkit-tap-highlight-color: transparent; }
         .num { font-variant-numeric: tabular-nums; }
+        .hidden { display: none !important; }
 
         /* خلفية حيّة */
         .blobs { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
         .blobs i { position: absolute; width: 60vmax; height: 60vmax; border-radius: 50%; filter: blur(80px); opacity: 0.42; animation: drift 24s ease-in-out infinite alternate; }
         .blobs i:nth-child(1) { background: #93c5fd; top: -25vmax; right: -20vmax; }
         .blobs i:nth-child(2) { background: #6ee7b7; bottom: -30vmax; left: -25vmax; animation-delay: -8s; }
-        .blobs i:nth-child(3) { background: #fcd34d; top: 35%; left: 35%; width: 32vmax; height: 32vmax; opacity: 0.28; animation-delay: -14s; }
+        .blobs i:nth-child(3) { background: #c4b5fd; top: 35%; left: 35%; width: 32vmax; height: 32vmax; opacity: 0.3; animation-delay: -14s; }
         @media (prefers-color-scheme: dark) { .blobs i { opacity: 0.16; } }
         @keyframes drift { to { transform: translate(-6vmax, 5vmax) scale(1.08); } }
 
         .wrap { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: max(18px, env(safe-area-inset-top)) 16px 40px; }
 
         /* الرأس */
-        .brand { display: flex; align-items: center; gap: 12px; margin: 4px 2px 6px; animation: rise 0.6s ease both; }
+        .brand { display: flex; align-items: center; gap: 12px; margin: 4px 2px 0; animation: rise 0.6s ease both; }
         .logo { width: 50px; height: 50px; border-radius: 15px; background: #0f172a; display: grid; place-items: center; overflow: hidden; flex-shrink: 0; box-shadow: 0 10px 24px -14px rgba(15, 23, 42, 0.8); }
         .logo img { width: 100%; height: 100%; object-fit: contain; }
         .brand h1 { margin: 0; font-size: 20px; font-weight: 900; line-height: 1.2; }
         .brand p { margin: 1px 0 0; font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; }
         .live { margin-inline-start: auto; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); font-size: 11px; font-weight: 800; color: var(--muted); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); white-space: nowrap; }
-        .live i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); animation: beat 2s infinite; }
+        .live i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: beat 2s infinite; }
         .live.stale i { background: #f59e0b; animation: none; }
-        @keyframes beat { 70% { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
-        .welcome { margin: 10px 2px 0; font-size: 14px; font-weight: 700; color: var(--muted); line-height: 1.7; }
+        @keyframes beat { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); } 70%, 100% { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); } }
 
+        .card { position: relative; background: var(--card); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid var(--line); border-radius: 26px; padding: 18px; box-shadow: var(--shadow); animation: rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
         .title { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 24px 4px 10px; }
         .title h2 { margin: 0; font-size: 16px; font-weight: 900; }
         .title span { font-size: 11px; font-weight: 700; color: var(--muted); }
 
-        /* بطاقات الأسعار: زجاج بلون الشعار (زي بطاقات المحافظ بالبرنامج) */
-        .tiles { display: grid; grid-template-columns: 1fr; gap: 12px; }
-        @media (min-width: 560px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-        @media (min-width: 900px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-        .tile {
-            --c: #6366f1; position: relative; overflow: hidden; text-align: right; width: 100%;
-            border-radius: 22px; padding: 16px 16px 14px; isolation: isolate;
-            background: linear-gradient(140deg, color-mix(in srgb, var(--c) 16%, var(--card-solid)) 0%, color-mix(in srgb, var(--c) 5%, var(--card-solid)) 55%, var(--card-solid) 100%);
-            border: 1px solid color-mix(in srgb, var(--c) 22%, transparent);
-            box-shadow: 0 10px 24px -20px color-mix(in srgb, var(--c) 60%, transparent);
-            transition: transform 0.18s ease, box-shadow 0.18s ease; animation: rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-        }
-        .tile::before { content: ''; position: absolute; z-index: -1; width: 160px; height: 160px; border-radius: 50%; top: -70px; left: -50px; background: var(--c); opacity: 0.16; filter: blur(30px); }
-        .tile::after { content: ''; position: absolute; z-index: -1; inset: 0; background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.22) 50%, transparent 60%); opacity: 0.6; }
-        @media (prefers-color-scheme: dark) {
-            .tile { background: linear-gradient(140deg, color-mix(in srgb, var(--c) 22%, #0f172a) 0%, color-mix(in srgb, var(--c) 7%, #0f172a) 60%, #0f172a 100%); }
-            .tile::after { opacity: 0.12; }
-        }
-        .tile:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -20px color-mix(in srgb, var(--c) 70%, transparent); }
-        .tile-top { display: flex; align-items: center; gap: 10px; }
-        .tile-logo { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0; background: #fff; box-shadow: 0 6px 14px -8px color-mix(in srgb, var(--c) 70%, transparent); overflow: hidden; font-size: 22px; }
-        .tile-logo svg { width: 24px; height: 24px; }
-        .tile-name { min-width: 0; }
-        .tile-name b { display: block; font-size: 15px; font-weight: 900; line-height: 1.3; }
-        .tile-name small { display: block; font-size: 11px; font-weight: 700; color: var(--muted); }
-        .tile-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-        .tile-row { padding: 9px 11px; border-radius: 14px; background: rgba(255, 255, 255, 0.55); border: 1px solid var(--line); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-        @media (prefers-color-scheme: dark) { .tile-row { background: rgba(255, 255, 255, 0.04); } }
-        .tile-row span { display: block; font-size: 10.5px; font-weight: 800; color: var(--muted); }
-        .tile-row b { display: block; font-size: 20px; font-weight: 900; line-height: 1.25; margin-top: 2px; color: color-mix(in srgb, var(--c) 55%, var(--ink)); }
-        @media (prefers-color-scheme: dark) { .tile-row b { color: color-mix(in srgb, var(--c) 35%, #fff); } }
-        .tile-row b small { font-size: 11px; font-weight: 800; color: var(--muted); margin-inline-start: 3px; }
-        .tile-cta { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 11px; font-weight: 800; color: var(--muted); }
-        .tile-cta em { font-style: normal; color: color-mix(in srgb, var(--c) 65%, var(--ink)); }
-        @media (prefers-color-scheme: dark) { .tile-cta em { color: color-mix(in srgb, var(--c) 40%, #fff); } }
+        /* "شو بدك؟" */
+        .hero { margin-top: 18px; padding: 22px 18px 18px; overflow: visible; z-index: 3; }
+        .hero h2 { margin: 0; font-size: 26px; font-weight: 900; line-height: 1.3; }
+        .hero h2 em { font-style: normal; background: linear-gradient(90deg, #6366f1, #10b981); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .hero p { margin: 4px 0 0; font-size: 13px; font-weight: 700; color: var(--muted); line-height: 1.7; }
+        .search { position: relative; margin-top: 16px; }
+        .search-box { display: flex; align-items: center; gap: 10px; background: var(--card-solid); border: 1.5px solid var(--line); border-radius: 20px; padding: 6px 8px 6px 14px; transition: border-color 0.15s, box-shadow 0.15s; }
+        .search-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.12); }
+        .search-flag { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; font-size: 24px; background: var(--soft); flex-shrink: 0; }
+        .search-box input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 17px; font-weight: 800; padding: 8px 0; }
+        .search-box input::placeholder { color: var(--muted); font-weight: 700; }
+        .search-clear { width: 34px; height: 34px; border-radius: 50%; background: var(--soft); color: var(--muted); font-size: 16px; font-weight: 900; flex-shrink: 0; }
+        .suggest { position: absolute; inset-inline: 0; top: calc(100% + 8px); z-index: 20; background: var(--card-solid); border: 1px solid var(--line); border-radius: 20px; padding: 6px; box-shadow: 0 24px 50px -20px rgba(15, 23, 42, 0.45); max-height: 340px; overflow-y: auto; }
+        .suggest button { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; text-align: right; }
+        .suggest button:hover, .suggest button.hl { background: var(--soft); }
+        .suggest .fl { font-size: 22px; }
+        .suggest b { font-size: 14px; font-weight: 900; }
+        .suggest small { font-size: 11px; color: var(--muted); font-weight: 700; margin-inline-start: auto; white-space: nowrap; }
+        .suggest small.ok { color: #059669; }
+        .quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+        .quick button { --c: #6366f1; display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px 8px 14px; border-radius: 14px; background: color-mix(in srgb, var(--c) 9%, var(--card-solid)); border: 1px solid color-mix(in srgb, var(--c) 20%, transparent); font-size: 12.5px; font-weight: 900; transition: transform 0.1s; }
+        .quick button:active { transform: scale(0.97); }
+        .quick .ic { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: #fff; font-size: 14px; overflow: hidden; }
+        .quick .ic svg { width: 16px; height: 16px; }
+        .quick button.on { box-shadow: 0 0 0 2px var(--c); }
 
-        /* الحاسبة */
+        /* كروت الطرق: زجاج بلون الشعار */
+        .methods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        @media (min-width: 640px) { .methods { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        @media (min-width: 900px) { .methods { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        .mcard {
+            --c: #6366f1; position: relative; overflow: hidden; isolation: isolate; text-align: right; width: 100%; min-width: 0;
+            border-radius: 22px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
+            background: linear-gradient(150deg, color-mix(in srgb, var(--c) 16%, var(--card-solid)) 0%, color-mix(in srgb, var(--c) 5%, var(--card-solid)) 60%, var(--card-solid) 100%);
+            border: 1px solid color-mix(in srgb, var(--c) 24%, transparent);
+            box-shadow: 0 10px 24px -20px color-mix(in srgb, var(--c) 70%, transparent);
+            transition: transform 0.18s ease, box-shadow 0.18s ease; animation: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+        .mcard::before { content: ''; position: absolute; z-index: -1; width: 140px; height: 140px; border-radius: 50%; top: -60px; left: -40px; background: var(--c); opacity: 0.18; filter: blur(28px); }
+        .mcard::after { content: ''; position: absolute; z-index: -1; inset: 0; background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.24) 50%, transparent 60%); opacity: 0.6; }
+        @media (prefers-color-scheme: dark) {
+            .mcard { background: linear-gradient(150deg, color-mix(in srgb, var(--c) 24%, #0f172a) 0%, color-mix(in srgb, var(--c) 8%, #0f172a) 60%, #0f172a 100%); }
+            .mcard::after { opacity: 0.1; }
+        }
+        .methods.settled .mcard { animation: none; }
+        .mcard:hover { transform: translateY(-3px); box-shadow: 0 16px 30px -20px color-mix(in srgb, var(--c) 80%, transparent); }
+        .mcard.on { box-shadow: 0 0 0 2px var(--c), 0 16px 30px -20px color-mix(in srgb, var(--c) 80%, transparent); }
+        .mlogo { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: #fff; box-shadow: 0 8px 16px -10px color-mix(in srgb, var(--c) 80%, transparent); overflow: hidden; font-size: 20px; font-weight: 900; color: var(--c); }
+        .mlogo svg { width: 26px; height: 26px; }
+        .mcard b.name { display: block; font-size: 15px; font-weight: 900; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mprice { padding: 8px 10px; border-radius: 13px; background: rgba(255, 255, 255, 0.55); border: 1px solid var(--line); }
+        @media (prefers-color-scheme: dark) { .mprice { background: rgba(255, 255, 255, 0.04); } }
+        .mprice span { display: block; font-size: 10.5px; font-weight: 800; color: var(--muted); }
+        .mprice b { display: block; font-size: 17px; font-weight: 900; margin-top: 1px; color: color-mix(in srgb, var(--c) 55%, var(--ink)); white-space: nowrap; }
+        @media (prefers-color-scheme: dark) { .mprice b { color: color-mix(in srgb, var(--c) 35%, #fff); } }
+        .mprice b small { font-size: 11px; color: var(--muted); }
+        .mcta { margin-top: auto; display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 800; color: var(--muted); }
+        .mcta em { font-style: normal; color: color-mix(in srgb, var(--c) 65%, var(--ink)); }
+        @media (prefers-color-scheme: dark) { .mcta em { color: color-mix(in srgb, var(--c) 40%, #fff); } }
+        .empty-card { text-align: center; padding: 26px 18px; }
+        .empty-card .ico { font-size: 40px; }
+        .empty-card h3 { margin: 8px 0 4px; font-size: 16px; font-weight: 900; }
+        .empty-card p { margin: 0; font-size: 13px; color: var(--muted); font-weight: 700; }
+        .empty-card a { margin-top: 14px; }
+
+        /* الطلب */
         .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
         .layout > * { min-width: 0; }
         @media (min-width: 900px) { .layout { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; } }
-        .card { position: relative; background: var(--card); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid var(--line); border-radius: 26px; padding: 18px; box-shadow: var(--shadow); animation: rise 0.7s 0.08s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-        .svc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-        @media (min-width: 560px) { .svc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-        .svc { --c: #6366f1; display: flex; align-items: center; gap: 9px; padding: 10px; border-radius: 16px; background: var(--soft); border: 1.5px solid transparent; text-align: right; transition: border-color 0.15s, background 0.15s, transform 0.1s; min-width: 0; }
-        .svc:active { transform: scale(0.98); }
-        .svc .ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: #fff; flex-shrink: 0; overflow: hidden; font-size: 18px; box-shadow: 0 4px 10px -6px rgba(15, 23, 42, 0.4); }
-        .svc .ic svg { width: 20px; height: 20px; }
-        .svc b { display: block; font-size: 12.5px; font-weight: 900; line-height: 1.3; }
-        .svc small { display: block; font-size: 10px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .svc > span { min-width: 0; }
-        .svc.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 10%, var(--card-solid)); }
-        @media (prefers-color-scheme: dark) { .svc.on { background: color-mix(in srgb, var(--c) 18%, #0f172a); } }
-
+        .sel { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+        .sel .mlogo { width: 50px; height: 50px; }
+        .sel b { display: block; font-size: 17px; font-weight: 900; }
+        .sel small { display: block; font-size: 12px; font-weight: 700; color: var(--muted); }
+        .sel .change { margin-inline-start: auto; padding: 8px 12px; border-radius: 12px; background: var(--soft); font-size: 12px; font-weight: 900; color: var(--muted); }
         .field-label { display: block; font-size: 12px; font-weight: 800; color: var(--muted); margin: 16px 2px 6px; }
         .amount { display: flex; align-items: center; gap: 8px; background: var(--card-solid); border: 1.5px solid var(--line); border-radius: 18px; padding: 6px 6px 6px 14px; transition: border-color 0.15s, box-shadow 0.15s; }
-        .amount:focus-within { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12); }
+        .amount:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12); }
         .amount input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 26px; font-weight: 900; padding: 6px 4px; direction: ltr; text-align: right; }
         .amount .unit { font-size: 13px; font-weight: 900; color: var(--muted); padding: 0 6px; white-space: nowrap; }
         .seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--soft); }
         .seg button { padding: 7px 14px; border-radius: 10px; font-size: 13px; font-weight: 900; color: var(--muted); }
         .seg button.on { background: var(--card-solid); color: var(--ink); box-shadow: 0 2px 6px -2px rgba(15, 23, 42, 0.25); }
-        .row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+        .row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
         .chips { display: flex; flex-wrap: wrap; gap: 6px; }
         .chip { padding: 8px 12px; border-radius: 12px; background: var(--soft); border: 1.5px solid transparent; font-size: 12px; font-weight: 800; }
         .chip.on { border-color: #26a17b; background: color-mix(in srgb, #26a17b 12%, var(--card-solid)); }
         .chip small { color: var(--muted); font-weight: 700; }
         .text { width: 100%; border: 1.5px solid var(--line); border-radius: 14px; background: var(--card-solid); padding: 11px 13px; font-size: 14px; font-weight: 700; outline: 0; }
-        .text:focus { border-color: #6366f1; }
+        .text:focus { border-color: var(--accent); }
         .text.ltr { direction: ltr; text-align: right; }
         .opt { font-weight: 600; color: var(--muted); }
 
-        /* النتيجة */
         .result { --c: #10b981; border-radius: 22px; padding: 18px; color: #fff; position: relative; overflow: hidden; isolation: isolate;
             background: linear-gradient(140deg, color-mix(in srgb, var(--c) 85%, #0f172a) 0%, color-mix(in srgb, var(--c) 45%, #0f172a) 100%);
             box-shadow: 0 18px 40px -26px color-mix(in srgb, var(--c) 80%, transparent); }
@@ -148,11 +171,14 @@
         .result .sub { margin-top: 10px; display: grid; gap: 4px; font-size: 12px; font-weight: 700; opacity: 0.9; }
         .result .sub div { display: flex; justify-content: space-between; gap: 8px; }
         .result.empty { --c: #64748b; }
-        .result.empty .big { font-size: 22px; opacity: 0.8; text-align: right; direction: rtl; }
+        .result.empty .big, .result.ask .big { font-size: 20px; direction: rtl; text-align: right; line-height: 1.5; }
+        .result.ask { --c: #6366f1; }
         .wa-btn { margin-top: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 15px; border-radius: 18px; background: var(--wa); color: #fff; font-size: 16px; font-weight: 900; box-shadow: 0 14px 28px -18px rgba(37, 211, 102, 0.9); transition: transform 0.1s, filter 0.15s; text-decoration: none; }
-        .wa-btn svg { width: 22px; height: 22px; }
+        .wa-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
         .wa-btn:active { transform: scale(0.98); }
         .wa-btn[aria-disabled="true"] { filter: grayscale(1); opacity: 0.5; pointer-events: none; }
+        .wa-inline { display: inline-flex; width: auto; padding: 12px 20px; font-size: 14px; }
+        .note { margin-top: 10px; font-size: 11px; font-weight: 700; color: var(--muted); text-align: center; line-height: 1.6; }
         @media (min-width: 900px) { .res-wrap { position: sticky; top: 16px; } }
         /* بالجوال: السعر وزر واتساب ماسكين تحت الشاشة وإنت بتكتب */
         @media (max-width: 899px) {
@@ -160,11 +186,11 @@
             .res-wrap .result { padding: 12px 14px; border-radius: 18px; }
             .res-wrap .result .big { font-size: 28px; }
             .res-wrap .result .sub { display: none; }
-            .res-wrap .result.empty .big { font-size: 15px; }
+            .res-wrap .result.empty .big, .res-wrap .result.ask .big { font-size: 14px; }
             .res-wrap .wa-btn { margin-top: 0; width: auto; flex-direction: column; gap: 4px; padding: 10px 14px; font-size: 12px; border-radius: 18px; }
-            .res-wrap .note { grid-column: 1 / -1; margin-top: 0; padding: 6px 10px; border-radius: 12px; background: var(--card); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+            .res-wrap .note { display: none; }
+            .wa-long { display: none; }
         }
-        .note { margin-top: 10px; font-size: 11px; font-weight: 700; color: var(--muted); text-align: center; line-height: 1.6; }
 
         /* الحسابات الجاهزة */
         .ready { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -172,17 +198,15 @@
         .ready button small { font-size: 10.5px; color: var(--muted); font-weight: 700; }
         .ready button .go { color: var(--wa); font-size: 15px; }
 
-        .msg { text-align: center; padding: 40px 20px; }
+        .msg { text-align: center; padding: 40px 20px; margin-top: 18px; }
         .msg .ico { font-size: 44px; }
         .msg h2 { margin: 10px 0 4px; font-size: 18px; font-weight: 900; }
         .msg p { margin: 0; font-size: 13px; color: var(--muted); font-weight: 700; line-height: 1.7; }
         .msg button { margin-top: 14px; padding: 10px 22px; border-radius: 14px; background: var(--ink); color: var(--bg); font-weight: 900; }
-        .skel { height: 128px; border-radius: 22px; background: linear-gradient(90deg, var(--soft) 25%, var(--card) 50%, var(--soft) 75%); background-size: 200% 100%; animation: shimmer 1.3s infinite; }
+        .skel { height: 150px; border-radius: 26px; margin-top: 18px; background: linear-gradient(90deg, var(--soft) 25%, var(--card) 50%, var(--soft) 75%); background-size: 200% 100%; animation: shimmer 1.3s infinite; }
         @keyframes shimmer { to { background-position: -200% 0; } }
         .foot { margin-top: 26px; text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); line-height: 1.8; }
         @keyframes rise { from { opacity: 0; transform: translateY(14px) scale(0.985); } }
-        .hidden { display: none !important; }
-        @media (max-width: 899px) { .wa-long { display: none; } }
         .bump { animation: bump 0.35s ease; }
         @keyframes bump { 40% { transform: scale(1.03); } }
         @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
@@ -193,65 +217,85 @@
     <main class="wrap">
         <header class="brand">
             <div class="logo"><img src="assets/logo.png" alt=""></div>
-            <div><h1 id="co-name">فاست باي</h1><p id="co-sub">أسعار اليوم</p></div>
+            <div><h1 id="co-name">فاست باي</h1><p id="co-sub"></p></div>
             <span id="live" class="live hidden"><i></i><span id="live-text">محدّث</span></span>
         </header>
-        <p id="welcome" class="welcome hidden"></p>
 
-        <div id="loading">
-            <div class="title"><h2>أسعار اليوم</h2></div>
-            <div class="tiles"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>
-        </div>
+        <div id="loading"><div class="skel"></div><div class="skel" style="height:110px"></div></div>
         <div id="message" class="card msg hidden"></div>
 
         <div id="content" class="hidden">
-            <div class="title"><h2>أسعار اليوم</h2><span>الأسعار بتتغير مع السوق</span></div>
-            <section id="tiles" class="tiles" aria-label="أسعار اليوم"></section>
-
-            <div class="title"><h2>احسب واطلب</h2><span>نفس السعر اللي بنعطيك ياه</span></div>
-            <div class="layout">
-                <section class="card" aria-label="اختار الخدمة">
-                    <div id="svc-grid" class="svc-grid" role="radiogroup" aria-label="الخدمة"></div>
-
-                    <label for="amount" id="amount-label" class="field-label">المبلغ</label>
-                    <div class="amount">
-                        <input id="amount" inputmode="decimal" autocomplete="off" placeholder="0">
-                        <span id="amount-unit" class="unit"></span>
+            <!-- شو بدك؟ -->
+            <section class="card hero" aria-label="شو بدك؟">
+                <h2>شو <em>بدك</em> اليوم؟</h2>
+                <p id="hero-sub">اكتب الدولة اللي بدك تبعت منها، وبنوريك الطرق اللي بتشتغل منها والسعر.</p>
+                <div class="search" id="search-wrap">
+                    <div class="search-box">
+                        <span id="search-flag" class="search-flag" aria-hidden="true">🌍</span>
+                        <input id="country" type="text" enterkeyhint="search" autocomplete="off" spellcheck="false" placeholder="من وين بدك تبعت؟ مثلاً: سنغافورة" aria-label="من وين بدك تبعت؟" aria-autocomplete="list" aria-controls="suggest">
+                        <button type="button" id="country-clear" class="search-clear hidden" aria-label="امسح">✕</button>
                     </div>
+                    <div id="suggest" class="suggest hidden" role="listbox"></div>
+                </div>
+                <div id="quick" class="quick" aria-label="خدمات ثانية"></div>
+            </section>
 
-                    <div id="cur-row" class="row" style="margin-top:12px">
-                        <span id="cur-label" class="field-label" style="margin:0">بتدفع</span>
-                        <div class="seg" role="radiogroup" aria-label="العملة">
-                            <button type="button" data-cur="ILS" class="on" role="radio">₪ شيكل</button>
-                            <button type="button" data-cur="USD" role="radio">$ دولار</button>
+            <!-- الطرق -->
+            <div class="title"><h2 id="methods-title">الطرق اللي عنا</h2><span id="methods-count"></span></div>
+            <section id="methods" class="methods" aria-live="polite"></section>
+            <div id="methods-empty" class="card empty-card hidden"></div>
+
+            <!-- الطلب -->
+            <div id="order" class="hidden">
+                <div class="title"><h2>احسب واطلب</h2><span>نفس السعر اللي بنعطيك ياه</span></div>
+                <div class="layout">
+                    <section class="card" aria-label="الطلب">
+                        <div class="sel">
+                            <span id="sel-logo" class="mlogo"></span>
+                            <div class="min-w-0"><b id="sel-name"></b><small id="sel-sub"></small></div>
+                            <button type="button" id="sel-change" class="change">تغيير</button>
                         </div>
-                    </div>
 
-                    <div id="net-wrap" class="hidden">
-                        <span class="field-label">الشبكة</span>
-                        <div id="nets" class="chips"></div>
-                    </div>
+                        <label for="amount" id="amount-label" class="field-label">المبلغ</label>
+                        <div class="amount">
+                            <input id="amount" inputmode="decimal" autocomplete="off" placeholder="0">
+                            <span id="amount-unit" class="unit"></span>
+                        </div>
 
-                    <div id="addr-wrap" class="hidden">
-                        <label for="addr" id="addr-label" class="field-label">عنوان محفظتك <span class="opt">(اختياري)</span></label>
-                        <input id="addr" class="text ltr" autocomplete="off" spellcheck="false">
-                    </div>
-                    <label for="cname" class="field-label">اسمك <span class="opt">(اختياري)</span></label>
-                    <input id="cname" class="text" autocomplete="name" maxlength="60">
-                </section>
+                        <div id="cur-row" class="row">
+                            <span id="cur-label" class="field-label" style="margin:0">بتستلم</span>
+                            <div class="seg" role="radiogroup" aria-label="العملة">
+                                <button type="button" data-cur="ILS" class="on" role="radio">₪ شيكل</button>
+                                <button type="button" data-cur="USD" role="radio">$ دولار</button>
+                            </div>
+                        </div>
 
-                <section aria-label="السعر" class="res-wrap">
-                    <div id="result" class="result empty" aria-live="polite">
-                        <div class="lbl" id="res-label">اختار الخدمة واكتب المبلغ</div>
-                        <div class="big" id="res-big">—</div>
-                        <div class="sub" id="res-sub"></div>
-                    </div>
-                    <a id="wa-btn" class="wa-btn" href="#" target="_blank" rel="noopener" aria-disabled="true">
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.21 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.69.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.05 21.8h-.01a9.8 9.8 0 0 1-5-1.37l-.36-.21-3.71.97.99-3.62-.23-.37a9.8 9.8 0 0 1-1.5-5.22c0-5.42 4.41-9.83 9.84-9.83 2.63 0 5.1 1.03 6.96 2.89a9.77 9.77 0 0 1 2.88 6.96c0 5.42-4.41 9.83-9.84 9.83zm8.37-18.2A11.76 11.76 0 0 0 12.05 0C5.5 0 .17 5.33.17 11.88c0 2.1.55 4.14 1.59 5.94L.07 24l6.33-1.66a11.86 11.86 0 0 0 5.65 1.44h.01c6.55 0 11.88-5.33 11.88-11.88 0-3.17-1.24-6.16-3.48-8.4z"/></svg>
-                        <span>اطلب<span class="wa-long"> على واتساب</span></span>
-                    </a>
-                    <p class="note">السعر محسوب بأسعار هلّق. بنأكدلك المبلغ النهائي على واتساب قبل التحويل.</p>
-                </section>
+                        <div id="net-wrap" class="hidden">
+                            <span class="field-label">الشبكة</span>
+                            <div id="nets" class="chips"></div>
+                        </div>
+
+                        <div id="addr-wrap" class="hidden">
+                            <label for="addr" id="addr-label" class="field-label">عنوان محفظتك <span class="opt">(اختياري)</span></label>
+                            <input id="addr" class="text ltr" autocomplete="off" spellcheck="false">
+                        </div>
+                        <label for="cname" class="field-label">اسمك <span class="opt">(اختياري)</span></label>
+                        <input id="cname" class="text" autocomplete="name" maxlength="60">
+                    </section>
+
+                    <section aria-label="السعر" class="res-wrap">
+                        <div id="result" class="result empty" aria-live="polite">
+                            <div class="lbl" id="res-label">اكتب المبلغ</div>
+                            <div class="big" id="res-big">—</div>
+                            <div class="sub" id="res-sub"></div>
+                        </div>
+                        <a id="wa-btn" class="wa-btn" href="#" target="_blank" rel="noopener" aria-disabled="true">
+                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.21 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.69.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.05 21.8h-.01a9.8 9.8 0 0 1-5-1.37l-.36-.21-3.71.97.99-3.62-.23-.37a9.8 9.8 0 0 1-1.5-5.22c0-5.42 4.41-9.83 9.84-9.83 2.63 0 5.1 1.03 6.96 2.89a9.77 9.77 0 0 1 2.88 6.96c0 5.42-4.41 9.83-9.84 9.83zm8.37-18.2A11.76 11.76 0 0 0 12.05 0C5.5 0 .17 5.33.17 11.88c0 2.1.55 4.14 1.59 5.94L.07 24l6.33-1.66a11.86 11.86 0 0 0 5.65 1.44h.01c6.55 0 11.88-5.33 11.88-11.88 0-3.17-1.24-6.16-3.48-8.4z"/></svg>
+                            <span>اطلب<span class="wa-long"> على واتساب</span></span>
+                        </a>
+                        <p class="note">بنأكدلك المبلغ النهائي على واتساب قبل التحويل.</p>
+                    </section>
+                </div>
             </div>
 
             <div id="ready-wrap" class="hidden">
@@ -266,13 +310,14 @@
     <script src="js/endpoint.js"></script>
     <script src="js/pricing.js"></script>
     <script src="js/service-logos.js"></script>
+    <script src="js/world-countries.js"></script>
     <script>
     'use strict';
     // الإعدادات اللي بتقرأها دوال pricing.js (من رد السكربت فوق الافتراضي PRICE_DEFAULTS)
     let globalConfig = { ...PRICE_DEFAULTS };
     let DATA = null;
     let loadedAt = 0;
-    const state = { svc: '', amount: '', cur: 'ILS', net: '', addr: '', name: '' };
+    const state = { country: '', svc: '', amount: '', cur: 'ILS', net: '', addr: '', name: '', hl: 0 };
     const $ = (id) => document.getElementById(id);
     const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const latin = (v) => String(v ?? '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/٫/g, '.');
@@ -286,57 +331,62 @@
         usdt: { c: '#26a17b', html: '<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#26a17b"/><path fill="#fff" d="M17.9 17.4v0c-.1 0-.7.1-1.9.1-1 0-1.7 0-1.9-.1v0c-3.8-.2-6.6-.8-6.6-1.6s2.8-1.4 6.6-1.6v2.6c.2 0 .9.1 1.9.1 1.2 0 1.8-.1 1.9-.1v-2.6c3.8.2 6.6.8 6.6 1.6s-2.8 1.4-6.6 1.6zm0-3.5v-2.3h5.3V8.1H8.8v3.5h5.3v2.3c-4.3.2-7.5 1-7.5 2s3.2 1.8 7.5 2v7.4h3.8v-7.4c4.3-.2 7.5-1 7.5-2s-3.2-1.8-7.5-2z"/></svg>' },
         egp: { c: '#c8102e', html: '🇪🇬' }
     };
-    // شعار المصدر من اسمه (باي بال...) أو العلم بأول الاسم أو أول حرف
-    function sourceIcon(name) {
-        const n = String(name || '').toLowerCase();
-        let best = null, len = 0;
-        Object.values(typeof SERVICE_BRANDS === 'object' ? SERVICE_BRANDS : {}).forEach(b => (b.words || []).forEach(w => {
-            if (w && n.includes(w.toLowerCase()) && w.length > len) { best = b; len = w.length; }
-        }));
-        if (best) return { c: '#' + best.hex, html: `<svg viewBox="0 0 24 24"><path fill="#${best.hex}" d="${best.d}"/></svg>` };
-        const flag = String(name || '').match(/^\s*(\p{Extended_Pictographic}|[\u{1F1E6}-\u{1F1FF}]{2})/u);
-        return { c: '#6366f1', html: flag ? flag[1] : esc(String(name || '؟').trim().charAt(0)) };
+    function methodIcon(m) {
+        const b = m.brand && typeof SERVICE_BRANDS === 'object' ? SERVICE_BRANDS[m.brand] : null;
+        if (b) return { c: '#' + b.hex, html: `<svg viewBox="0 0 24 24"><path fill="#${b.hex}" d="${b.d}"/></svg>` };
+        return { c: '#6366f1', html: esc(String(m.name || '؟').trim().charAt(0)) };
     }
-    const cleanName = (name) => String(name || '').replace(/^\s*(\p{Extended_Pictographic}️?|[\u{1F1E6}-\u{1F1FF}]{2})\s*/u, '').trim() || name;
+    const countryName = (iso) => worldCountry(iso)?.[1] || iso;
+    const methodWorks = (m, iso) => (m.mode === 'except' ? !m.countries.includes(iso) : m.countries.includes(iso));
+    const methodsFor = (iso) => (DATA?.methods || []).filter(m => !iso || methodWorks(m, iso));
+    const methodSource = (m) => (m.source ? (DATA?.sources || []).find(s => String(s.id) === String(m.source)) : null);
 
     // ---------- الخدمات ----------
-    function services() {
+    function quickServices() {
         if (!DATA) return [];
-        const list = [];
         const s = DATA.show || {};
-        if (s.usdt) {
-            list.push({ id: 'usdt_buy', kind: 'deposit', label: 'شراء USDT', sub: 'بتدفع وبتستلم', icon: ICONS.usdt, unit: 'USDT', amountLabel: 'كم USDT بدك؟', curLabel: 'بتدفع' });
-            list.push({ id: 'usdt_sell', kind: 'withdraw', label: 'بيع USDT', sub: 'بتبعت وبتستلم', icon: ICONS.usdt, unit: 'USDT', amountLabel: 'كم USDT بدك تبيع؟', curLabel: 'بتستلم' });
+        const list = [];
+        if (s.usdt && DATA.screen > 0) {
+            list.push({ id: 'usdt_buy', kind: 'deposit', label: 'شراء USDT', sub: 'بتدفع وبتستلم USDT', icon: ICONS.usdt, unit: 'USDT', amountLabel: 'كم USDT بدك؟', curLabel: 'بتدفع' });
+            list.push({ id: 'usdt_sell', kind: 'withdraw', label: 'بيع USDT', sub: 'بتبعت USDT وبتستلم', icon: ICONS.usdt, unit: 'USDT', amountLabel: 'كم USDT بدك تبيع؟', curLabel: 'بتستلم' });
         }
         if (s.egp && DATA.egpScreen > 0) {
-            list.push({ id: 'egp_send', kind: 'send', label: 'إرسال لمصر', sub: 'جنيه مصري', icon: ICONS.egp, unit: 'جنيه', amountLabel: 'كم جنيه بدك يوصل؟', curLabel: 'بتدفع' });
-            list.push({ id: 'egp_receive', kind: 'receive', label: 'استلام من مصر', sub: 'جنيه مصري', icon: ICONS.egp, unit: 'جنيه', amountLabel: 'كم جنيه رح يوصلنا؟', curLabel: 'بتستلم' });
+            list.push({ id: 'egp_send', kind: 'send', label: 'إرسال لمصر', sub: 'فودافون كاش · انستا باي', icon: ICONS.egp, unit: 'جنيه', amountLabel: 'كم جنيه بدك يوصل؟', curLabel: 'بتدفع' });
+            list.push({ id: 'egp_receive', kind: 'receive', label: 'استلام من مصر', sub: 'بتبعتلنا جنيه وبتستلم', icon: ICONS.egp, unit: 'جنيه', amountLabel: 'كم جنيه رح يوصلنا؟', curLabel: 'بتستلم' });
         }
-        (DATA.sources || []).forEach(c => {
-            const usdIn = c.type === 'direct_percent';
-            list.push({ id: 'src_' + c.id, src: c, label: cleanName(c.name), sub: 'حوالة', icon: sourceIcon(c.name), unit: usdIn ? '$' : '', amountLabel: usdIn ? 'كم دولار؟' : `المبلغ (بعملة ${cleanName(c.name)})`, curLabel: 'بتستلم' });
-        });
         if (s.usd && DATA.screen > 0) {
             list.push({ id: 'usd_sell', label: 'بيع دولار', sub: 'بتستلم شيكل', icon: ICONS.usd, unit: '$', amountLabel: 'كم دولار بدك تبيع؟', curLabel: 'بتستلم', noCur: true });
             list.push({ id: 'usd_buy', label: 'شراء دولار', sub: 'بتدفع شيكل', icon: ICONS.usd, unit: '$', amountLabel: 'كم دولار بدك؟', curLabel: 'بتدفع', noCur: true });
         }
         return list;
     }
-    const svcById = (id) => services().find(s => s.id === id);
+    function methodService(m) {
+        const src = methodSource(m);
+        // المبلغ بالدولار: الخصم المباشر، أو × 1 (زي باي بال)، أو طريقة بدون تسعير
+        const usdIn = !src || src.type === 'direct_percent' || (src.type === 'mul' && Number(src.factor) === 1);
+        return { id: 'm_' + m.id, method: m, src, label: m.name, icon: methodIcon(m), unit: usdIn ? '$' : '', curLabel: 'بتستلم', noCur: !src,
+            amountLabel: src ? (usdIn ? 'كم دولار بدك تبعت؟' : 'المبلغ اللي بدك تبعته') : 'المبلغ (تقريباً)' };
+    }
+    function currentService() {
+        if (state.svc.startsWith('m_')) {
+            const m = (DATA?.methods || []).find(x => 'm_' + x.id === state.svc);
+            return m ? methodService(m) : null;
+        }
+        return quickServices().find(s => s.id === state.svc) || null;
+    }
     const firstNet = () => (usdtNetworks()[0] || { name: '', fee: 0 });
     const netOf = (name) => usdtNetworks().find(n => n.name === name) || firstNet();
 
     // ---------- الحساب (نفس البرنامج) ----------
-    // pay: الزبون بيدفع (true) أو بيستلم (false)
+    // pay: الزبون بيدفع (true) أو بيستلم (false). ask: ما في سعر، بيطلب على واتساب
     function quote(s, amount, cur, netName) {
         if (!s || !(amount > 0)) return null;
         const { sell, buy } = sellBuyRates();
         if (s.kind === 'deposit' || s.kind === 'withdraw') {
             const dep = s.kind === 'deposit';
             const net = dep ? netOf(netName) : { name: '', fee: 0 };
-            const pct = usdtPctFor(s.kind, amount);
-            const r = computeUsdt({ kind: s.kind, amount, networkFee: toNum(net.fee, 0), pct, rate: dep ? buy : sell, currency: cur, discount: 0, settle: 0 });
-            return { pay: dep, total: r.total, cur, lines: [dep && net.name ? [`الشبكة ${net.name}`, `رسوم ${fmtTrim(toNum(net.fee, 0))} USDT`] : null, [`سعر الـ USDT تقريباً`, money(r.total / amount, cur)]].filter(Boolean),
+            const r = computeUsdt({ kind: s.kind, amount, networkFee: toNum(net.fee, 0), pct: usdtPctFor(s.kind, amount), rate: dep ? buy : sell, currency: cur, discount: 0, settle: 0 });
+            return { pay: dep, total: r.total, cur, lines: [dep && net.name ? [`الشبكة ${net.name}`, `رسوم ${fmtTrim(toNum(net.fee, 0))} USDT`] : null, ['سعر الـ USDT تقريباً', money(r.total / amount, cur)]].filter(Boolean),
                 head: `${dep ? 'شراء' : 'بيع'} ${fmtTrim(amount)} USDT`, net: net.name };
         }
         if (s.kind === 'send' || s.kind === 'receive') {
@@ -346,57 +396,104 @@
             if (!(base.rate > 0)) return null;
             const f = withEgpTier(base);
             const r = computeEgp(f);
-            return { pay: send, total: r.total, cur, lines: [['الألف جنيه', money(egpPerThousand(f.rate, f.usdRate, cur), cur)]], head: `${send ? 'إرسال' : 'استلام'} ${fmtTrim(amount)} جنيه` };
+            return { pay: send, total: r.total, cur, lines: [['الألف جنيه', money(egpPerThousand(f.rate, f.usdRate, cur), cur)]], head: `${send ? 'إرسال' : 'استلام'} ${fmtTrim(amount)} جنيه ${send ? 'لمصر' : 'من مصر'}` };
         }
-        if (s.src) {
+        if (s.method) {
+            const where = state.country ? ` من ${worldFlag(state.country)} ${countryName(state.country)}` : '';
+            const head = `بدي أبعت${where} عن طريق ${s.method.name}`;
+            if (!s.src) return { ask: true, head, amountText: `${fmtTrim(amount)} ${s.unit}`.trim() };
             const c = { ...s.src, tiers: normalizeCountryTiers(s.src.tiers) };
             const t = countryTierAt(c, sourceUsdAmount(c.type, amount, c.factor)).tier;
             const r = computeTransfer({ orig: amount, type: c.type, factor: c.factor, costMode: c.costMode, costPct: c.costMode === 'fixed' ? 0 : t.cost, costFixed: c.costMode === 'fixed' ? t.cost : 0, profitPct: t.profit, screenRate: sell, minusIls: toNum(globalConfig.minusIls, 0), currency: cur });
             const total = cur === 'USD' ? round2(r.clientUsd) : round2(r.clientIls);
-            return { pay: false, total, cur, lines: [], head: `${cleanName(c.name)} ${fmtTrim(amount)}${c.type === 'direct_percent' ? '$' : ''}` };
+            return { pay: false, total, cur, lines: [], head, amountText: `${fmtTrim(amount)}${s.unit}` };
         }
         if (s.id === 'usd_sell') return { pay: false, total: round2(amount * sell), cur: 'ILS', lines: [['السعر', fmt(sell, 3)]], head: `بيع ${fmtTrim(amount)}$` };
         if (s.id === 'usd_buy') return { pay: true, total: round2(amount * buy), cur: 'ILS', lines: [['السعر', fmt(buy, 3)]], head: `شراء ${fmtTrim(amount)}$` };
         return null;
     }
 
+    // ---------- البحث عن الدولة ----------
+    function renderSuggest() {
+        const q = $('country').value;
+        const box = $('suggest');
+        const list = q.trim() ? worldSearch(q, 8) : [];
+        if (!list.length) {
+            box.innerHTML = q.trim() ? '<div class="note" style="margin:8px">ما لقينا دولة بهالاسم</div>' : '';
+            box.classList.toggle('hidden', !q.trim());
+            return;
+        }
+        state.hl = Math.min(state.hl, list.length - 1);
+        box.innerHTML = list.map((c, i) => {
+            const n = methodsFor(c[0]).length;
+            return `<button type="button" role="option" data-iso="${c[0]}" class="${i === state.hl ? 'hl' : ''}"><span class="fl">${worldFlag(c[0])}</span><b>${esc(c[1])}</b><small class="${n ? 'ok' : ''}">${n ? (n === 1 ? 'طريقة وحدة' : n === 2 ? 'طريقتين' : `${n} طرق`) : 'احكي معنا'}</small></button>`;
+        }).join('');
+        box.classList.remove('hidden');
+    }
+
+    function pickCountry(iso) {
+        state.country = iso || '';
+        $('suggest').classList.add('hidden');
+        $('country').value = iso ? countryName(iso) : '';
+        $('search-flag').textContent = iso ? worldFlag(iso) : '🌍';
+        $('country-clear').classList.toggle('hidden', !iso);
+        try { history.replaceState(null, '', iso ? `?c=${iso}` : location.pathname); } catch (e) { /* عادي */ }
+        // الطريقة المختارة ما بتشتغل من الدولة الجديدة ← بتنشال
+        const cur = currentService();
+        if (cur?.method && iso && !methodWorks(cur.method, iso)) { state.svc = ''; }
+        renderMethods();
+        renderOrder();
+        if (iso) $('methods-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     // ---------- الرسم ----------
-    function tileHtml(i, id, icon, name, sub, rows, cta) {
-        return `<button type="button" class="tile" data-svc="${esc(id)}" style="--c:${icon.c};animation-delay:${i * 0.05}s">
-            <div class="tile-top"><span class="tile-logo">${icon.html}</span><span class="tile-name"><b>${esc(name)}</b><small>${esc(sub)}</small></span></div>
-            <div class="tile-rows">${rows.map(([l, v, u]) => `<div class="tile-row"><span>${esc(l)}</span><b class="num">${esc(v)}<small>${esc(u || '')}</small></b></div>`).join('')}</div>
-            <div class="tile-cta"><span>${esc(cta)}</span><em>احسب ←</em></div>
+    function methodCardHtml(m, i) {
+        const s = methodService(m);
+        const q = s.src ? quote(s, 100, 'ILS') : null;
+        const price = q ? `<div class="mprice"><span>لما تبعت 100${esc(s.unit)}</span><b class="num">${esc(fmtTrim(q.total))} <small>₪ بتستلم</small></b></div>`
+            : '<div class="mprice"><span>السعر</span><b style="font-size:13px">بنحكيلك على واتساب</b></div>';
+        const where = m.mode === 'except' ? 'من كل الدول تقريباً' : (m.countries.length === 1 ? `من ${countryName(m.countries[0])}` : `من ${m.countries.length} دول`);
+        return `<button type="button" class="mcard ${state.svc === s.id ? 'on' : ''}" data-svc="${esc(s.id)}" style="--c:${s.icon.c};animation-delay:${i * 0.04}s">
+            <span class="mlogo">${s.icon.html}</span>
+            <b class="name">${esc(m.name)}</b>
+            ${price}
+            <div class="mcta"><span>${esc(state.country ? 'بتشتغل من دولتك' : where)}</span><em>اختار ←</em></div>
         </button>`;
     }
 
-    function renderTiles() {
-        const s = DATA.show || {};
-        const { sell, buy } = sellBuyRates();
-        const tiles = [];
-        let i = 0;
-        if (s.usd && DATA.screen > 0) tiles.push(tileHtml(i++, 'usd_sell', ICONS.usd, 'الدولار', 'الشيكل مقابل الدولار', [['بنشتري منك', fmt(sell, 3), '₪'], ['بنبيعك', fmt(buy, 3), '₪']], 'لكل 1 دولار'));
-        if (s.usdt && DATA.screen > 0) {
-            const b = quote(svcById('usdt_buy'), 100, 'ILS', firstNet().name), w = quote(svcById('usdt_sell'), 100, 'ILS');
-            tiles.push(tileHtml(i++, 'usdt_buy', ICONS.usdt, 'USDT', 'تيذر · ' + usdtNetworks().map(n => n.name).join(' / '), [['تشتري 100', fmtTrim(b.total), '₪'], ['تبيع 100', fmtTrim(w.total), '₪']], b.net ? `الشراء على ${b.net} مع رسومها` : 'لكل 100 USDT'));
+    function renderMethods() {
+        const iso = state.country;
+        const list = methodsFor(iso);
+        const all = (DATA?.methods || []).length;
+        $('methods-title').textContent = iso ? `من ${worldFlag(iso)} ${countryName(iso)} بتقدر تبعت عن طريق` : 'الطرق اللي عنا';
+        $('methods-count').textContent = list.length ? (list.length === 1 ? 'طريقة وحدة' : list.length === 2 ? 'طريقتين' : `${list.length} طرق`) : '';
+        $('methods').innerHTML = list.map(methodCardHtml).join('');
+        const empty = $('methods-empty');
+        const noneAtAll = !all;
+        empty.classList.toggle('hidden', list.length > 0 || (noneAtAll && !iso));
+        $('methods-title').parentElement.classList.toggle('hidden', noneAtAll && !iso);
+        if (!list.length && (iso || !noneAtAll)) {
+            const text = `مرحبا ${DATA.company?.name || ''}، بدي أبعت من ${countryName(iso)}، شو الطرق المتاحة؟\n\n(من صفحة الأسعار)`;
+            empty.innerHTML = `<div class="ico">${worldFlag(iso)}</div><h3>ما في طريقة جاهزة من ${esc(countryName(iso))}</h3><p>احكي معنا وبنشوفلك حل.</p>
+                ${DATA.wa ? `<a class="wa-btn wa-inline" target="_blank" rel="noopener" href="https://wa.me/${DATA.wa}?text=${encodeURIComponent(text)}">${$('wa-btn').querySelector('svg').outerHTML}<span>احكي معنا على واتساب</span></a>` : ''}`;
         }
-        if (s.egp && DATA.egpScreen > 0) {
-            const a = quote(svcById('egp_send'), 1000, 'ILS'), r = quote(svcById('egp_receive'), 1000, 'ILS');
-            if (a && r) tiles.push(tileHtml(i++, 'egp_send', ICONS.egp, 'الجنيه المصري', 'فودافون كاش · انستا باي', [['تبعت 1,000', fmtTrim(a.total), '₪'], ['تستلم 1,000', fmtTrim(r.total), '₪']], 'لكل 1,000 جنيه'));
-        }
-        services().filter(x => x.src).forEach(x => {
-            const q = quote(x, 100, 'ILS'), qu = quote(x, 100, 'USD');
-            tiles.push(tileHtml(i++, x.id, x.icon, x.label, x.src.type === 'direct_percent' ? 'لما تبعت 100 دولار' : 'لما تبعت 100 بعملتها', [['بالشيكل', fmtTrim(q.total), '₪'], ['أو بالدولار', fmtTrim(qu.total), '$']], 'بتستلم'));
-        });
-        $('tiles').innerHTML = tiles.join('') || '<p class="welcome">ما في أسعار معروضة هلّق</p>';
     }
 
-    function renderServices() {
-        const list = services();
-        if (!list.find(s => s.id === state.svc)) state.svc = list[0]?.id || '';
-        $('svc-grid').innerHTML = list.map(s => `<button type="button" class="svc ${s.id === state.svc ? 'on' : ''}" data-svc="${esc(s.id)}" role="radio" aria-checked="${s.id === state.svc}" style="--c:${s.icon.c}">
-            <span class="ic">${s.icon.html}</span><span><b>${esc(s.label)}</b><small>${esc(s.sub)}</small></span></button>`).join('');
-        const s = svcById(state.svc);
+    function renderQuick() {
+        const list = quickServices();
+        $('quick').innerHTML = list.map(s => `<button type="button" data-svc="${esc(s.id)}" class="${state.svc === s.id ? 'on' : ''}" style="--c:${s.icon.c}"><span class="ic">${s.icon.html}</span>${esc(s.label)}</button>`).join('');
+        $('quick').classList.toggle('hidden', !list.length);
+    }
+
+    function renderOrder() {
+        const s = currentService();
+        $('order').classList.toggle('hidden', !s);
+        document.querySelectorAll('[data-svc]').forEach(b => b.classList.toggle('on', b.dataset.svc === state.svc));
         if (!s) return;
+        $('sel-logo').innerHTML = s.icon.html;
+        $('sel-logo').style.setProperty('--c', s.icon.c);
+        $('sel-name').textContent = s.label;
+        $('sel-sub').textContent = s.method ? (state.country ? `من ${worldFlag(state.country)} ${countryName(state.country)}` : 'اختار دولتك فوق') : (s.sub || '');
         $('amount-label').textContent = s.amountLabel;
         $('amount-unit').textContent = s.unit;
         $('cur-row').classList.toggle('hidden', !!s.noCur);
@@ -415,13 +512,21 @@
     }
 
     function renderResult() {
-        const s = svcById(state.svc);
+        const s = currentService();
+        if (!s) return;
         const amount = toNum(latin(state.amount), 0);
-        const q = quote(s, amount, s?.noCur ? 'ILS' : state.cur, state.net);
+        const q = quote(s, amount, s.noCur ? 'ILS' : state.cur, state.net);
         const res = $('result');
-        res.classList.toggle('empty', !q);
-        if (!q) {
-            $('res-label').textContent = s ? 'اكتب المبلغ لتشوف السعر' : 'اختار الخدمة';
+        res.classList.toggle('empty', !q && !s.method);
+        res.classList.toggle('ask', !!(s.method && !s.src));
+        res.style.removeProperty('--c');
+        if (s.method && !s.src) {
+            $('res-label').textContent = s.method.name;
+            $('res-big').textContent = 'السعر بنحكيلك ياه على واتساب';
+            $('res-sub').innerHTML = '';
+        } else if (!q) {
+            res.classList.add('empty');
+            $('res-label').textContent = 'اكتب المبلغ لتشوف السعر';
             $('res-big').textContent = '—';
             $('res-sub').innerHTML = '';
         } else {
@@ -433,17 +538,26 @@
         }
         const wa = DATA?.wa;
         const btn = $('wa-btn');
-        const ok = q && wa;
+        // طريقة بدون سعر: بتنطلب حتى بدون مبلغ
+        const ok = wa && (q || (s.method && !s.src));
         btn.setAttribute('aria-disabled', String(!ok));
-        btn.href = ok ? `https://wa.me/${wa}?text=${encodeURIComponent(orderText(s, q))}` : '#';
+        btn.href = ok ? `https://wa.me/${wa}?text=${encodeURIComponent(orderText(s, q, amount))}` : '#';
     }
 
-    function orderText(s, q) {
-        const lines = [`مرحبا ${DATA.company?.name || ''}، بدي أطلب:`, q.head];
-        if (q.net) lines.push(`الشبكة: ${q.net}`);
-        lines.push(`${q.pay ? 'بدفع' : 'بستلم'}: ${money(q.total, q.cur)}`);
-        const addr = state.addr.trim();
-        if (addr && (s.kind === 'deposit' || s.kind === 'send')) lines.push(`${s.kind === 'deposit' ? 'عنوان المحفظة' : 'رقم المحفظة'}: ${addr}`);
+    function orderText(s, q, amount) {
+        const lines = [`مرحبا ${DATA.company?.name || ''}،`];
+        if (s.method) {
+            const where = state.country ? ` من ${countryName(state.country)}` : '';
+            lines.push(`بدي أبعت${where} عن طريق ${s.method.name}`);
+            if (amount > 0) lines.push(`المبلغ: ${fmtTrim(amount)}${s.unit}`);
+            if (q && !q.ask) lines.push(`بستلم: ${money(q.total, q.cur)}`);
+        } else {
+            lines.push('بدي أطلب:', q.head);
+            if (q.net) lines.push(`الشبكة: ${q.net}`);
+            lines.push(`${q.pay ? 'بدفع' : 'بستلم'}: ${money(q.total, q.cur)}`);
+            const addr = state.addr.trim();
+            if (addr && (s.kind === 'deposit' || s.kind === 'send')) lines.push(`${s.kind === 'deposit' ? 'عنوان المحفظة' : 'رقم المحفظة'}: ${addr}`);
+        }
         if (state.name.trim()) lines.push(`الاسم: ${state.name.trim()}`);
         lines.push('', '(من صفحة الأسعار)');
         return lines.join('\n');
@@ -460,7 +574,7 @@
         const mins = Math.floor((Date.now() - loadedAt) / 60000);
         $('live').classList.remove('hidden');
         $('live').classList.toggle('stale', mins >= 5);
-        $('live-text').textContent = mins < 1 ? 'محدّث هلّق' : mins === 1 ? 'محدّث قبل دقيقة' : mins === 2 ? 'محدّث قبل دقيقتين' : `محدّث قبل ${mins} دقايق`;
+        $('live-text').textContent = mins < 1 ? 'الأسعار محدّثة' : mins === 1 ? 'قبل دقيقة' : mins === 2 ? 'قبل دقيقتين' : `قبل ${mins} دقايق`;
     }
 
     function showMessage(icon, title, text, retry) {
@@ -474,6 +588,7 @@
 
     function applyData(d) {
         DATA = d;
+        DATA.methods = (d.methods || []).map(m => ({ ...m, countries: Array.isArray(m.countries) ? m.countries : [] }));
         globalConfig = { ...PRICE_DEFAULTS, screenRate: toNum(d.screen, 0), egpScreenRate: toNum(d.egpScreen, 0) };
         Object.entries(d.settings || {}).forEach(([k, v]) => {
             if (JSON_KEYS.includes(k)) { try { globalConfig[k] = JSON.parse(v); } catch (e) { /* الافتراضي */ } }
@@ -482,6 +597,7 @@
         loadedAt = Date.now();
     }
 
+    let firstLoad = true;
     async function load(showSpinner) {
         if (showSpinner) { $('message').classList.add('hidden'); $('loading').classList.remove('hidden'); }
         if (typeof DEFAULT_WEBHOOK !== 'string') return showMessage('⚠️', 'في مشكلة بالصفحة', 'جرّب بعد شوي.', true);
@@ -495,40 +611,69 @@
         }
         if (d?.company?.name) {
             $('co-name').textContent = d.company.name;
-            document.title = `أسعار اليوم · ${d.company.name}`;
+            document.title = `شو بدك؟ · ${d.company.name}`;
         }
-        if (!d?.ok) return showMessage('🕘', 'الأسعار مش متاحة هلّق', d?.error === 'off' ? 'تواصل معنا على واتساب ومنعطيك السعر.' : 'جرّب بعد شوي.', d?.error !== 'off');
+        if (!d?.ok) return showMessage('🕘', 'الصفحة مش متاحة هلّق', d?.error === 'off' ? 'تواصل معنا على واتساب ومنساعدك.' : 'جرّب بعد شوي.', d?.error !== 'off');
         applyData(d);
-        $('co-sub').textContent = d.company.subtitle ? `${d.company.subtitle} · أسعار اليوم` : 'أسعار اليوم';
-        $('welcome').textContent = d.welcome || '';
-        $('welcome').classList.toggle('hidden', !d.welcome);
+        $('co-sub').textContent = d.company.subtitle || '';
+        if (d.welcome) $('hero-sub').textContent = d.welcome;
         $('loading').classList.add('hidden');
         $('message').classList.add('hidden');
         $('content').classList.remove('hidden');
-        if (!(d.screen > 0)) return showMessage('🕘', 'الأسعار عم تتحدث', 'سعر السوق مش واصل هلّق، جرّب بعد دقيقة.', true);
-        renderTiles();
-        renderServices();
+        if (firstLoad) {
+            firstLoad = false;
+            const iso = (new URLSearchParams(location.search).get('c') || '').toUpperCase();
+            if (worldCountry(iso)) { state.country = iso; $('country').value = countryName(iso); $('search-flag').textContent = worldFlag(iso); $('country-clear').classList.remove('hidden'); }
+        }
+        renderQuick();
+        renderMethods();
+        renderOrder();
         renderReady();
         renderLive();
-        $('foot').textContent = `${d.company.name} · الأسعار بتتحدث لحالها كل دقيقة${d.wa ? '' : ' · التواصل من المحل'}`;
+        // بعد أول رسم: التحديث كل دقيقة ما بيعيد حركة دخول الكروت
+        setTimeout(() => $('methods').classList.add('settled'), 900);
+        $('foot').textContent = `${d.company.name} · الأسعار بتتحدث لحالها مع السوق`;
     }
 
     // ---------- الأحداث ----------
+    const country = $('country');
+    country.addEventListener('input', () => { state.hl = 0; renderSuggest(); });
+    country.addEventListener('focus', () => { if (country.value && !state.country) renderSuggest(); else if (state.country) country.select(); });
+    country.addEventListener('keydown', (e) => {
+        const items = [...$('suggest').querySelectorAll('[data-iso]')];
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (!items.length) return;
+            state.hl = (state.hl + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+            items.forEach((b, i) => b.classList.toggle('hl', i === state.hl));
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (items[state.hl]) pickCountry(items[state.hl].dataset.iso);
+        } else if (e.key === 'Escape') $('suggest').classList.add('hidden');
+    });
+    $('country-clear').addEventListener('click', () => { pickCountry(''); country.focus(); });
     document.addEventListener('click', (e) => {
+        if (!e.target.closest('#search-wrap')) $('suggest').classList.add('hidden');
+        const sug = e.target.closest('[data-iso]');
+        if (sug) return pickCountry(sug.dataset.iso);
         const svc = e.target.closest('[data-svc]');
         if (svc) {
             state.svc = svc.dataset.svc;
-            renderServices();
-            if (svc.classList.contains('tile')) {
-                $('svc-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                setTimeout(() => $('amount').focus({ preventScroll: true }), 350);
-            }
+            renderOrder();
+            $('order').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setTimeout(() => $('amount').focus({ preventScroll: true }), 400);
+            return;
+        }
+        if (e.target.closest('#sel-change')) {
+            const isMethod = state.svc.startsWith('m_');
+            (isMethod ? $('methods-title') : $('quick')).scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (isMethod && !state.country) setTimeout(() => country.focus({ preventScroll: true }), 400);
             return;
         }
         const cur = e.target.closest('[data-cur]');
-        if (cur) { state.cur = cur.dataset.cur; renderServices(); return; }
+        if (cur) { state.cur = cur.dataset.cur; renderOrder(); return; }
         const net = e.target.closest('[data-net]');
-        if (net) { state.net = net.dataset.net; renderServices(); return; }
+        if (net) { state.net = net.dataset.net; renderOrder(); return; }
         const ready = e.target.closest('[data-ready]');
         if (ready && DATA?.wa) {
             const text = `مرحبا ${DATA.company?.name || ''}، محتاج ${ready.dataset.ready}${state.name.trim() ? `\nالاسم: ${state.name.trim()}` : ''}\n\n(من صفحة الأسعار)`;

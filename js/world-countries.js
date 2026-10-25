@@ -1,0 +1,75 @@
+'use strict';
+
+// فاست باي — دول العالم (رمز ISO، الاسم بالعربي، بالإنجليزي، وأسماء ثانية للبحث). لصفحة الأسعار للزبائن (prices.html:
+// "من وين بدك تبعت؟") وإعداد "الطرق" بصفحة الزبائن (أي طريقة بتشتغل من أي دول). العلم من الرمز (worldFlag).
+const WORLD_COUNTRIES = [
+    ['SA', 'السعودية', 'Saudi Arabia', 'المملكة KSA'], ['AE', 'الإمارات', 'United Arab Emirates', 'امارات دبي UAE Dubai'], ['QA', 'قطر', 'Qatar'],
+    ['KW', 'الكويت', 'Kuwait'], ['BH', 'البحرين', 'Bahrain'], ['OM', 'عُمان', 'Oman', 'سلطنة عمان مسقط'], ['JO', 'الأردن', 'Jordan', 'اردن'],
+    ['PS', 'فلسطين', 'Palestine', 'غزة الضفة'], ['IL', 'الداخل المحتل', 'Israel', '48 اسرائيل'], ['EG', 'مصر', 'Egypt'], ['LB', 'لبنان', 'Lebanon'],
+    ['SY', 'سوريا', 'Syria'], ['IQ', 'العراق', 'Iraq'], ['YE', 'اليمن', 'Yemen'], ['LY', 'ليبيا', 'Libya'], ['TN', 'تونس', 'Tunisia'],
+    ['DZ', 'الجزائر', 'Algeria'], ['MA', 'المغرب', 'Morocco'], ['SD', 'السودان', 'Sudan'], ['MR', 'موريتانيا', 'Mauritania'],
+    ['SO', 'الصومال', 'Somalia'], ['DJ', 'جيبوتي', 'Djibouti'], ['KM', 'جزر القمر', 'Comoros'],
+    ['TR', 'تركيا', 'Turkey', 'Türkiye اسطنبول'], ['IR', 'إيران', 'Iran'], ['US', 'أمريكا', 'United States', 'امريكا الولايات المتحدة USA'],
+    ['CA', 'كندا', 'Canada'], ['MX', 'المكسيك', 'Mexico'], ['GB', 'بريطانيا', 'United Kingdom', 'انجلترا لندن المملكة المتحدة UK England'],
+    ['IE', 'إيرلندا', 'Ireland', 'ايرلندا'], ['DE', 'ألمانيا', 'Germany', 'المانيا'], ['FR', 'فرنسا', 'France'], ['IT', 'إيطاليا', 'Italy', 'ايطاليا'],
+    ['ES', 'إسبانيا', 'Spain', 'اسبانيا'], ['PT', 'البرتغال', 'Portugal'], ['NL', 'هولندا', 'Netherlands', 'Holland'], ['BE', 'بلجيكا', 'Belgium'],
+    ['LU', 'لوكسمبورغ', 'Luxembourg'], ['CH', 'سويسرا', 'Switzerland'], ['AT', 'النمسا', 'Austria'], ['SE', 'السويد', 'Sweden'],
+    ['NO', 'النرويج', 'Norway'], ['DK', 'الدنمارك', 'Denmark'], ['FI', 'فنلندا', 'Finland'], ['IS', 'آيسلندا', 'Iceland', 'ايسلندا'],
+    ['PL', 'بولندا', 'Poland'], ['CZ', 'التشيك', 'Czech Republic', 'Czechia'], ['SK', 'سلوفاكيا', 'Slovakia'], ['HU', 'المجر', 'Hungary', 'هنغاريا'],
+    ['RO', 'رومانيا', 'Romania'], ['BG', 'بلغاريا', 'Bulgaria'], ['GR', 'اليونان', 'Greece'], ['CY', 'قبرص', 'Cyprus'], ['MT', 'مالطا', 'Malta'],
+    ['HR', 'كرواتيا', 'Croatia'], ['SI', 'سلوفينيا', 'Slovenia'], ['RS', 'صربيا', 'Serbia'], ['BA', 'البوسنة والهرسك', 'Bosnia and Herzegovina', 'بوسنة'],
+    ['ME', 'الجبل الأسود', 'Montenegro'], ['MK', 'مقدونيا الشمالية', 'North Macedonia', 'مقدونيا'], ['AL', 'ألبانيا', 'Albania', 'البانيا'],
+    ['XK', 'كوسوفو', 'Kosovo'], ['EE', 'إستونيا', 'Estonia', 'استونيا'], ['LV', 'لاتفيا', 'Latvia'], ['LT', 'ليتوانيا', 'Lithuania'],
+    ['UA', 'أوكرانيا', 'Ukraine', 'اوكرانيا'], ['BY', 'بيلاروسيا', 'Belarus'], ['MD', 'مولدوفا', 'Moldova'], ['RU', 'روسيا', 'Russia'],
+    ['GE', 'جورجيا', 'Georgia'], ['AM', 'أرمينيا', 'Armenia', 'ارمينيا'], ['AZ', 'أذربيجان', 'Azerbaijan', 'اذربيجان'],
+    ['KZ', 'كازاخستان', 'Kazakhstan'], ['UZ', 'أوزبكستان', 'Uzbekistan', 'اوزبكستان'], ['TM', 'تركمانستان', 'Turkmenistan'],
+    ['KG', 'قيرغيزستان', 'Kyrgyzstan'], ['TJ', 'طاجيكستان', 'Tajikistan'], ['AF', 'أفغانستان', 'Afghanistan', 'افغانستان'],
+    ['PK', 'باكستان', 'Pakistan'], ['IN', 'الهند', 'India'], ['BD', 'بنغلاديش', 'Bangladesh'], ['LK', 'سريلانكا', 'Sri Lanka'],
+    ['NP', 'نيبال', 'Nepal'], ['MV', 'المالديف', 'Maldives'], ['CN', 'الصين', 'China'], ['HK', 'هونغ كونغ', 'Hong Kong'],
+    ['TW', 'تايوان', 'Taiwan'], ['JP', 'اليابان', 'Japan'], ['KR', 'كوريا الجنوبية', 'South Korea', 'كوريا'], ['MN', 'منغوليا', 'Mongolia'],
+    ['SG', 'سنغافورة', 'Singapore'], ['MY', 'ماليزيا', 'Malaysia'], ['ID', 'إندونيسيا', 'Indonesia', 'اندونيسيا'], ['TH', 'تايلاند', 'Thailand'],
+    ['VN', 'فيتنام', 'Vietnam'], ['PH', 'الفلبين', 'Philippines'], ['KH', 'كمبوديا', 'Cambodia'], ['MM', 'ميانمار', 'Myanmar', 'بورما'],
+    ['LA', 'لاوس', 'Laos'], ['BN', 'بروناي', 'Brunei'], ['AU', 'أستراليا', 'Australia', 'استراليا'], ['NZ', 'نيوزيلندا', 'New Zealand'],
+    ['BR', 'البرازيل', 'Brazil'], ['AR', 'الأرجنتين', 'Argentina', 'الارجنتين'], ['CL', 'تشيلي', 'Chile'], ['CO', 'كولومبيا', 'Colombia'],
+    ['PE', 'بيرو', 'Peru'], ['VE', 'فنزويلا', 'Venezuela'], ['EC', 'الإكوادور', 'Ecuador', 'الاكوادور'], ['BO', 'بوليفيا', 'Bolivia'],
+    ['PY', 'باراغواي', 'Paraguay'], ['UY', 'الأوروغواي', 'Uruguay', 'الاوروغواي'], ['PA', 'بنما', 'Panama'], ['CR', 'كوستاريكا', 'Costa Rica'],
+    ['GT', 'غواتيمالا', 'Guatemala'], ['HN', 'هندوراس', 'Honduras'], ['SV', 'السلفادور', 'El Salvador'], ['NI', 'نيكاراغوا', 'Nicaragua'],
+    ['DO', 'الدومينيكان', 'Dominican Republic'], ['CU', 'كوبا', 'Cuba'], ['JM', 'جامايكا', 'Jamaica'], ['TT', 'ترينيداد وتوباغو', 'Trinidad and Tobago'],
+    ['PR', 'بورتوريكو', 'Puerto Rico'], ['BS', 'الباهاماس', 'Bahamas'], ['NG', 'نيجيريا', 'Nigeria'], ['GH', 'غانا', 'Ghana'],
+    ['KE', 'كينيا', 'Kenya'], ['ET', 'إثيوبيا', 'Ethiopia', 'اثيوبيا الحبشة'], ['ER', 'إريتريا', 'Eritrea', 'اريتريا'], ['TZ', 'تنزانيا', 'Tanzania'],
+    ['UG', 'أوغندا', 'Uganda', 'اوغندا'], ['RW', 'رواندا', 'Rwanda'], ['ZA', 'جنوب أفريقيا', 'South Africa', 'جنوب افريقيا'],
+    ['SN', 'السنغال', 'Senegal'], ['ML', 'مالي', 'Mali'], ['NE', 'النيجر', 'Niger'], ['TD', 'تشاد', 'Chad'], ['CM', 'الكاميرون', 'Cameroon'],
+    ['CI', 'ساحل العاج', 'Ivory Coast', "Côte d'Ivoire كوت ديفوار"], ['BF', 'بوركينا فاسو', 'Burkina Faso'], ['GN', 'غينيا', 'Guinea'],
+    ['BJ', 'بنين', 'Benin'], ['TG', 'توغو', 'Togo'], ['SL', 'سيراليون', 'Sierra Leone'], ['LR', 'ليبيريا', 'Liberia'], ['GM', 'غامبيا', 'Gambia'],
+    ['CD', 'الكونغو الديمقراطية', 'DR Congo', 'كونغو'], ['CG', 'الكونغو', 'Congo'], ['GA', 'الغابون', 'Gabon'], ['AO', 'أنغولا', 'Angola', 'انغولا'],
+    ['ZM', 'زامبيا', 'Zambia'], ['ZW', 'زيمبابوي', 'Zimbabwe'], ['MZ', 'موزمبيق', 'Mozambique'], ['MW', 'مالاوي', 'Malawi'],
+    ['MG', 'مدغشقر', 'Madagascar'], ['MU', 'موريشيوس', 'Mauritius'], ['NA', 'ناميبيا', 'Namibia'], ['BW', 'بوتسوانا', 'Botswana'],
+    ['SS', 'جنوب السودان', 'South Sudan'], ['CV', 'الرأس الأخضر', 'Cape Verde'], ['SC', 'سيشل', 'Seychelles'],
+    ['AD', 'أندورا', 'Andorra'], ['MC', 'موناكو', 'Monaco'], ['LI', 'ليختنشتاين', 'Liechtenstein'], ['SM', 'سان مارينو', 'San Marino'],
+    ['FJ', 'فيجي', 'Fiji'], ['PG', 'بابوا غينيا الجديدة', 'Papua New Guinea']
+];
+
+// العلم من رمز الدولة (حرفين ← رموز المناطق)
+const worldFlag = (iso) => (/^[A-Z]{2}$/.test(iso || '') ? String.fromCodePoint(...[...iso].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : '🌍');
+
+// للبحث: بدون "ال" بالأول، أ/إ/آ = ا، ة = ه، ى = ي، والإنجليزي حروف صغيرة
+function worldNorm(text) {
+    return String(text || '').toLowerCase().normalize('NFKD').replace(/[ً-ٰٟ̀-ͯ]/g, '')
+        .replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/(^|\s)ال/g, '$1').replace(/\s+/g, ' ').trim();
+}
+
+const worldCountry = (iso) => WORLD_COUNTRIES.find(c => c[0] === iso) || null;
+
+// الدول اللي بتطابق البحث: اللي بيبدأ اسمها بالكلمة أول
+function worldSearch(q, limit = 8) {
+    const n = worldNorm(q);
+    if (!n) return [];
+    const scored = [];
+    WORLD_COUNTRIES.forEach(c => {
+        const names = [c[1], c[2], ...(c[3] || '').split(' ')].map(worldNorm).filter(Boolean);
+        if (c[0].toLowerCase() === n) return scored.push([0, c]);
+        if (names.some(x => x.startsWith(n))) return scored.push([1, c]);
+        if (names.some(x => x.includes(n))) scored.push([2, c]);
+    });
+    return scored.sort((a, b) => a[0] - b[0]).slice(0, limit).map(x => x[1]);
+}
