@@ -691,3 +691,188 @@ function renderRateLogPage() {
             </div>
         </div>`;
 }
+
+// ================= وين بتربح أكتر (صفحة فرعية بالتقارير page-insights، بطلب عماد 2026-10-25) =================
+// من البيانات اللي عندنا (بدون سكربت): الحوالات (إلا الملغية)، إيداع/سحب USDT، وإرسال/استقبال الجنيه — نفس قواعد monthlyStats.
+// الوقت من رقم الحركة (= لحظة تسجيلها). الربح profit-only، فاللي ما معه "رؤية الأرباح" بيشوف العدد بس.
+const INSIGHT_PERIODS = [['month', 'هالشهر'], ['3m', 'آخر 3 أشهر'], ['year', 'آخر سنة'], ['all', 'الكل']];
+const INSIGHT_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const INSIGHT_WEEK = [6, 0, 1, 2, 3, 4, 5]; // السبت أول الأسبوع
+let insightPeriod = 'month';
+let insightMetric = 'count';
+
+function insightFrom() {
+    const now = new Date();
+    if (insightPeriod === 'month') return localDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
+    if (insightPeriod === '3m') return localDateStr(new Date(now.getTime() - 89 * 86400000));
+    if (insightPeriod === 'year') return localDateStr(new Date(now.getTime() - 364 * 86400000));
+    return '';
+}
+
+// كل حركة بسطر موحّد: المصدر، الزبون، الموظف، الربح، المبلغ بالدولار، ووقت التسجيل
+function insightRows() {
+    const from = insightFrom();
+    const out = [];
+    const custOf = (id, name) => {
+        const c = id ? customers.find(x => x.id === id) : null;
+        return { key: id ? 'c:' + id : 'n:' + normName(name), name: c?.name || String(name || '').trim() || 'بدون اسم', id: id || '' };
+    };
+    const add = (r) => {
+        if (!r.date || (from && r.date < from)) return;
+        const at = r.id > 1.5e12 ? new Date(r.id) : null;
+        out.push({ ...r, at });
+    };
+    ledger.forEach(t => {
+        if (t.status === CANCELLED) return;
+        add({ id: t.id, date: t.date, profit: toNum(t.profitIls, 0), source: t.country || 'غير محدد', usd: sourceUsdAmount(t.type, t.orig, t.factor), cust: custOf(t.customerId, t.recipient), by: t.createdBy || '' });
+    });
+    usdtMoves.forEach(m => {
+        if (!usdtTrade(m)) return;
+        add({ id: m.id, date: m.date, profit: toNum(m.profitIls, 0), source: '₮ USDT', usd: toNum(m.amount, 0), cust: custOf(m.customerId, m.customerName), by: m.createdBy || '' });
+    });
+    egpMoves.forEach(m => {
+        if (m.kind !== 'send' && m.kind !== 'receive') return;
+        add({ id: m.id, date: m.date, profit: toNum(m.profitIls, 0), source: EGP_REPORT_KEY, usd: m.screen > 0 ? Math.abs(m.egp) / m.screen : 0, cust: custOf(m.customerId, m.customerName), by: m.createdBy || '' });
+    });
+    return out;
+}
+
+const insightHour = (h) => (h === 0 ? '12 بالليل' : h < 12 ? `${h} الصبح` : h === 12 ? '12 الظهر' : h < 17 ? `${h - 12} العصر` : `${h - 12} المسا`);
+const insightShort = (h) => `${h % 12 || 12}${h < 12 ? 'ص' : 'م'}`;
+
+function insightGroup(rows, keyOf) {
+    const map = new Map();
+    rows.forEach(r => {
+        const k = keyOf(r);
+        if (!k) return;
+        const g = map.get(k.key) || { ...k, count: 0, profit: 0, usd: 0, last: '' };
+        g.count++;
+        g.profit += r.profit;
+        g.usd += r.usd;
+        if (r.date > g.last) g.last = r.date;
+        map.set(k.key, g);
+    });
+    return [...map.values()];
+}
+
+function renderInsightsPage() {
+    if (pageHidden('insights')) return;
+    const box = $('insights-body');
+    const rows = insightRows();
+    const totalProfit = rows.reduce((s, r) => s + r.profit, 0);
+    const timed = rows.filter(r => r.at);
+    // خريطة الأيام × الساعات
+    const cells = {};
+    const byDay = INSIGHT_WEEK.map(d => ({ d, count: 0, profit: 0 }));
+    const byHour = Array.from({ length: 24 }, (_, h) => ({ h, count: 0, profit: 0 }));
+    timed.forEach(r => {
+        const d = r.at.getDay(), h = r.at.getHours();
+        const c = (cells[d + '_' + h] ??= { count: 0, profit: 0 });
+        c.count++; c.profit += r.profit;
+        const day = byDay.find(x => x.d === d);
+        day.count++; day.profit += r.profit;
+        byHour[h].count++; byHour[h].profit += r.profit;
+    });
+    const metric = (o) => (insightMetric === 'profit' ? o.profit : o.count);
+    const hours = byHour.filter(x => x.count).map(x => x.h);
+    const h0 = hours.length ? Math.min(...hours) : 8, h1 = hours.length ? Math.max(...hours) : 22;
+    const span = []; for (let h = Math.min(h0, 22); h <= Math.max(h1, h0 + 5, 0) && h < 24; h++) span.push(h);
+    const maxCell = Math.max(1e-9, ...Object.values(cells).map(metric));
+    const busyDay = [...byDay].sort((a, b) => metric(b) - metric(a))[0];
+    // أكثر 3 ساعات ورا بعض شغل
+    let bestWin = null;
+    for (let h = 0; h <= 21; h++) {
+        const v = byHour[h].count + byHour[h + 1].count + byHour[h + 2].count;
+        if (v && (!bestWin || v > bestWin.v)) bestWin = { h, v };
+    }
+    const sources = insightGroup(rows, r => ({ key: r.source, name: r.source })).sort((a, b) => b.profit - a.profit || b.count - a.count);
+    const custs = insightGroup(rows, r => ({ key: r.cust.key, name: r.cust.name, id: r.cust.id })).sort((a, b) => b.profit - a.profit || b.count - a.count).slice(0, 10);
+    const staff = insightGroup(rows, r => (r.by ? { key: r.by, name: personName(r.by) } : null)).sort((a, b) => b.profit - a.profit || b.count - a.count);
+    const avg = (g) => (g.count ? g.profit / g.count : 0);
+    const bestAvg = sources.filter(s => s.count >= 3).sort((a, b) => avg(b) - avg(a))[0];
+    const topCust = custs[0];
+    const pct = (v) => (totalProfit > 0 ? Math.round(v / totalProfit * 100) : 0);
+
+    const tips = [];
+    if (busyDay && busyDay.count) tips.push(`<li>🗓️ أشغل يوم عندك <b>${INSIGHT_DAYS[busyDay.d]}</b> (${busyDay.count} حركة)${bestWin ? `، وأكتر وقت شغل بين <b>${insightHour(bestWin.h)}</b> و<b>${insightHour(bestWin.h + 3)}</b>` : ''}.</li>`);
+    const quiet = byDay.filter(x => x.count).sort((a, b) => a.count - b.count)[0];
+    if (quiet && busyDay && quiet.d !== busyDay.d) tips.push(`<li>😴 أهدى يوم <b>${INSIGHT_DAYS[quiet.d]}</b> (${quiet.count} حركة)، منيح لإجازة أو لترتيب الحسابات.</li>`);
+    if (bestAvg) tips.push(`<li class="profit-only">💰 أعلى ربح للحركة من <b>${escapeHtml(bestAvg.name)}</b>: معدل ${fmt(avg(bestAvg), 0)} ₪ بالحركة.</li>`);
+    if (sources[0] && sources[0].profit > 0) tips.push(`<li class="profit-only">📈 أكتر ربح إجمالي من <b>${escapeHtml(sources[0].name)}</b>: ${pct(sources[0].profit)}% من ربحك.</li>`);
+    if (topCust && topCust.profit > 0) tips.push(`<li class="profit-only">⭐ أحسن زبون <b>${escapeHtml(topCust.name)}</b>: ${topCust.count} حركة و${pct(topCust.profit)}% من ربحك.</li>`);
+
+    const seg = (key, list, cur) => `<div class="seg seg-sm" role="radiogroup">${list.map(([v, l]) => `<button type="button" data-action="${key}" data-v="${v}" class="seg-btn ${cur === v ? 'active' : ''} ${key === 'insight-metric' && v === 'profit' ? 'profit-only' : ''}">${l}</button>`).join('')}</div>`;
+    const tile = (label, value, cls = '', extra = '') => `<div class="section-card p-4 ${extra}"><span class="text-[11px] text-slate-500 font-bold">${label}</span><b class="block text-lg font-black num ${cls}">${value}</b></div>`;
+    const heat = `
+        <div class="hm-wrap"><div class="hm" style="grid-template-columns: 4.2rem repeat(${span.length}, minmax(1.9rem, 1fr))">
+            <span></span>${span.map(h => `<span class="hm-h">${insightShort(h)}</span>`).join('')}
+            ${INSIGHT_WEEK.map(d => `<span class="hm-d">${INSIGHT_DAYS[d]}</span>${span.map(h => {
+                const c = cells[d + '_' + h];
+                const v = c ? metric(c) : 0;
+                const a = v > 0 ? 0.12 + 0.88 * (v / maxCell) : 0;
+                return `<span class="hm-c" style="--a:${a.toFixed(3)}" title="${INSIGHT_DAYS[d]} · ${insightHour(h)}: ${c ? `${c.count} حركة` : 'ولا حركة'}${c && hasPerm('profit') ? ` · ربح ${fmt(c.profit, 0)} ₪` : ''}">${c && c.count ? (insightMetric === 'profit' ? '' : c.count) : ''}</span>`;
+            }).join('')}`).join('')}
+        </div></div>`;
+    const dayBars = (() => {
+        const max = Math.max(1e-9, ...byDay.map(metric));
+        return byDay.map(x => `<div class="ib-row"><span class="ib-l">${INSIGHT_DAYS[x.d]}</span><span class="ib-bar"><i style="width:${(metric(x) / max * 100).toFixed(1)}%"></i></span><span class="ib-v num">${x.count}<span class="profit-only"> · ${fmt(x.profit, 0)} ₪</span></span></div>`).join('');
+    })();
+    const table = (head, body, empty) => `<div class="table-scroll"><table class="w-full text-right border-collapse text-xs"><thead><tr class="bg-slate-50 text-slate-500 font-bold">${head}</tr></thead><tbody>${body || `<tr><td colspan="6" class="p-6 text-center text-slate-400">${empty}</td></tr>`}</tbody></table></div>`;
+
+    box.innerHTML = `
+        <div class="section-card p-5 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">وين بتربح أكتر</h3>
+                    <p class="text-[11px] text-slate-400">الحوالات و USDT والجنيه (بدون الملغية) · الوقت = لحظة تسجيل الحركة</p>
+                </div>
+                ${seg('insight-period', INSIGHT_PERIODS, insightPeriod)}
+            </div>
+            ${tips.length ? `<ul class="insight-tips">${tips.join('')}</ul>` : '<p class="text-xs text-slate-400">ما في حركات بهالفترة.</p>'}
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            ${tile('الحركات', fmt(rows.length, 0), 'text-slate-900')}
+            ${tile('الربح', `${fmt(totalProfit, 0)} ₪`, 'text-emerald-700', 'profit-only')}
+            ${tile('معدل ربح الحركة', `${fmt(rows.length ? totalProfit / rows.length : 0, 1)} ₪`, 'text-slate-900', 'profit-only')}
+            ${tile('أشغل وقت', busyDay && busyDay.count ? `${INSIGHT_DAYS[busyDay.d]}${bestWin ? `<small class="block text-xs font-bold text-slate-500">بين ${insightHour(bestWin.h)} و${insightHour(bestWin.h + 3)}</small>` : ''}` : '—', 'text-slate-900')}
+        </div>
+        <div class="section-card p-5 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900">إمتى بتشتغل أكتر</h3>
+                    <p class="text-[11px] text-slate-400">كل مربع = يوم وساعة، وكل ما غمق كل ما كان الشغل أكتر. الوقوف عليه بيعطي التفاصيل.</p>
+                </div>
+                ${seg('insight-metric', [['count', 'عدد الحركات'], ['profit', 'الربح']], insightMetric)}
+            </div>
+            ${timed.length ? heat : '<p class="text-xs text-slate-400">ما في حركات بوقت معروف بهالفترة.</p>'}
+            <div class="ib">${dayBars}</div>
+        </div>
+        <div class="section-card overflow-hidden">
+            <div class="p-4 pb-2"><h3 class="text-sm font-bold text-slate-900">حسب الدولة والمصدر</h3><p class="text-[11px] text-slate-400 profit-only">معدل الربح للحركة بيحكيلك أي مصدر بيستاهل تعطيه سعر أحسن أو ترفع نسبته</p></div>
+            ${table('<th class="p-3">المصدر</th><th class="p-3">حركات</th><th class="p-3 profit-only">الربح</th><th class="p-3 profit-only">معدل الربح للحركة</th><th class="p-3">معدل المبلغ</th><th class="p-3 profit-only">من ربحك</th>',
+                sources.map(g => `<tr class="border-t border-slate-100">
+                    <td class="p-3 font-bold text-slate-900 whitespace-nowrap">${escapeHtml(g.name)}</td>
+                    <td class="p-3 num">${g.count}</td>
+                    <td class="p-3 num font-bold text-emerald-700 whitespace-nowrap profit-only">${fmt(g.profit, 0)} ₪</td>
+                    <td class="p-3 num whitespace-nowrap profit-only">${fmt(avg(g), 1)} ₪</td>
+                    <td class="p-3 num whitespace-nowrap">${g.usd ? '$' + fmt(g.usd / g.count, 0) : '—'}</td>
+                    <td class="p-3 profit-only"><span class="ib-bar ib-mini"><i style="width:${pct(Math.max(0, g.profit))}%"></i></span> <span class="num text-slate-500">${pct(g.profit)}%</span></td>
+                </tr>`).join(''), 'ما في حركات بهالفترة')}
+        </div>
+        <div class="section-card overflow-hidden">
+            <div class="p-4 pb-2"><h3 class="text-sm font-bold text-slate-900">أحسن 10 زبائن</h3></div>
+            ${table('<th class="p-3">الزبون</th><th class="p-3">حركات</th><th class="p-3 profit-only">الربح</th><th class="p-3 profit-only">معدل الحركة</th><th class="p-3">آخر حركة</th>',
+                custs.map(g => `<tr class="border-t border-slate-100">
+                    <td class="p-3"><button type="button" data-action="open-customer" data-id="${escapeHtml(g.id)}" data-name="${escapeHtml(g.name)}" class="font-bold text-slate-900 hover:text-blue-700 hover:underline text-right">${escapeHtml(g.name)}</button></td>
+                    <td class="p-3 num">${g.count}</td>
+                    <td class="p-3 num font-bold text-emerald-700 whitespace-nowrap profit-only">${fmt(g.profit, 0)} ₪</td>
+                    <td class="p-3 num whitespace-nowrap profit-only">${fmt(avg(g), 1)} ₪</td>
+                    <td class="p-3 num whitespace-nowrap text-slate-500">${escapeHtml(g.last)}</td>
+                </tr>`).join(''), 'ما في زبائن بهالفترة')}
+        </div>
+        ${staff.length > 1 ? `<div class="section-card overflow-hidden">
+            <div class="p-4 pb-2"><h3 class="text-sm font-bold text-slate-900">حسب الموظف</h3></div>
+            ${table('<th class="p-3">الموظف</th><th class="p-3">حركات</th><th class="p-3 profit-only">الربح</th><th class="p-3 profit-only">معدل الحركة</th>',
+                staff.map(g => `<tr class="border-t border-slate-100"><td class="p-3 font-bold text-slate-900">${escapeHtml(g.name)}</td><td class="p-3 num">${g.count}</td><td class="p-3 num font-bold text-emerald-700 profit-only">${fmt(g.profit, 0)} ₪</td><td class="p-3 num profit-only">${fmt(avg(g), 1)} ₪</td></tr>`).join(''), '')}
+        </div>` : ''}`;
+}

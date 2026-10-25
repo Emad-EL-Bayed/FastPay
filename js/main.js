@@ -152,6 +152,8 @@ const CLICK_ACTIONS = {
     'wa-share-native': waShareNative,
     'wa-copy-msg': waCopyMessage,
     'open-closing': openClosingModal,
+    'insight-period': (el) => { insightPeriod = el.dataset.v; renderInsightsPage(); },
+    'insight-metric': (el) => { insightMetric = el.dataset.v; renderInsightsPage(); },
     'prices-toggle': () => savePricesCfg({ on: pricesCfg().on === 'yes' ? 'no' : 'yes' }, pricesCfg().on === 'yes' ? 'صفحة الأسعار مسكّرة للزبائن' : 'صفحة الأسعار صارت شغّالة'),
     'prices-sec': (el) => savePricesCfg({ [el.dataset.id]: pricesCfg()[el.dataset.id] === 'yes' ? 'no' : 'yes' }),
     'prices-countries-toggle': () => savePricesCfg({ countriesAuto: pricesCfg().countriesAuto === 'yes' ? 'no' : 'yes' }),

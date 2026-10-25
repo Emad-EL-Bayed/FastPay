@@ -28,43 +28,43 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=152">
+    <link rel="stylesheet" href="styles.css?v=154">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=152">
+    <link rel="stylesheet" href="tailwind.css?v=154">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=152" defer></script>
-    <script src="js/pricing.js?v=152" defer></script>
-    <script src="js/core.js?v=152" defer></script>
-    <script src="js/theme.js?v=152" defer></script>
-    <script src="js/logo-data.js?v=152" defer></script>
-    <script src="js/shell.js?v=152" defer></script>
-    <script src="js/calculator.js?v=152" defer></script>
-    <script src="js/reports.js?v=152" defer></script>
-    <script src="js/sync.js?v=152" defer></script>
-    <script src="js/conflicts.js?v=152" defer></script>
-    <script src="js/cache.js?v=152" defer></script>
-    <script src="js/bgsync.js?v=152" defer></script>
-    <script src="js/transactions.js?v=152" defer></script>
-    <script src="js/receipts.js?v=152" defer></script>
-    <script src="js/customers.js?v=152" defer></script>
-    <script src="js/countries.js?v=152" defer></script>
-    <script src="js/service-logos.js?v=152" defer></script>
-    <script src="js/world-countries.js?v=152" defer></script>
-    <script src="js/traders.js?v=152" defer></script>
-    <script src="js/expenses.js?v=152" defer></script>
-    <script src="js/ready.js?v=152" defer></script>
-    <script src="js/settings.js?v=152" defer></script>
-    <script src="js/accounts.js?v=152" defer></script>
-    <script src="js/usdt.js?v=152" defer></script>
-    <script src="js/egp.js?v=152" defer></script>
-    <script src="js/closing.js?v=152" defer></script>
-    <script src="js/admin.js?v=152" defer></script>
-    <script src="js/position.js?v=152" defer></script>
-    <script src="js/search.js?v=152" defer></script>
-    <script src="js/notify.js?v=152" defer></script>
-    <script src="js/push.js?v=152" defer></script>
-    <script src="js/auth.js?v=152" defer></script>
-    <script src="js/main.js?v=152" defer></script>
+    <script src="js/endpoint.js?v=154" defer></script>
+    <script src="js/pricing.js?v=154" defer></script>
+    <script src="js/core.js?v=154" defer></script>
+    <script src="js/theme.js?v=154" defer></script>
+    <script src="js/logo-data.js?v=154" defer></script>
+    <script src="js/shell.js?v=154" defer></script>
+    <script src="js/calculator.js?v=154" defer></script>
+    <script src="js/reports.js?v=154" defer></script>
+    <script src="js/sync.js?v=154" defer></script>
+    <script src="js/conflicts.js?v=154" defer></script>
+    <script src="js/cache.js?v=154" defer></script>
+    <script src="js/bgsync.js?v=154" defer></script>
+    <script src="js/transactions.js?v=154" defer></script>
+    <script src="js/receipts.js?v=154" defer></script>
+    <script src="js/customers.js?v=154" defer></script>
+    <script src="js/countries.js?v=154" defer></script>
+    <script src="js/service-logos.js?v=154" defer></script>
+    <script src="js/world-countries.js?v=154" defer></script>
+    <script src="js/traders.js?v=154" defer></script>
+    <script src="js/expenses.js?v=154" defer></script>
+    <script src="js/ready.js?v=154" defer></script>
+    <script src="js/settings.js?v=154" defer></script>
+    <script src="js/accounts.js?v=154" defer></script>
+    <script src="js/usdt.js?v=154" defer></script>
+    <script src="js/egp.js?v=154" defer></script>
+    <script src="js/closing.js?v=154" defer></script>
+    <script src="js/admin.js?v=154" defer></script>
+    <script src="js/position.js?v=154" defer></script>
+    <script src="js/search.js?v=154" defer></script>
+    <script src="js/notify.js?v=154" defer></script>
+    <script src="js/push.js?v=154" defer></script>
+    <script src="js/auth.js?v=154" defer></script>
+    <script src="js/main.js?v=154" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -520,6 +520,7 @@
                     <button data-action="switch-tab" data-tab="reports" class="subnav-btn">الأرباح والتقارير</button>
                     <button data-action="switch-tab" data-tab="position" class="subnav-btn">المركز المالي والديون</button>
                     <button data-action="switch-tab" data-tab="ratelog" class="subnav-btn">سجل الأسعار</button>
+                    <button data-action="switch-tab" data-tab="insights" class="subnav-btn">وين بتربح</button>
                 </div>
                 <div class="border-b border-slate-200 pb-3 flex justify-between items-center gap-3">
                     <div>
@@ -653,6 +654,7 @@
                     <button data-action="switch-tab" data-tab="reports" class="subnav-btn">الأرباح والتقارير</button>
                     <button data-action="switch-tab" data-tab="position" class="subnav-btn">المركز المالي والديون</button>
                     <button data-action="switch-tab" data-tab="ratelog" class="subnav-btn">سجل الأسعار</button>
+                    <button data-action="switch-tab" data-tab="insights" class="subnav-btn">وين بتربح</button>
                 </div>
                 <div id="position-body" class="page-stack space-y-6"></div>
             </div>
@@ -663,8 +665,20 @@
                     <button data-action="switch-tab" data-tab="reports" class="subnav-btn">الأرباح والتقارير</button>
                     <button data-action="switch-tab" data-tab="position" class="subnav-btn">المركز المالي والديون</button>
                     <button data-action="switch-tab" data-tab="ratelog" class="subnav-btn">سجل الأسعار</button>
+                    <button data-action="switch-tab" data-tab="insights" class="subnav-btn">وين بتربح</button>
                 </div>
                 <div id="ratelog-body" class="page-stack space-y-4"></div>
+            </div>
+
+            <!-- وين بتربح أكتر (reports.js renderInsightsPage، صفحة فرعية بالتقارير): ساعات وأيام الشغل، الربح حسب المصدر والزبون والموظف -->
+            <div id="page-insights" class="space-y-6 hidden">
+                <div class="settings-subnav" role="tablist">
+                    <button data-action="switch-tab" data-tab="reports" class="subnav-btn">الأرباح والتقارير</button>
+                    <button data-action="switch-tab" data-tab="position" class="subnav-btn">المركز المالي والديون</button>
+                    <button data-action="switch-tab" data-tab="ratelog" class="subnav-btn">سجل الأسعار</button>
+                    <button data-action="switch-tab" data-tab="insights" class="subnav-btn">وين بتربح</button>
+                </div>
+                <div id="insights-body" class="page-stack space-y-4"></div>
             </div>
 
             <!-- ================= 3. سجل الحوالات ================= -->
