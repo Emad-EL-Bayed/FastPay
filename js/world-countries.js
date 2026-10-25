@@ -1,6 +1,6 @@
 'use strict';
 
-// فاست باي — دول العالم (رمز ISO، الاسم بالعربي، بالإنجليزي، وأسماء ثانية للبحث). لصفحة الأسعار للزبائن (prices.html:
+// فاست باي — دول العالم: الـ 195 (193 بالأمم المتحدة + فلسطين والفاتيكان) وكم منطقة بتلزم بالحوالات (رمز ISO، الاسم بالعربي، بالإنجليزي، وأسماء ثانية للبحث). لصفحة الأسعار للزبائن (prices.html:
 // "من وين بدك تبعت؟") وإعداد "الطرق" بصفحة الزبائن (أي طريقة بتشتغل من أي دول). العلم من الرمز (worldFlag).
 const WORLD_COUNTRIES = [
     ['SA', 'السعودية', 'Saudi Arabia', 'المملكة KSA'], ['AE', 'الإمارات', 'United Arab Emirates', 'امارات دبي UAE Dubai'], ['QA', 'قطر', 'Qatar'],
@@ -46,7 +46,22 @@ const WORLD_COUNTRIES = [
     ['MG', 'مدغشقر', 'Madagascar'], ['MU', 'موريشيوس', 'Mauritius'], ['NA', 'ناميبيا', 'Namibia'], ['BW', 'بوتسوانا', 'Botswana'],
     ['SS', 'جنوب السودان', 'South Sudan'], ['CV', 'الرأس الأخضر', 'Cape Verde'], ['SC', 'سيشل', 'Seychelles'],
     ['AD', 'أندورا', 'Andorra'], ['MC', 'موناكو', 'Monaco'], ['LI', 'ليختنشتاين', 'Liechtenstein'], ['SM', 'سان مارينو', 'San Marino'],
-    ['FJ', 'فيجي', 'Fiji'], ['PG', 'بابوا غينيا الجديدة', 'Papua New Guinea']
+    ['FJ', 'فيجي', 'Fiji'], ['PG', 'بابوا غينيا الجديدة', 'Papua New Guinea'],
+    ['VA', 'الفاتيكان', 'Vatican City', 'Holy See'], ['KP', 'كوريا الشمالية', 'North Korea'], ['BT', 'بوتان', 'Bhutan'],
+    ['TL', 'تيمور الشرقية', 'Timor-Leste', 'East Timor'], ['BI', 'بوروندي', 'Burundi'], ['CF', 'جمهورية أفريقيا الوسطى', 'Central African Republic', 'افريقيا الوسطى'],
+    ['GQ', 'غينيا الاستوائية', 'Equatorial Guinea'], ['GW', 'غينيا بيساو', 'Guinea-Bissau'], ['SZ', 'إسواتيني', 'Eswatini', 'سوازيلاند Swaziland'],
+    ['LS', 'ليسوتو', 'Lesotho'], ['ST', 'ساو تومي وبرينسيب', 'Sao Tome and Principe'], ['AG', 'أنتيغوا وباربودا', 'Antigua and Barbuda'],
+    ['BB', 'باربادوس', 'Barbados'], ['BZ', 'بليز', 'Belize'], ['DM', 'دومينيكا', 'Dominica'], ['GD', 'غرينادا', 'Grenada'],
+    ['GY', 'غيانا', 'Guyana'], ['HT', 'هايتي', 'Haiti'], ['KN', 'سانت كيتس ونيفيس', 'Saint Kitts and Nevis'], ['LC', 'سانت لوسيا', 'Saint Lucia'],
+    ['VC', 'سانت فنسنت والغرينادين', 'Saint Vincent and the Grenadines'], ['SR', 'سورينام', 'Suriname'], ['KI', 'كيريباتي', 'Kiribati'],
+    ['MH', 'جزر مارشال', 'Marshall Islands'], ['FM', 'ميكرونيزيا', 'Micronesia'], ['NR', 'ناورو', 'Nauru'], ['PW', 'بالاو', 'Palau'],
+    ['WS', 'ساموا', 'Samoa'], ['SB', 'جزر سليمان', 'Solomon Islands'], ['TO', 'تونغا', 'Tonga'], ['TV', 'توفالو', 'Tuvalu'], ['VU', 'فانواتو', 'Vanuatu'],
+    // مش دول أعضاء بالأمم المتحدة بس بيلزموا بالحوالات (موجودين فوق): هونغ كونغ، تايوان، بورتوريكو، كوسوفو
+    ['MO', 'ماكاو', 'Macau', 'Macao'], ['GI', 'جبل طارق', 'Gibraltar'], ['GL', 'غرينلاند', 'Greenland'], ['RE', 'لا ريونيون', 'Réunion', 'Reunion'],
+    ['GP', 'غوادلوب', 'Guadeloupe'], ['MQ', 'مارتينيك', 'Martinique'], ['GF', 'غويانا الفرنسية', 'French Guiana'], ['NC', 'كاليدونيا الجديدة', 'New Caledonia'],
+    ['PF', 'بولينيزيا الفرنسية', 'French Polynesia', 'تاهيتي Tahiti'], ['AW', 'أروبا', 'Aruba'], ['CW', 'كوراساو', 'Curacao'], ['BM', 'برمودا', 'Bermuda'],
+    ['KY', 'جزر كايمان', 'Cayman Islands'], ['GU', 'غوام', 'Guam'], ['IM', 'جزيرة مان', 'Isle of Man'], ['JE', 'جيرسي', 'Jersey'], ['GG', 'غيرنزي', 'Guernsey'],
+    ['FO', 'جزر فارو', 'Faroe Islands'], ['EH', 'الصحراء الغربية', 'Western Sahara']
 ];
 
 // العلم من رمز الدولة (حرفين ← رموز المناطق)
