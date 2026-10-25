@@ -23,7 +23,7 @@ const STORAGE = {
 };
 
 // مفاتيح قديمة كانت تحفظ الزبائن والحوالات داخل المتصفح، تُمسح عند الفتح
-const LEGACY_DATA_KEYS = ['fastpay_v8_customers', 'fastpay_v8_ledger', 'fastpay_v8_sync_queue'];
+const LEGACY_DATA_KEYS = ['fastpay_v8_customers', 'fastpay_v8_ledger', 'fastpay_v8_sync_queue', 'fastpay_applock', 'fastpay_lastactive'];
 
 // رابط السكربت (DEFAULT_WEBHOOK) بـ js/endpoint.js: صفحة تتبّع الحوالة (track.html) كمان بتستعمله
 // مصادر سعر السوق بالترتيب (الدولار بالشيكل والجنيه من نفس الطلب):
@@ -114,9 +114,6 @@ const DEFAULT_CONFIG = {
     waMessages: {},
     // صوت الإشعارات (على هالجهاز بس)
     notifySound: true,
-    // قفل البرنامج بالرمز (applock.js): إجباري على كل الأجهزة، وبعد كم دقيقة (0 = فوراً)
-    appLockForce: 'no',
-    appLockMins: 5,
     // صفحة الأسعار للزبائن prices.html (settings.js renderPricesSettings، السكربت publicPrices)
     pricesPage: {}
 };

@@ -152,14 +152,6 @@ const CLICK_ACTIONS = {
     'wa-share-native': waShareNative,
     'wa-copy-msg': waCopyMessage,
     'open-closing': openClosingModal,
-    'applock-setup': () => showAppLock('setup'),
-    'applock-cancel': hideAppLock,
-    'applock-forgot': askAppLockForgot,
-    'applock-now': lockAppNow,
-    'applock-bio-on': enableBiometric,
-    'applock-bio-off': disableBiometric,
-    'applock-off': removeAppLock,
-    'applock-force-toggle': toggleAppLockForce,
     'prices-toggle': () => savePricesCfg({ on: pricesCfg().on === 'yes' ? 'no' : 'yes' }, pricesCfg().on === 'yes' ? 'صفحة الأسعار مسكّرة للزبائن' : 'صفحة الأسعار صارت شغّالة'),
     'prices-sec': (el) => savePricesCfg({ [el.dataset.id]: pricesCfg()[el.dataset.id] === 'yes' ? 'no' : 'yes' }),
     'prices-src': (el) => togglePricesList('sources', el.dataset.id),
@@ -349,7 +341,6 @@ function bindEvents() {
     bindExpenseEvents();
     bindReportEvents();
     bindReadyEvents();
-    bindAppLockEvents();
 }
 
 // على مستوى الصفحة: الأزرار (data-action)، إغلاق القوائم والنوافذ، Escape، عجلة الماوس
@@ -693,8 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
     applyPermsUI();
     refreshAllViews();
     moveNavIndicator();
-    if (authEnabled && !session?.token) showLogin(takeLockReason());
-    initAppLock();
+    if (authEnabled && !session?.token) showLogin();
 
     // آخر نسخة محفوظة على الجهاز فوراً (إذا في)، وبنفس اللحظة من Google Sheets (cache.js)
     startDataLoad();

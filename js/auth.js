@@ -186,10 +186,7 @@ async function submitLogin(e) {
         document.body.classList.remove('locked');
         applyPermsUI();
         showToast(`أهلاً ${myDisplayName()}`, 'تم تسجيل الدخول', 'success');
-        appLockTouch(true);
-        updateAppLockMenu();
         await loadFromSheets();
-        checkAppLockRequired();
     } finally {
         btn.disabled = false;
     }
@@ -231,7 +228,6 @@ function openProfileModal() {
     $('pf_username').textContent = session?.username || '';
     profileDraft = { avatar: myAvatarUrl(), changed: false };
     renderProfilePreview();
-    renderAppLockProfile();
     $('pf_devices_wrap').classList.toggle('hidden', !sessionsAvailable());
     if (sessionsAvailable()) {
         openModal('profileModal');

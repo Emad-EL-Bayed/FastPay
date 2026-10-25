@@ -76,7 +76,6 @@ function renderAdminTools() {
     renderTxLimitSettings();
     renderFraudSettings();
     renderLateSettings();
-    renderAppLockSettings();
     renderBlacklistSettings();
 }
 
