@@ -1461,7 +1461,7 @@ body.no-profit .profit-only { display: none !important; }
 .subnav-btn.active { background: rgb(var(--b-white, 255 255 255)); color: rgb(var(--t-slate-900, 15 23 42)); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12); }
 .subnav-btn.hidden { display: none; }
 /* تابات الإعدادات (settings.js setSettingsTab): نص بس (بطلب عماد، رسمي بدون أيقونات)، والخمسة بسطر واحد حتى عالجوال */
-.stabs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.3rem; padding: 0.3rem; border-radius: 1rem; background: rgb(var(--b-white, 255 255 255)); border: 1px solid rgb(var(--c-slate-200, 226 232 240)); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
+.stabs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.3rem; padding: 0.3rem; border-radius: 1rem; background: rgb(var(--b-white, 255 255 255)); border: 1px solid rgb(var(--c-slate-200, 226 232 240)); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
 .stab-btn { min-width: 0; padding: 0.7rem 0.25rem; border-radius: 0.75rem; font-size: 0.82rem; font-weight: 800; color: rgb(var(--t-slate-500, 100 116 139)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background-color 0.15s ease, color 0.15s ease; }
 .stab-btn:hover { background: rgb(var(--b-slate-50, 248 250 252)); color: rgb(var(--t-slate-800, 30 41 59)); }
 .stab-btn.active, .stab-btn.active:hover { background: rgb(var(--b-slate-900, 15 23 42)); color: rgb(var(--t-inv, 255 255 255)); }

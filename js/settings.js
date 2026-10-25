@@ -6,7 +6,7 @@
 // ================= الإعدادات =================
 // ---------- تابات الإعدادات (بطلب عماد 2026-10-21: الصفحة كانت طويلة كثير) ----------
 // كل كرت عليه data-stab (ممكن أكثر من تاب، زي زر الحفظ)، والتاب المفتوح بينحفظ على هالجهاز بس
-const SETTINGS_TABS = ['rates', 'expenses', 'security', 'receipt', 'link', 'look'];
+const SETTINGS_TABS = ['rates', 'expenses', 'security', 'receipt', 'prices', 'link', 'look'];
 const settingsTab = () => SETTINGS_TABS.includes(globalConfig.settingsTab) ? globalConfig.settingsTab : 'rates';
 
 function setSettingsTab(tab, { remember = true, animate = false } = {}) {
@@ -56,6 +56,7 @@ function loadSettingsPage() {
     renderReceiptQrSetting();
     renderLoyaltySettings();
     renderRecurringSettings();
+    renderPricesSettings();
     updateSellBuyPreview();
 }
 
@@ -154,6 +155,7 @@ const SHARED_SETTINGS = {
     goalAmount: { label: 'هدف الشهر: صافي الربح ₪', type: 'num' },
     appLockForce: { label: 'قفل البرنامج بالرمز إجباري على كل الأجهزة (yes/no)', type: 'str' },
     appLockMins: { label: 'قفل البرنامج: بعد كم دقيقة بدون استعمال (0 = فوراً)', type: 'num' },
+    pricesPage: { label: 'صفحة الأسعار للزبائن: {on, wa, welcome, usd, usdt, egp, sources, ready}', type: 'json' },
     loyaltyOn: { label: 'الزبون الدايم: مكافأة (yes/no)', type: 'str' },
     loyaltyEvery: { label: 'الزبون الدايم: كل كم حوالة مكتملة', type: 'num' },
     loyaltyType: { label: 'الزبون الدايم: pct خصم من نسبة الربح / ils مبلغ للزبون', type: 'str' },
@@ -491,4 +493,87 @@ function restoreDeletedPrompt(logId) {
         loadDeletedList();
         loadFromSheets({ silent: true });
     });
+}
+
+// ---------- صفحة الأسعار للزبائن (prices.html، بطلب عماد 2026-10-25) ----------
+// إعداد مشترك pricesPage: {on, wa, welcome, usd, usdt, egp, sources: [أرقام الدول], ready: [أرقام الحسابات الجاهزة]}.
+// السكربت (publicPrices) بيعطي الصفحة بس اللي هون مشغّل.
+const PRICES_PAGE = 'https://emad-el-bayed.github.io/FastPay/prices.html';
+const PRICES_SECTIONS = [['usd', 'سعر الدولار'], ['usdt', 'USDT إيداع وسحب'], ['egp', 'الجنيه المصري']];
+
+function pricesCfg() {
+    const c = globalConfig.pricesPage && typeof globalConfig.pricesPage === 'object' ? globalConfig.pricesPage : {};
+    return {
+        on: c.on === 'yes' ? 'yes' : 'no', wa: String(c.wa || ''), welcome: String(c.welcome || ''),
+        usd: c.usd === 'no' ? 'no' : 'yes', usdt: c.usdt === 'no' ? 'no' : 'yes', egp: c.egp === 'no' ? 'no' : 'yes',
+        sources: Array.isArray(c.sources) ? c.sources.map(String) : [], ready: Array.isArray(c.ready) ? c.ready.map(String) : []
+    };
+}
+
+function savePricesCfg(patch, toast = '') {
+    globalConfig.pricesPage = { ...pricesCfg(), ...patch };
+    saveAll();
+    renderPricesSettings();
+    if (toast) showToast('انحفظ', toast, 'success');
+}
+
+const pricesUrl = () => (location.protocol === 'https:' ? new URL('prices.html', location.href).href : PRICES_PAGE);
+
+function renderPricesSettings() {
+    const card = $('prices-settings');
+    if (!card) return;
+    const cfg = pricesCfg();
+    const on = cfg.on === 'yes';
+    $('prices-script-note').classList.toggle('hidden', sheetHas('pricesPage'));
+    setToggle($('prices-toggle'), on, 'شغّالة', 'مسكّرة');
+    $('prices-body').classList.toggle('opacity-50', !on);
+    if (document.activeElement !== $('prices_wa')) $('prices_wa').value = cfg.wa;
+    if (document.activeElement !== $('prices_welcome')) $('prices_welcome').value = cfg.welcome;
+    // واتساب بدّه الرقم الدولي (970… أو 972…)، مش 059…
+    const wa = cfg.wa.replace(/\D/g, '');
+    $('prices-wa-warn').classList.toggle('hidden', !on || (wa.length >= 11 && !wa.startsWith('0')));
+    const chip = (action, id, label, active) => `<button type="button" data-action="${action}" data-id="${escapeHtml(id)}" class="tf-chip ${active ? 'active' : ''}" aria-pressed="${active}">${active ? '✓ ' : ''}${escapeHtml(label)}</button>`;
+    $('prices-sections').innerHTML = PRICES_SECTIONS.map(([k, label]) => chip('prices-sec', k, label, cfg[k] === 'yes')).join('');
+    const srcs = [...countries].filter(c => c.id && !isUsdtSource(c)).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    $('prices-sources').innerHTML = srcs.length ? srcs.map(c => chip('prices-src', c.id, c.name, cfg.sources.includes(String(c.id)))).join('') : '<span class="text-[11px] text-slate-400">ما في دول بالتسعير</span>';
+    const ready = (typeof readyAccounts !== 'undefined' ? readyAccounts : []).filter(r => r.id);
+    $('prices-ready').innerHTML = ready.length ? ready.map(r => chip('prices-ready', r.id, r.name, cfg.ready.includes(String(r.id)))).join('') : '<span class="text-[11px] text-slate-400">ما في حسابات جاهزة</span>';
+    const url = pricesUrl();
+    $('prices-url').textContent = url;
+    $('prices-open').href = url;
+    renderPricesQr(url);
+}
+
+// QR للرابط (نفس مكتبة QR الفاتورة)، بتطبعه على المحل
+function renderPricesQr(url) {
+    const box = $('prices-qr');
+    if (typeof qrcode !== 'function') {
+        box.innerHTML = '';
+        loadScript(RECEIPT_LIBS.qr).then(() => { if ($('prices-qr')) renderPricesQr(url); }).catch(() => {});
+        return;
+    }
+    try {
+        const q = qrcode(0, 'M');
+        q.addData(url);
+        q.make();
+        box.innerHTML = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+    } catch (e) { box.innerHTML = ''; }
+}
+
+function togglePricesList(key, id) {
+    const cfg = pricesCfg();
+    const list = cfg[key].includes(id) ? cfg[key].filter(x => x !== id) : [...cfg[key], id];
+    savePricesCfg({ [key]: list });
+}
+
+function bindPricesSettingsEvents() {
+    $('prices_wa')?.addEventListener('change', (e) => {
+        const wa = whatsappDigits(e.target.value);
+        savePricesCfg({ wa }, wa ? 'الطلبات بتوصل على هالرقم' : '');
+    });
+    $('prices_welcome')?.addEventListener('change', (e) => savePricesCfg({ welcome: e.target.value.trim().slice(0, 300) }, 'انحفظت الجملة'));
+}
+
+async function copyPricesUrl(btn) {
+    if (await copyWithFlash(btn, { label: 'رابط صفحة الأسعار', shown: pricesUrl(), value: pricesUrl() })) return;
 }

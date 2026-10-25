@@ -47,18 +47,16 @@ const PAYOUT_PROVIDERS = {
 };
 
 const DEFAULT_CONFIG = {
+    // إعدادات الأسعار الافتراضية (الفروق، الخصم الثابت، USDT، الجنيه) بـ pricing.js، مشتركة مع صفحة الأسعار
+    ...PRICE_DEFAULTS,
     screenRate: 3.70,
     marketRate: null,
     screenRateLastUpdated: '',
     rateMode: 'auto',          // auto: يتحدث من السوق | manual: مثبّت يدوياً
     costPct: 5.0,
     profitPct: 5.0,
-    minusIls: 1.0,
     driveWebhook: DEFAULT_WEBHOOK,
     syncToken: '',
-    // سعر البيع والشراء: فرق شبه ثابت عن سعر الشاشة (للعرض فقط)
-    sellOffset: -0.01,
-    buyOffset: 0.03,
     // بنود مصاريف مقترحة زيادة عن الثابتة (زر "+ بند"، بطلب عماد 2026-10-21)
     expenseCategories: [],
     // بنود مقترحة انشالت بالـ × (حتى الثابتة واللي انكتبت بمصاريف قبل)
@@ -105,27 +103,22 @@ const DEFAULT_CONFIG = {
     hiddenStatuses: [],
     // إظهار سعر صرف الدولار في الفاتورة (يبقى الاختيار محفوظاً)
     receiptShowRate: true,
-    // USDT: نسبة الإيداع (أول شريحة) وشرائحها فوقها، الشبكات ورسومها، وشرائح نسبة السحب حسب المبلغ ($)
-    usdtDepositPct: 1,
-    usdtDepositTiers: [],
-    usdtNetworks: [{ name: 'TRC20', fee: 1.3 }, { name: 'BEP20', fee: 0.15 }],
-    usdtTiers: [{ min: 0, pct: 5 }, { min: 400, pct: 4 }, { min: 1000, pct: 3 }],
     // الجنيه المصري: شاشة الجنيه (جنيه للدولار) تلقائية أو مثبّتة، ونسبتنا من السوق للإرسال والاستقبال
     egpRateMode: 'auto',
     egpScreenRate: 0,
     egpMarketRate: 0,
     egpRateUpdated: '',
-    egpSendPct: 13,
-    egpReceivePct: 13,
-    // شرائح النسبة حسب المبلغ بالشيكل فوق أول شريحة (أول شريحة = egpSendPct/egpReceivePct)
-    egpSendTiers: [],
-    egpReceiveTiers: [],
     // قفل الأيام: آخر يوم مجرود (الحركات لحد هاليوم ما بتتعدل إلا بصلاحية "تعديل الأيام المقفلة")
     lockedThrough: '',
     // رسالة الفاتورة على واتساب حسب الحالة: بس الجمل اللي تعدّلت (الباقي من WA_MESSAGE_DEFAULTS بـ receipts.js)
     waMessages: {},
     // صوت الإشعارات (على هالجهاز بس)
-    notifySound: true
+    notifySound: true,
+    // قفل البرنامج بالرمز (applock.js): إجباري على كل الأجهزة، وبعد كم دقيقة (0 = فوراً)
+    appLockForce: 'no',
+    appLockMins: 5,
+    // صفحة الأسعار للزبائن prices.html (settings.js renderPricesSettings، السكربت publicPrices)
+    pricesPage: {}
 };
 
 const DEFAULT_COUNTRIES = [
@@ -162,21 +155,6 @@ const TYPE_LABEL = { div: 'تقسيم', mul: 'ضرب', direct_percent: 'نسبة
 
 // ================= أدوات مساعدة =================
 const $ = (id) => document.getElementById(id);
-
-// يحوّل لرقم، ويستخدم البديل فقط إذا لم يكن رقماً صالحاً (الصفر قيمة مقبولة).
-// فاصلة الآلاف (1,000 من خانات المبالغ data-commas) بتنشال
-function toNum(value, fallback = 0) {
-    const n = typeof value === 'number' ? value : parseFloat(typeof value === 'string' ? value.replace(/,/g, '') : value);
-    return Number.isFinite(n) ? n : fallback;
-}
-
-const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
-const round3 = (n) => Math.round((n + Number.EPSILON) * 1000) / 1000;
-const round4 = (n) => Math.round((n + Number.EPSILON) * 10000) / 10000;
-
-function fmt(n, digits = 2) {
-    return toNum(n).toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
-}
 
 // المبلغ مع رمز العملة: 12.50 ₪ أو 12.50 $
 const CUR_SYM = { ILS: '₪', USD: '$' };
@@ -485,43 +463,6 @@ function normalizeCountry(c) {
         profitPct: Math.max(0, toNum(c?.profitPct, globalConfig.profitPct)),
         tiers: normalizeCountryTiers(c?.tiers)
     };
-}
-
-// ---------- شرائح الدولة حسب المبلغ بالدولار (بطلب عماد 2026-10-22) ----------
-// tiers = الشرائح بعد الأولى [{min $, cost, profit}]؛ الأولى (من 0) = costValue و profitPct.
-// التكلفة بنوع تكلفة الدولة (نسبة أو ثابت $). بالشيت نص JSON بعمود "الشرائح" (نفس تنظيف السكربت cleanCountryTiers)
-// (دالة مش const: normalizeCountry بتنادى وقت التحميل فوق بالملف)
-function tierNum(v) {
-    return Math.round(Math.max(0, toNum(v, 0)) * 10000) / 10000;
-}
-
-function normalizeCountryTiers(raw) {
-    let list = raw;
-    if (typeof raw === 'string') { try { list = JSON.parse(raw || '[]'); } catch (e) { list = []; } }
-    const seen = new Set();
-    return (Array.isArray(list) ? list : [])
-        .map(t => ({ min: tierNum(t?.min), cost: tierNum(t?.cost), profit: tierNum(t?.profit) }))
-        .filter(t => t.min > 0 && !seen.has(t.min) && seen.add(t.min))
-        .sort((a, b) => a.min - b.min)
-        .slice(0, 20);
-}
-
-// كل الشرائح مع الأولى
-const countryTierList = (c) => [{ min: 0, cost: c.costValue, profit: c.profitPct }, ...(c.tiers || [])];
-
-// الشريحة اللي بيقع فيها المبلغ (الحد نفسه من الشريحة الجديدة: 100$ = "من 100")
-function countryTierAt(c, usd) {
-    const list = countryTierList(c);
-    let idx = 0;
-    list.forEach((t, i) => { if (usd + 1e-9 >= t.min) idx = i; });
-    return { list, idx, tier: list[idx] };
-}
-
-// المبلغ بالدولار اللي بتنحسب عليه الشريحة: الخصم المباشر المبلغ أصلاً بالدولار، والباقي بعد المعامل
-function sourceUsdAmount(type, orig, factor) {
-    if (type === 'direct_percent') return Math.max(0, orig);
-    if (type === 'mul') return Math.max(0, orig * factor);
-    return factor > 0 ? Math.max(0, orig / factor) : 0;
 }
 
 // للشيت: الشرائح نص JSON (والفاضي = بدون شرائح)

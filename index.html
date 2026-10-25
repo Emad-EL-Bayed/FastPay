@@ -28,42 +28,43 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=143">
+    <link rel="stylesheet" href="styles.css?v=145">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=143">
+    <link rel="stylesheet" href="tailwind.css?v=145">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=143" defer></script>
-    <script src="js/core.js?v=143" defer></script>
-    <script src="js/theme.js?v=143" defer></script>
-    <script src="js/logo-data.js?v=143" defer></script>
-    <script src="js/shell.js?v=143" defer></script>
-    <script src="js/calculator.js?v=143" defer></script>
-    <script src="js/reports.js?v=143" defer></script>
-    <script src="js/sync.js?v=143" defer></script>
-    <script src="js/conflicts.js?v=143" defer></script>
-    <script src="js/cache.js?v=143" defer></script>
-    <script src="js/bgsync.js?v=143" defer></script>
-    <script src="js/transactions.js?v=143" defer></script>
-    <script src="js/receipts.js?v=143" defer></script>
-    <script src="js/customers.js?v=143" defer></script>
-    <script src="js/countries.js?v=143" defer></script>
-    <script src="js/service-logos.js?v=143" defer></script>
-    <script src="js/traders.js?v=143" defer></script>
-    <script src="js/expenses.js?v=143" defer></script>
-    <script src="js/ready.js?v=143" defer></script>
-    <script src="js/settings.js?v=143" defer></script>
-    <script src="js/accounts.js?v=143" defer></script>
-    <script src="js/usdt.js?v=143" defer></script>
-    <script src="js/egp.js?v=143" defer></script>
-    <script src="js/closing.js?v=143" defer></script>
-    <script src="js/admin.js?v=143" defer></script>
-    <script src="js/position.js?v=143" defer></script>
-    <script src="js/search.js?v=143" defer></script>
-    <script src="js/notify.js?v=143" defer></script>
-    <script src="js/push.js?v=143" defer></script>
-    <script src="js/auth.js?v=143" defer></script>
-    <script src="js/applock.js?v=143" defer></script>
-    <script src="js/main.js?v=143" defer></script>
+    <script src="js/endpoint.js?v=145" defer></script>
+    <script src="js/pricing.js?v=145" defer></script>
+    <script src="js/core.js?v=145" defer></script>
+    <script src="js/theme.js?v=145" defer></script>
+    <script src="js/logo-data.js?v=145" defer></script>
+    <script src="js/shell.js?v=145" defer></script>
+    <script src="js/calculator.js?v=145" defer></script>
+    <script src="js/reports.js?v=145" defer></script>
+    <script src="js/sync.js?v=145" defer></script>
+    <script src="js/conflicts.js?v=145" defer></script>
+    <script src="js/cache.js?v=145" defer></script>
+    <script src="js/bgsync.js?v=145" defer></script>
+    <script src="js/transactions.js?v=145" defer></script>
+    <script src="js/receipts.js?v=145" defer></script>
+    <script src="js/customers.js?v=145" defer></script>
+    <script src="js/countries.js?v=145" defer></script>
+    <script src="js/service-logos.js?v=145" defer></script>
+    <script src="js/traders.js?v=145" defer></script>
+    <script src="js/expenses.js?v=145" defer></script>
+    <script src="js/ready.js?v=145" defer></script>
+    <script src="js/settings.js?v=145" defer></script>
+    <script src="js/accounts.js?v=145" defer></script>
+    <script src="js/usdt.js?v=145" defer></script>
+    <script src="js/egp.js?v=145" defer></script>
+    <script src="js/closing.js?v=145" defer></script>
+    <script src="js/admin.js?v=145" defer></script>
+    <script src="js/position.js?v=145" defer></script>
+    <script src="js/search.js?v=145" defer></script>
+    <script src="js/notify.js?v=145" defer></script>
+    <script src="js/push.js?v=145" defer></script>
+    <script src="js/auth.js?v=145" defer></script>
+    <script src="js/applock.js?v=145" defer></script>
+    <script src="js/main.js?v=145" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -1230,9 +1231,60 @@
                     <button type="button" data-action="settings-tab" data-stab="rates" class="stab-btn" role="tab">الأسعار</button>
                     <button type="button" data-action="settings-tab" data-stab="expenses" class="stab-btn" role="tab">المصاريف</button>
                     <button type="button" data-action="settings-tab" data-stab="security" class="stab-btn" role="tab">الحماية</button>
-                    <button type="button" data-action="settings-tab" data-stab="receipt" class="stab-btn" role="tab"><span class="hidden sm:inline">الفاتورة وواتساب</span><span class="sm:hidden">الفاتورة</span></button>
+                    <button type="button" data-action="settings-tab" data-stab="receipt" class="stab-btn" role="tab">الفاتورة</button>
+                    <button type="button" data-action="settings-tab" data-stab="prices" class="stab-btn" role="tab"><span class="hidden sm:inline">صفحة الزبائن</span><span class="sm:hidden">الزبائن</span></button>
                     <button type="button" data-action="settings-tab" data-stab="link" class="stab-btn" role="tab">الربط</button>
                     <button type="button" data-action="settings-tab" data-stab="look" class="stab-btn" role="tab">المظهر</button>
+                </div>
+
+                <!-- صفحة الأسعار للزبائن prices.html (settings.js renderPricesSettings، السكربت publicPrices) -->
+                <div data-stab="prices" id="prices-settings" class="section-card p-6 max-w-2xl space-y-4">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                            <h3 class="text-base font-bold text-slate-900">صفحة الأسعار للزبائن</h3>
+                            <p class="text-xs text-slate-500 mt-1 leading-5">رابط عام بتحطه بحالة واتساب أو بتبعته لأي زبون: أسعار اليوم، وحاسبة بيختار فيها الخدمة والمبلغ وبيشوف السعر بنفس حساب البرنامج، وبكبسة بتوصلك رسالة واتساب جاهزة. الأسعار بتتحدث لحالها.</p>
+                        </div>
+                        <button type="button" id="prices-toggle" data-action="prices-toggle" class="status-toggle" style="--c:#10b981" aria-pressed="false"><span class="sw"></span>مسكّرة</button>
+                    </div>
+                    <p id="prices-script-note" class="hidden text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5">انشر سكربت Google Sheets الجديد حتى تشتغل الصفحة</p>
+                    <div id="prices-body" class="space-y-4">
+                        <div class="grid sm:grid-cols-2 gap-3">
+                            <div>
+                                <label for="prices_wa" class="font-bold block mb-1 text-xs text-slate-700">رقم الواتساب اللي بتوصله الطلبات</label>
+                                <input type="tel" id="prices_wa" data-latin dir="ltr" placeholder="970599123456" class="w-full field text-sm font-bold">
+                                <p id="prices-wa-warn" class="hidden text-[11px] font-bold text-amber-700 mt-1">اكتب الرقم الدولي بدون صفر، مثلاً 970599123456، حتى ينفتح واتساب عليه</p>
+                            </div>
+                            <div>
+                                <label for="prices_welcome" class="font-bold block mb-1 text-xs text-slate-700">جملة ترحيب (اختياري)</label>
+                                <input type="text" id="prices_welcome" maxlength="300" placeholder="مثلاً: أسرع حوالات بغزة" class="w-full field text-sm">
+                            </div>
+                        </div>
+                        <div class="space-y-1.5">
+                            <b class="text-xs text-slate-700 block">شو يبين بالصفحة</b>
+                            <div id="prices-sections" class="flex flex-wrap gap-1.5"></div>
+                        </div>
+                        <div class="space-y-1.5">
+                            <b class="text-xs text-slate-700 block">الدول والمصادر (باي بال وغيره)</b>
+                            <div id="prices-sources" class="flex flex-wrap gap-1.5"></div>
+                            <p class="text-[10px] text-slate-400">بنفس تسعير الدول والشرائح، بدون خصم VIP ولا تعديل يدوي.</p>
+                        </div>
+                        <div class="space-y-1.5">
+                            <b class="text-xs text-slate-700 block">الحسابات الجاهزة (الاسم بس)</b>
+                            <div id="prices-ready" class="flex flex-wrap gap-1.5"></div>
+                            <p class="text-[10px] text-slate-400">الزبون بيشوف الاسم بس، مثلاً "حساب سعودي"، والكبسة بتفتح واتساب "محتاج حساب سعودي". الحساب نفسه والشروط ما بيطلعوا.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                            <div id="prices-qr" class="w-24 h-24 shrink-0 bg-white rounded-lg p-1 theme-keep"></div>
+                            <div class="min-w-0 flex-1 space-y-2">
+                                <b class="text-xs text-slate-700 block">الرابط</b>
+                                <div id="prices-url" dir="ltr" class="font-mono text-[11px] text-slate-600 break-all"></div>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" data-action="prices-copy" class="quote-copy text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg">⧉ نسخ الرابط</button>
+                                    <a id="prices-open" href="#" target="_blank" rel="noopener" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg">فتح الصفحة ↗</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- المصاريف الثابتة (expenses.js renderRecurringSettings، والسكربت recurringExpensesJob) -->

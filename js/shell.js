@@ -274,14 +274,6 @@ function applyScreenRateToUI() {
     }
 }
 
-// سعر البيع والشراء = سعر الشاشة + فرق ثابت. سعر البيع هو المعتمد في الحاسبة
-function sellBuyRates(screen = globalConfig.screenRate, sellOffset = globalConfig.sellOffset, buyOffset = globalConfig.buyOffset) {
-    return {
-        sell: round3(toNum(screen) + toNum(sellOffset, 0)),
-        buy: round3(toNum(screen) + toNum(buyOffset, 0))
-    };
-}
-
 function renderSellBuyRates() {
     const { sell, buy } = sellBuyRates();
     $('rate-sell-val').textContent = sell.toFixed(3);

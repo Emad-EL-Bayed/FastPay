@@ -58,33 +58,6 @@ const egpWalletColor = (w) => EGP_WALLET_TYPES[w?.walletType || 'other'].color;
 // الجنيه بدون كسور إلا إذا في كسور فعلاً (رسوم مثلاً)
 const fmtEgp = (v) => fmt(v, Math.abs(round2(v) % 1) > 0.004 ? 2 : 0);
 
-// ================= الحساب =================
-// الجنيه لأقرب جنيه صحيح، والشيكل والدولار لأقرب نصف — دايماً لصالحنا
-const floorEgp = (v) => Math.floor(round2(v) + 1e-9);
-const ceilEgp = (v) => Math.ceil(round2(v) - 1e-9);
-
-// الإرسال: الزبون بيدفع (الجنيه ÷ سعر الزبون) دولار، وبالشيكل × سعر الشراء، مقرّب لفوق لأقرب نصف
-// الاستقبال: بندفع (الجنيه ÷ سعر الزبون) دولار، وبالشيكل × سعر البيع، مقرّب لتحت
-// الربح = الفرق بين المدفوع وقيمة الجنيه على شاشة الجنيه بنفس سعر الدولار (ورسوم التحويل علينا)
-// المبلغ المتفق عليه (fixedTotal) يصير هو المبلغ النهائي بالضبط. الشحن/البيع: مبلغ فعلي بدون ربح
-function computeEgp({ kind, egp, fee = 0, rate = 0, screen = 0, usdRate = 0, currency, settle = 0, fixedTotal = 0, finalAdjust = 0, total = 0 }) {
-    if (kind === 'send' || kind === 'receive') {
-        const ils = currency !== 'USD';
-        const k = ils ? usdRate : 1;
-        const send = kind === 'send';
-        const gross = rate > 0 ? egp / rate * k : 0;
-        // finalAdjust: تعديل ± يدوي بعد التقريب (لا يُستعمل مع المبلغ المتفق عليه)، والربح يتبعه
-        const final = fixedTotal > 0 ? round2(fixedTotal) : Math.max(0, round2((send ? roundUpHalf(gross) : roundDownHalf(gross)) + finalAdjust));
-        // بدون شاشة للجنيه ما بنحسب ربح
-        const value = screen > 0 ? (send ? egp + fee : egp) / screen * k : null;
-        const profit = value === null ? 0 : send ? final - settle - value : value - (final - settle);
-        return { gross: round2(gross), total: final, egpEffect: send ? -round2(egp + fee) : round2(egp), profitIls: round2(ils ? profit : profit * usdRate) };
-    }
-    if (kind === 'topup') return { gross: round2(total), total: round2(total), egpEffect: round2(egp), profitIls: 0 };
-    if (kind === 'transfer') return { gross: 0, total: 0, egpEffect: -round2(fee), profitIls: 0 };
-    return { gross: 0, total: 0, egpEffect: round2(egp), profitIls: 0 };
-}
-
 function normalizeEgp(m) {
     const kind = EGP_KINDS[m?.kind] ? m.kind : 'send';
     const trade = kind === 'send' || kind === 'receive';
@@ -119,15 +92,6 @@ function normalizeEgp(m) {
         updatedBy: String(m?.updatedBy ?? '').trim()
     };
     return { ...base, ...computeEgp(base) };
-}
-
-// المبلغ المتفق عليه (شيكل أو دولار) ← الجنيه بالجنيه الصحيح، والتقريب لصالحنا:
-// الإرسال: الزبون بيدفع المبلغ وبيوصل جنيه مقرّب لتحت. الاستقبال: بيبعت جنيه مقرّب لفوق وبياخد المبلغ.
-function egpForMoney(f) {
-    const k = f.currency === 'USD' ? 1 : f.usdRate;
-    if (!(k > 0) || !(f.rate > 0) || !(f.fixedTotal > 0)) return 0;
-    const exact = f.fixedTotal / k * f.rate;
-    return Math.max(0, f.kind === 'send' ? floorEgp(exact) : ceilEgp(exact));
 }
 
 // اتجاه الفلوس: 1 داخلة لنا (إرسال، بيع جنيه)، −1 طالعة منا (استقبال، شراء جنيه)، 0 بدون دفع
@@ -182,104 +146,14 @@ function egpReady() {
 let egpRateStatus = 'loading';
 let lastEgpRateFetchMs = 0;
 
-const egpScreen = () => toNum(globalConfig.egpScreenRate, 0);
-const EGP_MAX_PCT = 90;
-
-function egpRateFromPct(kind, screen, pct) {
-    const f = 1 - toNum(pct, 0) / 100;
-    if (!(screen > 0) || !(f > 0)) return 0;
-    return round4(kind === 'send' ? screen * f : screen / f);
-}
-
 // النسبة من سعر الحركة وشاشتها (عكس egpRateFromPct)
 function egpPctOf(kind, screen, rate) {
     if (!(screen > 0) || !(rate > 0)) return 0;
     return round2((kind === 'send' ? 1 - rate / screen : 1 - screen / rate) * 100);
 }
 
-function egpRates(screen = egpScreen()) {
-    const sendPct = toNum(globalConfig.egpSendPct, 0);
-    const receivePct = toNum(globalConfig.egpReceivePct, 0);
-    return {
-        screen: screen > 0 ? screen : 0,
-        usdSend: sellBuyRates().buy,
-        usdReceive: sellBuyRates().sell,
-        sendPct,
-        receivePct,
-        send: egpRateFromPct('send', screen, sendPct),
-        receive: egpRateFromPct('receive', screen, receivePct)
-    };
-}
-
-// سعر الألف جنيه بعملة الدفع
-const egpPerThousand = (rate, usdRate, cur) => (rate > 0 ? round2(1000 / rate * (cur === 'USD' ? 1 : usdRate)) : 0);
-
-// ---------- شرائح النسبة حسب المبلغ (بطلب عماد 2026-10-17، زي شرائح سحب USDT) ----------
-// المبلغ بالشيكل اللي بيدفعه الزبون (إرسال) أو بياخده (استقبال)، والدولار بيتحول بسعر دولار الحركة.
-// أول شريحة (من 0) = النسبة الأساسية egpSendPct/egpReceivePct، والشرائح فوقها egpSendTiers/egpReceiveTiers [{min ₪, pct}]
-const EGP_TIER_KEYS = { send: ['egpSendPct', 'egpSendTiers'], receive: ['egpReceivePct', 'egpReceiveTiers'] };
-
-function egpTiers(kind) {
-    const [pctKey, tiersKey] = EGP_TIER_KEYS[kind];
-    const extra = (Array.isArray(globalConfig[tiersKey]) ? globalConfig[tiersKey] : [])
-        .map(t => ({ min: round2(toNum(t?.min, 0)), pct: round2(toNum(t?.pct, NaN)) }))
-        .filter(t => t.min > 0 && t.pct >= 0 && t.pct <= EGP_MAX_PCT)
-        .sort((a, b) => a.min - b.min);
-    return [{ min: 0, pct: toNum(globalConfig[pctKey], 0) }, ...extra];
-}
-
-function egpTierFor(kind, ils) {
-    let tier = null;
-    egpTiers(kind).forEach(t => { if (!tier || ils >= t.min - 0.004) tier = t; });
-    return tier;
-}
-
 // "أقل من 400 ₪" / "من 400 لـ 1000 ₪" / "من 1000 ₪ فما فوق"
 const egpTierRange = (kind, min) => tierRangeText(egpTiers(kind), min, '₪');
-
-// النسبة اللي بتنطبق على الحركة f ({kind, egp, fixedTotal, currency, usdRate, screen}):
-// - المبلغ المتفق عليه: الشريحة من المبلغ نفسه.
-// - الجنيه: لكل شريحة بنحسب المبلغ وبناخد الشريحة اللي المبلغ بيقع فيها (إذا أكتر من وحدة: الأحسن للزبون).
-// - بالإرسال لما الجنيه على حد شريحة (بنسبتها المبلغ تحت حدها، وبالنسبة اللي قبلها فوقه): الزبون بيدفع حد
-//   الشريحة بالضبط (400 ₪) بنسبة بيناتهم، فالمبلغ ما بينزل لما الجنيه يزيد. edge = حد الشريحة
-function egpTierPct(f) {
-    const tiers = egpTiers(f.kind);
-    const base = { pct: tiers[0].pct, min: 0, edge: 0 };
-    const toIls = f.currency === 'USD' ? f.usdRate : 1;
-    if (tiers.length < 2 || !(f.screen > 0) || !(f.usdRate > 0)) return base;
-    if (f.fixedTotal > 0) {
-        const t = egpTierFor(f.kind, f.fixedTotal * toIls);
-        return { pct: t.pct, min: t.min, edge: 0 };
-    }
-    if (!(f.egp > 0)) return base;
-    const send = f.kind === 'send';
-    const totalAt = (pct) => computeEgp({ ...f, rate: egpRateFromPct(f.kind, f.screen, pct), fixedTotal: 0, finalAdjust: 0 }).total;
-    const options = [];
-    tiers.forEach(t => {
-        const total = totalAt(t.pct);
-        if (egpTierFor(f.kind, total * toIls).min === t.min) return options.push({ pct: t.pct, min: t.min, edge: 0, total });
-        if (!send || !t.min || total * toIls >= t.min) return;
-        // حد الشريحة بعملة الحركة، والنسبة لتحت بخانتين حتى المبلغ قبل التقريب ما يعدّي الحد
-        const edge = roundUpHalf(t.min / toIls);
-        const rate = f.egp * (f.currency === 'USD' ? 1 : f.usdRate) / edge;
-        const pct = Math.floor(((1 - rate / f.screen) * 100 + 1e-9) * 100) / 100;
-        if (!(pct >= 0) || pct > EGP_MAX_PCT) return;
-        const edgeTotal = totalAt(pct);
-        if (egpTierFor(f.kind, edgeTotal * toIls).min === t.min) options.push({ pct, min: t.min, edge: t.min, total: edgeTotal });
-    });
-    if (!options.length) {
-        const t = egpTierFor(f.kind, totalAt(base.pct) * toIls);
-        return { pct: t.pct, min: t.min, edge: 0 };
-    }
-    options.sort((a, b) => (send ? a.total - b.total : b.total - a.total));
-    return options[0];
-}
-
-// الحركة بنسبة شريحتها وسعرها
-function withEgpTier(f) {
-    const t = egpTierPct(f);
-    return { ...f, pct: t.pct, rate: egpRateFromPct(f.kind, f.screen, t.pct), tierMin: t.min, tierEdge: t.edge };
-}
 
 // سطر صغير تحت الحساب: أي شريحة انطبقت (بس إذا في شرائح)
 function egpTierNote(f) {

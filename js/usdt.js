@@ -24,33 +24,6 @@ let usdtSearch = '';
 let editingUsdtId = null;
 let usdtPctTouched = false; // إذا عدّلت النسبة بيدك لا نغيّرها تلقائياً حسب الشريحة
 
-// تقريب لأقرب نصف: الإيداع لفوق (لصالحنا) والسحب لتحت
-const roundUpHalf = (v) => Math.ceil(round2(v) * 2 - 1e-9) / 2;
-const roundDownHalf = (v) => Math.floor(round2(v) * 2 + 1e-9) / 2;
-
-// الإيداع: (المبلغ + النسبة + الشبكة) × سعر الشراء − الخصم، ورصيد USDT ينقص المبلغ + الشبكة
-// السحب: (المبلغ − النسبة) × سعر البيع، ورصيد USDT يزيد المبلغ
-// fixedTotal: مبلغ متفق عليه بالشيكل/الدولار (الكمية محسوبة منه لصالحنا)، فيكون هو المبلغ النهائي
-// الربح = الفرق بين ما دفعه/قبضه الزبون وقيمة الـ USDT بنفس السعر (يشمل النسبة والخصم والتقريب والفرق المُسوّى)
-// finalAdjust: تعديل ± يدوي على المبلغ النهائي بعد التقريب (لا يُستعمل مع المبلغ المتفق عليه)، والربح يتبعه
-function computeUsdt({ kind, amount, networkFee, pct, rate, currency, discount, settle, fixedTotal = 0, finalAdjust = 0 }) {
-    const ils = currency !== 'USD';
-    if (kind === 'adjust') return { gross: 0, total: 0, usdtEffect: round2(amount), profitIls: 0 };
-    // التحويل بين محافظنا: المجموع بينقص رسوم التحويل بس
-    if (kind === 'transfer') return { gross: 0, total: 0, usdtEffect: -round2(Math.max(0, networkFee)), profitIls: 0 };
-    if (kind === 'deposit') {
-        const costUsd = amount + networkFee;
-        const gross = (amount * (1 + pct / 100) + networkFee) * (ils ? rate : 1);
-        const total = fixedTotal > 0 ? round2(fixedTotal) : Math.max(0, round2(roundUpHalf(gross - discount) + finalAdjust));
-        const profit = total - settle - costUsd * (ils ? rate : 1);
-        return { gross: round2(gross), total, usdtEffect: -round2(costUsd), profitIls: round2(ils ? profit : profit * rate) };
-    }
-    const gross = amount * (1 - pct / 100) * (ils ? rate : 1);
-    const total = fixedTotal > 0 ? round2(fixedTotal) : Math.max(0, round2(roundDownHalf(gross) + finalAdjust));
-    const profit = amount * (ils ? rate : 1) - (total - settle);
-    return { gross: round2(gross), total, usdtEffect: round2(amount), profitIls: round2(ils ? profit : profit * rate) };
-}
-
 function normalizeUsdt(m) {
     const kind = USDT_KINDS[m?.kind] ? m.kind : 'deposit';
     const trade = kind === 'deposit' || kind === 'withdraw';
@@ -96,47 +69,6 @@ function usdtPayState(m) {
 }
 
 const usdtBalance = () => round2(usdtMoves.reduce((s, m) => s + m.usdtEffect, 0));
-
-function usdtNetworks() {
-    const list = Array.isArray(globalConfig.usdtNetworks) ? globalConfig.usdtNetworks : [];
-    return list.filter(n => n && String(n.name || '').trim());
-}
-
-// شرائح السحب: قائمة كاملة usdtTiers [{min $, pct}] من 0
-function usdtTiers() {
-    const list = Array.isArray(globalConfig.usdtTiers) ? globalConfig.usdtTiers : [];
-    return list.map(t => ({ min: toNum(t.min, 0), pct: toNum(t.pct, 0) })).sort((a, b) => a.min - b.min);
-}
-
-// شرائح الإيداع (بطلب عماد 2026-10-17، زي السحب والجنيه): أول شريحة (من 0) = usdtDepositPct،
-// والشرائح فوقها usdtDepositTiers [{min $, pct}]
-function usdtDepositTiers() {
-    const extra = (Array.isArray(globalConfig.usdtDepositTiers) ? globalConfig.usdtDepositTiers : [])
-        .map(t => ({ min: toNum(t?.min, 0), pct: toNum(t?.pct, NaN) }))
-        .filter(t => t.min > 0 && t.pct >= 0)
-        .sort((a, b) => a.min - b.min);
-    return [{ min: 0, pct: toNum(globalConfig.usdtDepositPct, 1) }, ...extra];
-}
-
-const usdtKindTiers = (kind) => (kind === 'deposit' ? usdtDepositTiers() : usdtTiers());
-
-// النسبة حسب كمية USDT: آخر شريحة حدّها الأدنى أقل من أو يساوي الكمية
-function usdtPctFor(kind, amount) {
-    const tiers = usdtKindTiers(kind);
-    let pct = tiers[0]?.pct ?? 0;
-    tiers.forEach(t => { if (amount >= t.min) pct = t.pct; });
-    return pct;
-}
-
-// المبلغ اللي فيه كسور بس إذا في كسور: 400 مش 400.00
-const fmtTrim = (v) => fmt(v, Math.abs(round2(v) % 1) > 0.004 ? 2 : 0);
-
-// "أقل من 400 $" / "من 400 لـ 1000 $" / "من 1000 $ فما فوق" (للـ USDT والجنيه)
-function tierRangeText(tiers, min, unit) {
-    const next = tiers.find(t => t.min > min);
-    if (!min) return next ? `أقل من ${fmtTrim(next.min)} ${unit}` : 'كل المبالغ';
-    return next ? `من ${fmtTrim(min)} لـ ${fmtTrim(next.min)} ${unit}` : `من ${fmtTrim(min)} ${unit} فما فوق`;
-}
 
 // المبلغ المتفق عليه (شيكل أو دولار) ← كمية USDT بخطوات نصف، والتقريب دائماً لصالحنا:
 // الإيداع: الزبون يدفع المبلغ ويأخذ USDT مقرّباً لتحت. السحب: يرسل USDT مقرّباً لفوق ويستلم المبلغ.

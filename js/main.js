@@ -160,6 +160,11 @@ const CLICK_ACTIONS = {
     'applock-bio-off': disableBiometric,
     'applock-off': removeAppLock,
     'applock-force-toggle': toggleAppLockForce,
+    'prices-toggle': () => savePricesCfg({ on: pricesCfg().on === 'yes' ? 'no' : 'yes' }, pricesCfg().on === 'yes' ? 'صفحة الأسعار مسكّرة للزبائن' : 'صفحة الأسعار صارت شغّالة'),
+    'prices-sec': (el) => savePricesCfg({ [el.dataset.id]: pricesCfg()[el.dataset.id] === 'yes' ? 'no' : 'yes' }),
+    'prices-src': (el) => togglePricesList('sources', el.dataset.id),
+    'prices-ready': (el) => togglePricesList('ready', el.dataset.id),
+    'prices-copy': (el) => copyPricesUrl(el),
     'closing-count': toggleClosingCount,
     'closing-count-clear': clearClosingCount,
     'load-deleted': loadDeletedList,
@@ -606,6 +611,7 @@ function bindUserEvents() {
 
 // الإعدادات وتسعير الدول
 function bindSettingsEvents() {
+    bindPricesSettingsEvents();
     $('tx_limit').addEventListener('change', saveTxLimit);
     $('late_hours').addEventListener('change', saveLateHours);
     $('goal_amount').addEventListener('change', saveGoalAmount);

@@ -3,40 +3,6 @@
 // فاست باي — الحاسبة: معادلة الحساب والبحث عن الزبون
 // الملفات تُحمَّل بالترتيب في index.html وتتشارك نفس المتغيرات العامة.
 
-// ================= معادلة الحساب (مصدر واحد لكل الشاشات) =================
-// currency: ILS يُسلَّم بالشيكل (مع الخصم الإضافي) | USD يُسلَّم بالدولار مباشرة (بدون خصم الشيكل)
-// finalAdjust: تعديل ± يدوي على المسلّم بعد الحساب، بعملة التسليم (من نافذة تعديل الحوالة)، والربح بيتبعه
-function computeTransfer({ orig, type, factor, costPct, profitPct, screenRate, minusIls, currency = 'ILS', costMode = 'pct', costFixed = 0, finalAdjust = 0 }) {
-    let baseUsd;
-    if (type === 'div') baseUsd = factor > 0 ? orig / factor : 0;
-    else if (type === 'mul') baseUsd = orig * factor;
-    else baseUsd = orig * (1 - factor / 100);
-    baseUsd = Math.max(0, baseUsd);
-
-    // التكلفة: نسبة من المبلغ، أو مبلغ ثابت بالدولار لا يتجاوز المبلغ نفسه
-    const costUsd = costMode === 'fixed' ? Math.min(Math.max(0, costFixed), baseUsd) : baseUsd * (costPct / 100);
-    const profitUsd = baseUsd * (profitPct / 100);
-    const clientUsd = Math.max(0, baseUsd - costUsd - profitUsd);
-    const grossIls = clientUsd * screenRate;
-    // الخصم الإضافي لا يتجاوز المبلغ نفسه، ويذهب للربح (للتسليم بالشيكل فقط)
-    const appliedMinus = currency === 'USD' ? 0 : (grossIls > 0 ? Math.min(Math.max(0, minusIls), grossIls) : 0);
-
-    const usd = currency === 'USD';
-    const clientIls = usd ? 0 : grossIls - appliedMinus;
-    // التعديل ما بينزّل المسلّم تحت الصفر. بنعطيه أكثر = ربح أقل (بالدولار: × سعر الشاشة)
-    const adj = Math.max(toNum(finalAdjust, 0), -(usd ? clientUsd : clientIls));
-
-    return {
-        baseUsd, costUsd, profitUsd, grossIls, appliedMinus,
-        clientUsd: usd ? clientUsd + adj : clientUsd,
-        clientIls: usd ? 0 : clientIls + adj,
-        // الربح والتكلفة دائماً بالشيكل حتى تبقى التقارير بعملة واحدة
-        profitIls: profitUsd * screenRate + appliedMinus - adj * (usd ? screenRate : 1),
-        costIls: costUsd * screenRate,
-        finalAdjust: adj
-    };
-}
-
 function countryOptionsHtml(list) {
     return list.map(c => `
         <option data-name="${escapeHtml(c.name)}" data-type="${escapeHtml(c.type)}" data-factor="${escapeHtml(c.factor)}">
