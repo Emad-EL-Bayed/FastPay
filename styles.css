@@ -1981,6 +1981,13 @@ img.uw-logo { object-fit: cover; }
 .pm-chip { padding: 0.35rem 0.6rem; border-radius: 0.6rem; font-size: 0.72rem; font-weight: 800; background: rgb(var(--b-slate-100, 241 245 249)); color: rgb(var(--t-slate-700, 51 65 85)); }
 .pm-chip.on { background: rgb(var(--b-emerald-50, 236 253 245)); color: rgb(var(--t-emerald-800, 6 95 70)); box-shadow: inset 0 0 0 1px rgb(var(--c-emerald-300, 110 231 183)); }
 .pm-chip b { margin-inline-start: 0.2rem; color: rgb(var(--t-slate-400, 148 163 184)); }
+.pm-switches { display: grid; grid-template-columns: 1fr; gap: 0.4rem; }
+@media (min-width: 640px) { .pm-switches { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.pm-switch { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.45rem 0.6rem; border-radius: 0.7rem; border: 1px solid rgb(var(--c-slate-200, 226 232 240)); background: rgb(var(--b-white, 255 255 255)); }
+.pm-switch b { display: block; font-size: 0.78rem; font-weight: 800; color: rgb(var(--t-slate-900, 15 23 42)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-switch small { display: block; font-size: 0.65rem; color: rgb(var(--t-slate-500, 100 116 139)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-switch.off { opacity: 0.6; }
+.pm-switch .status-toggle { flex-shrink: 0; }
 .pm-chip.off { background: rgb(var(--b-rose-50, 255 241 242)); color: rgb(var(--t-rose-700, 190 18 60)); box-shadow: inset 0 0 0 1px rgb(var(--c-rose-200, 254 205 211)); }
 
 /* ================= الوضع الداكن ================= */

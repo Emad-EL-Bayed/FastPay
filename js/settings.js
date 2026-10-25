@@ -495,14 +495,18 @@ function restoreDeletedPrompt(logId) {
 // إعداد مشترك pricesPage: {on, wa, welcome, usd, usdt, egp, sources: [أرقام الدول], ready: [أرقام الحسابات الجاهزة]}.
 // السكربت (publicPrices) بيعطي الصفحة بس اللي هون مشغّل.
 const PRICES_PAGE = 'https://emad-el-bayed.github.io/FastPay/prices.html';
-const PRICES_SECTIONS = [['usd', 'سعر الدولار'], ['usdt', 'USDT إيداع وسحب'], ['egp', 'الجنيه المصري']];
+const PRICES_SECTIONS = [['usdt', 'شراء وبيع USDT'], ['egp', 'إرسال واستلام جنيه مصري'], ['usd', 'بيع وشراء دولار']];
 
 function pricesCfg() {
     const c = globalConfig.pricesPage && typeof globalConfig.pricesPage === 'object' ? globalConfig.pricesPage : {};
     return {
         on: c.on === 'yes' ? 'yes' : 'no', wa: String(c.wa || ''), welcome: String(c.welcome || ''),
         usd: c.usd === 'no' ? 'no' : 'yes', usdt: c.usdt === 'no' ? 'no' : 'yes', egp: c.egp === 'no' ? 'no' : 'yes',
-        ready: Array.isArray(c.ready) ? c.ready.map(String) : [], readyOn: c.readyOn === 'no' ? 'no' : 'yes',
+        // الأسعار بالصفحة: مسكّرة لحد ما يشغّلها (بطلب عماد 2026-10-25: "ما بدنا نضيف الأسعار حالياً")
+        showPrices: c.showPrices === 'yes' ? 'yes' : 'no',
+        // الحسابات الجاهزة كلها بتطلع، إلا الموقوفة هون (hiddenReady)
+        readyOn: c.readyOn === 'no' ? 'no' : 'yes',
+        hiddenReady: Array.isArray(c.hiddenReady) ? c.hiddenReady.map(String) : [],
         // دول "تسعير الدول" بتطلع لحالها (countriesAuto)، إلا اللي شلتها (hiddenCountries = أرقام بالتسعير)
         countriesAuto: c.countriesAuto === 'no' ? 'no' : 'yes',
         hiddenCountries: Array.isArray(c.hiddenCountries) ? c.hiddenCountries.map(String) : [],
@@ -550,10 +554,8 @@ function renderPricesSettings() {
     $('prices-sections').innerHTML = PRICES_SECTIONS.map(([k, label]) => chip('prices-sec', k, label, cfg[k] === 'yes')).join('');
     renderPriceMethods(cfg);
     renderPriceCountries(cfg);
-    setToggle($('prices-ready-toggle'), cfg.readyOn === 'yes', 'ظاهر', 'مخفي');
-    $('prices-ready').classList.toggle('opacity-50', cfg.readyOn !== 'yes');
-    const ready = (typeof readyAccounts !== 'undefined' ? readyAccounts : []).filter(r => r.id);
-    $('prices-ready').innerHTML = ready.length ? ready.map(r => chip('prices-ready', r.id, r.name, cfg.ready.includes(String(r.id)))).join('') : '<span class="text-[11px] text-slate-400">ما في حسابات جاهزة</span>';
+    setToggle($('prices-show-toggle'), cfg.showPrices === 'yes', 'شغّال', 'مسكّر');
+    renderPriceReady(cfg);
     const url = pricesUrl();
     $('prices-url').textContent = url;
     $('prices-open').href = url;
@@ -576,11 +578,6 @@ function renderPricesQr(url) {
     } catch (e) { box.innerHTML = ''; }
 }
 
-function togglePricesList(key, id) {
-    const cfg = pricesCfg();
-    const list = cfg[key].includes(id) ? cfg[key].filter(x => x !== id) : [...cfg[key], id];
-    savePricesCfg({ [key]: list });
-}
 
 // ---------- الطرق (بطلب عماد 2026-10-25: "بدعم مثلاً ريفولت دولة سنغافورة") ----------
 const METHOD_BRANDS = ['paypal', 'wise', 'revolut', 'payoneer', 'westernunion', 'moneygram', 'binance', 'applepay', 'googlepay', 'visa', 'mastercard'];
@@ -609,7 +606,7 @@ function renderPriceMethods(cfg = pricesCfg()) {
             <div class="min-w-0 flex-1">
                 <b class="block text-sm text-slate-900">${escapeHtml(m.name)}</b>
                 <span class="block text-[11px] text-slate-500 truncate">${escapeHtml(methodCountriesText(m))}</span>
-                <span class="block text-[10px] ${m.source ? 'text-emerald-700' : 'text-slate-400'} font-bold">${m.source && methodSourceName(m.source) ? `السعر من تسعير "${escapeHtml(methodSourceName(m.source))}"` : 'بدون سعر · واتساب بس'}</span>
+                ${cfg.showPrices === 'yes' ? `<span class="block text-[10px] ${m.source ? 'text-emerald-700' : 'text-slate-400'} font-bold">${m.source && methodSourceName(m.source) ? `السعر من تسعير "${escapeHtml(methodSourceName(m.source))}"` : 'بدون سعر · واتساب بس'}</span>` : ''}
             </div>
             <button type="button" data-action="pm-toggle" data-id="${escapeHtml(m.id)}" class="status-toggle ${m.on !== 'no' ? 'on' : ''}" style="--c:#10b981" aria-pressed="${m.on !== 'no'}"><span class="sw"></span>${m.on !== 'no' ? 'ظاهرة' : 'مخفية'}</button>
             <button type="button" data-action="pm-edit" data-id="${escapeHtml(m.id)}" class="text-xs font-bold text-blue-700 hover:underline">تعديل</button>
@@ -621,6 +618,14 @@ function pricingCountries() {
     return [...countries].filter(c => c.id && pricingCountryIso(c.name)).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
+// سطر بسويتش (دولة أو حساب جاهز): شغّالة = بتطلع بالرابط، موقوفة = مخفية
+function priceSwitchRow(action, id, label, sub, on, disabled) {
+    return `<div class="pm-switch ${on ? '' : 'off'}">
+        <span class="min-w-0"><b>${escapeHtml(label)}</b>${sub ? `<small>${escapeHtml(sub)}</small>` : ''}</span>
+        <button type="button" data-action="${action}" data-id="${escapeHtml(id)}" class="status-toggle ${on ? 'on' : ''}" style="--c:#10b981" aria-pressed="${on}" ${disabled ? 'disabled' : ''}><span class="sw"></span>${on ? 'شغّالة' : 'موقوفة'}</button>
+    </div>`;
+}
+
 function renderPriceCountries(cfg = pricesCfg()) {
     const box = $('prices-countries');
     if (!box) return;
@@ -628,10 +633,29 @@ function renderPriceCountries(cfg = pricesCfg()) {
     setToggle($('prices-countries-toggle'), on, 'تلقائي', 'مسكّر');
     box.classList.toggle('opacity-50', !on);
     const list = pricingCountries();
-    box.innerHTML = list.length ? list.map(c => {
-        const shown = on && !cfg.hiddenCountries.includes(String(c.id));
-        return `<button type="button" data-action="prices-country" data-id="${escapeHtml(c.id)}" class="tf-chip ${shown ? 'active' : ''}" aria-pressed="${shown}" ${on ? '' : 'disabled'}>${shown ? '✓ ' : ''}${escapeHtml(c.name)}</button>`;
-    }).join('') : '<span class="text-[11px] text-slate-400">ما في دول بتسعير الدول</span>';
+    box.innerHTML = list.length
+        ? list.map(c => priceSwitchRow('prices-country', c.id, c.name, '', on && !cfg.hiddenCountries.includes(String(c.id)), !on)).join('')
+        : '<span class="text-[11px] text-slate-400">ما في دول بتسعير الدول</span>';
+}
+
+function renderPriceReady(cfg = pricesCfg()) {
+    const box = $('prices-ready');
+    if (!box) return;
+    const on = cfg.readyOn === 'yes';
+    setToggle($('prices-ready-toggle'), on, 'ظاهرة', 'مخفية');
+    box.classList.toggle('opacity-50', !on);
+    const list = (typeof readyAccounts !== 'undefined' ? readyAccounts : []).filter(r => r.id);
+    box.innerHTML = list.length ? list.map(r => {
+        const iso = readyIso(r);
+        const stopped = typeof readyStopped === 'function' && readyStopped(r);
+        const sub = stopped ? 'موقوف بصفحة الحسابات الجاهزة' : iso ? `بيطلع مع ${worldFlag(iso)} ${worldCountry(iso)?.[1] || iso}` : 'بقسم "محتاج حساب؟"';
+        return priceSwitchRow('prices-ready-one', r.id, r.name, sub, on && !stopped && !cfg.hiddenReady.includes(String(r.id)), !on || stopped);
+    }).join('') : '<span class="text-[11px] text-slate-400">ما في حسابات جاهزة</span>';
+}
+
+function togglePriceReady(id) {
+    const cfg = pricesCfg();
+    savePricesCfg({ hiddenReady: cfg.hiddenReady.includes(id) ? cfg.hiddenReady.filter(x => x !== id) : [...cfg.hiddenReady, id] });
 }
 
 function togglePriceCountry(id) {
@@ -649,6 +673,7 @@ function openMethodModal(id = '') {
     const srcs = [...countries].filter(c => c.id && !isUsdtSource(c)).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     $('pm_source').innerHTML = '<option value="">بدون سعر · الزبون بيطلب على واتساب</option>' + srcs.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
     $('pm_source').value = methodDraft.source && srcs.some(c => String(c.id) === methodDraft.source) ? methodDraft.source : '';
+    $('pm_source_off').classList.toggle('hidden', pricesCfg().showPrices === 'yes');
     renderMethodModal();
     openModal('methodModal');
     $('pm_name').focus();

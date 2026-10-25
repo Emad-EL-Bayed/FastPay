@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0f172a">
     <title>شو بدك؟ · فاست باي</title>
-    <meta name="description" content="اكتب الدولة اللي بدك تبعت منها وشوف الطرق والسعر، واطلب على واتساب بكبسة">
+    <meta name="description" content="اكتب الدولة اللي بدك تبعت منها وشوف شو المتاح، واطلب على واتساب بكبسة">
     <!-- معاينة الرابط بواتساب -->
     <meta property="og:title" content="فاست باي · شو بدك؟">
-    <meta property="og:description" content="اختار الدولة والطريقة، احسب المبلغ، واطلب على واتساب">
+    <meta property="og:description" content="اختار دولتك وشوف شو المتاح، واطلب على واتساب">
     <meta property="og:image" content="https://emad-el-bayed.github.io/FastPay/assets/icon-512.png">
     <link rel="icon" href="assets/icon-192.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -229,7 +229,7 @@
             <!-- شو بدك؟ -->
             <section class="card hero" aria-label="شو بدك؟">
                 <h2>شو <em>بدك</em> اليوم؟</h2>
-                <p id="hero-sub">اكتب الدولة اللي بدك تبعت منها، وبنوريك الطرق اللي بتشتغل منها والسعر.</p>
+                <p id="hero-sub">اكتب الدولة اللي بدك تبعت منها، وبنوريك شو المتاح منها.</p>
                 <div class="search" id="search-wrap">
                     <div class="search-box">
                         <span id="search-flag" class="search-flag" aria-hidden="true">🌍</span>
@@ -240,7 +240,7 @@
                 </div>
                 <div id="quick" class="quick" aria-label="خدمات ثانية"></div>
                 <div id="offer-flags-wrap" class="hidden">
-                    <p class="offer-label">عنا حوالات من:</p>
+                    <p class="offer-label">متاح من:</p>
                     <div id="offer-flags" class="quick" style="margin-top:6px"></div>
                 </div>
             </section>
@@ -252,7 +252,7 @@
 
             <!-- الطلب -->
             <div id="order" class="hidden">
-                <div class="title"><h2>احسب واطلب</h2><span>نفس السعر اللي بنعطيك ياه</span></div>
+                <div class="title"><h2>اطلب</h2><span>بتوصلنا رسالتك على واتساب</span></div>
                 <div class="layout">
                     <section class="card" aria-label="الطلب">
                         <div class="sel">
@@ -298,13 +298,13 @@
                             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.21 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.69.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.05 21.8h-.01a9.8 9.8 0 0 1-5-1.37l-.36-.21-3.71.97.99-3.62-.23-.37a9.8 9.8 0 0 1-1.5-5.22c0-5.42 4.41-9.83 9.84-9.83 2.63 0 5.1 1.03 6.96 2.89a9.77 9.77 0 0 1 2.88 6.96c0 5.42-4.41 9.83-9.84 9.83zm8.37-18.2A11.76 11.76 0 0 0 12.05 0C5.5 0 .17 5.33.17 11.88c0 2.1.55 4.14 1.59 5.94L.07 24l6.33-1.66a11.86 11.86 0 0 0 5.65 1.44h.01c6.55 0 11.88-5.33 11.88-11.88 0-3.17-1.24-6.16-3.48-8.4z"/></svg>
                             <span>اطلب<span class="wa-long"> على واتساب</span></span>
                         </a>
-                        <p class="note">بنأكدلك المبلغ النهائي على واتساب قبل التحويل.</p>
+                        <p class="note">بنرد عليك على واتساب بالتفاصيل والسعر قبل أي تحويل.</p>
                     </section>
                 </div>
             </div>
 
             <div id="ready-wrap" class="hidden">
-                <div class="title"><h2>محتاج حساب؟</h2><span>اكبس وبنبعتلك التفاصيل على واتساب</span></div>
+                <div class="title"><h2>محتاج حساب؟</h2><span>اكبس واطلب على واتساب</span></div>
                 <div id="ready" class="ready"></div>
             </div>
         </div>
@@ -312,13 +312,15 @@
         <p class="foot" id="foot"></p>
     </main>
 
-    <script src="js/endpoint.js?v=151"></script>
-    <script src="js/pricing.js?v=151"></script>
-    <script src="js/service-logos.js?v=151"></script>
-    <script src="js/world-countries.js?v=151"></script>
+    <script src="js/endpoint.js?v=152"></script>
+    <script src="js/pricing.js?v=152"></script>
+    <script src="js/service-logos.js?v=152"></script>
+    <script src="js/world-countries.js?v=152"></script>
     <script>
     'use strict';
-    // الإعدادات اللي بتقرأها دوال pricing.js (من رد السكربت فوق الافتراضي PRICE_DEFAULTS)
+    // صفحة الزبائن "شو بدك؟": الزبون بيكتب دولته وبيشوف شو المتاح منها، وبيطلب على واتساب.
+    // كل خيار (حوالة مباشرة من دولة، حساب جاهز، طريقة، خدمة سريعة) بيمشي بنفس الطريق: كرت ← نافذة الطلب ← واتساب.
+    // الأسعار بس إذا عماد شغّلها (DATA.showPrices)، وبنفس كود البرنامج (js/pricing.js)؛ غير هيك "بنحكيلك السعر على واتساب".
     let globalConfig = { ...PRICE_DEFAULTS };
     let DATA = null;
     let loadedAt = 0;
@@ -329,6 +331,8 @@
     const SYM = { ILS: '₪', USD: '$' };
     const money = (v, cur) => `${fmtTrim(v)} ${SYM[cur]}`;
     const JSON_KEYS = ['usdtDepositTiers', 'usdtNetworks', 'usdtTiers', 'egpSendTiers', 'egpReceiveTiers'];
+    const pricesOn = () => !!DATA?.showPrices;
+    const plural = (n, one, two, many) => (n === 1 ? one : n === 2 ? two : `${n} ${many}`);
 
     // ---------- شعارات ----------
     const ICONS = {
@@ -342,72 +346,95 @@
         return { c: '#6366f1', html: esc(String(m.name || '؟').trim().charAt(0)) };
     }
     const countryName = (iso) => worldCountry(iso)?.[1] || iso;
-    // بأي دول بتشتغل: تلقائي من معلومات الشركة (js/world-countries.js) وتعديلات عماد، أو القائمة اللي اختارها
-    const methodsFor = (iso) => (DATA?.methods || []).filter(m => !iso || methodWorksIn(m, iso));
-    const methodSource = (m) => (m.source ? (DATA?.sources || []).find(s => String(s.id) === String(m.source)) : null);
+    const usdUnit = (src) => !src || src.type === 'direct_percent' || (src.type === 'mul' && Number(src.factor) === 1);
+    const sourceById = (id) => (DATA?.sources || []).find(x => String(x.id) === String(id)) || null;
 
-    // ---------- الخدمات ----------
+    // ---------- المتاح ----------
+    // دول "تسعير الدول" (الشغّالة)، الحسابات الجاهزة المربوطة بدولة، والطرق اللي بتشتغل منها
+    const countryEntries = (iso) => (DATA?.countries || []).filter(c => { const x = pricingCountryIso(c.name); return x && (!iso || x === iso); });
+    const readyFor = (iso) => (DATA?.ready || []).filter(r => readyIso(r) === iso);
+    const generalReady = () => (DATA?.ready || []).filter(r => !readyIso(r));
+    const methodsFor = (iso) => (DATA?.methods || []).filter(m => !iso || methodWorksIn(m, iso));
+    const optionsCount = (iso) => countryEntries(iso).length + readyFor(iso).length + methodsFor(iso).length;
+    // الدول اللي إلها حوالة مباشرة أو حساب جاهز (سطر "متاح من:")
+    function directIsos() {
+        const out = [];
+        countryEntries('').forEach(c => out.push(pricingCountryIso(c.name)));
+        (DATA?.ready || []).forEach(r => { const x = readyIso(r); if (x) out.push(x); });
+        return [...new Set(out)];
+    }
+
+    function countryService(c) {
+        const iso = pricingCountryIso(c.name);
+        const src = pricesOn() ? sourceById(c.id) : null;
+        const cur = usdUnit(src || { type: '' }) && src ? '$' : countryCurrency(iso);
+        const unit = cur === '$' ? '$' : (cur === 'بعملتها' ? '' : ` ${cur}`);
+        return { id: 'c_' + c.id, type: 'country', iso, src, label: `حوالة من ${countryName(iso)}`, sub: 'حوالة مباشرة', icon: { c: '#0ea5e9', html: worldFlag(iso) },
+            unit, amountLabel: unit ? `كم ${cur === '$' ? 'دولار' : cur} بدك تبعت؟` : 'المبلغ اللي بدك تبعته', curLabel: 'بتستلم' };
+    }
+    function readyService(r) {
+        const iso = readyIso(r);
+        return { id: 'r_' + r.id, type: 'ready', iso, ready: r, label: r.name, sub: r.category && r.category !== r.name ? r.category : 'حساب جاهز', icon: { c: '#f59e0b', html: iso ? worldFlag(iso) : '🏦' },
+            unit: '', amountLabel: 'المبلغ', curLabel: '' };
+    }
+    function methodService(m) {
+        const src = pricesOn() && m.source ? sourceById(m.source) : null;
+        const usd = usdUnit(src);
+        return { id: 'm_' + m.id, type: 'method', method: m, src, label: m.name, sub: methodSub(m), icon: methodIcon(m),
+            unit: usd ? '$' : '', amountLabel: usd ? 'كم دولار بدك تبعت؟' : 'المبلغ اللي بدك تبعته', curLabel: 'بتستلم' };
+    }
+    function methodSub(m) {
+        if (state.country) return 'بتشتغل من دولتك';
+        const n = methodCountryCount(m);
+        return n > 120 ? 'من أغلب دول العالم' : n === 1 ? `من ${countryName(WORLD_COUNTRIES.find(c => methodWorksIn(m, c[0]))[0])}` : methodCoverageText(m);
+    }
     function quickServices() {
         if (!DATA) return [];
         const s = DATA.show || {};
         const list = [];
-        if (s.usdt && DATA.screen > 0) {
-            list.push({ id: 'usdt_buy', kind: 'deposit', label: 'شراء USDT', sub: 'بتدفع وبتستلم USDT', icon: ICONS.usdt, unit: 'USDT', amountLabel: 'كم USDT بدك؟', curLabel: 'بتدفع' });
-            list.push({ id: 'usdt_sell', kind: 'withdraw', label: 'بيع USDT', sub: 'بتبعت USDT وبتستلم', icon: ICONS.usdt, unit: 'USDT', amountLabel: 'كم USDT بدك تبيع؟', curLabel: 'بتستلم' });
+        if (s.usdt) {
+            list.push({ id: 'usdt_buy', type: 'quick', kind: 'deposit', label: 'شراء USDT', sub: 'بتدفع وبتستلم USDT', icon: ICONS.usdt, unit: 'USDT', amountLabel: 'كم USDT بدك؟', curLabel: 'بتدفع' });
+            list.push({ id: 'usdt_sell', type: 'quick', kind: 'withdraw', label: 'بيع USDT', sub: 'بتبعت USDT وبتستلم', icon: ICONS.usdt, unit: 'USDT', amountLabel: 'كم USDT بدك تبيع؟', curLabel: 'بتستلم' });
         }
-        if (s.egp && DATA.egpScreen > 0) {
-            list.push({ id: 'egp_send', kind: 'send', label: 'إرسال لمصر', sub: 'فودافون كاش · انستا باي', icon: ICONS.egp, unit: 'جنيه', amountLabel: 'كم جنيه بدك يوصل؟', curLabel: 'بتدفع' });
-            list.push({ id: 'egp_receive', kind: 'receive', label: 'استلام من مصر', sub: 'بتبعتلنا جنيه وبتستلم', icon: ICONS.egp, unit: 'جنيه', amountLabel: 'كم جنيه رح يوصلنا؟', curLabel: 'بتستلم' });
+        if (s.egp) {
+            list.push({ id: 'egp_send', type: 'quick', kind: 'send', label: 'إرسال لمصر', sub: 'فودافون كاش · انستا باي', icon: ICONS.egp, unit: 'جنيه', amountLabel: 'كم جنيه بدك يوصل؟', curLabel: 'بتدفع' });
+            list.push({ id: 'egp_receive', type: 'quick', kind: 'receive', label: 'استلام من مصر', sub: 'بتبعتلنا جنيه وبتستلم', icon: ICONS.egp, unit: 'جنيه', amountLabel: 'كم جنيه رح يوصلنا؟', curLabel: 'بتستلم' });
         }
-        if (s.usd && DATA.screen > 0) {
-            list.push({ id: 'usd_sell', label: 'بيع دولار', sub: 'بتستلم شيكل', icon: ICONS.usd, unit: '$', amountLabel: 'كم دولار بدك تبيع؟', curLabel: 'بتستلم', noCur: true });
-            list.push({ id: 'usd_buy', label: 'شراء دولار', sub: 'بتدفع شيكل', icon: ICONS.usd, unit: '$', amountLabel: 'كم دولار بدك؟', curLabel: 'بتدفع', noCur: true });
+        if (s.usd) {
+            list.push({ id: 'usd_sell', type: 'quick', kind: 'usd_sell', label: 'بيع دولار', sub: 'بتستلم شيكل', icon: ICONS.usd, unit: '$', amountLabel: 'كم دولار بدك تبيع؟', curLabel: 'بتستلم', noCur: true });
+            list.push({ id: 'usd_buy', type: 'quick', kind: 'usd_buy', label: 'شراء دولار', sub: 'بتدفع شيكل', icon: ICONS.usd, unit: '$', amountLabel: 'كم دولار بدك؟', curLabel: 'بتدفع', noCur: true });
         }
         return list;
     }
-    function methodService(m) {
-        const src = methodSource(m);
-        // المبلغ بالدولار: الخصم المباشر، أو × 1 (زي باي بال)، أو طريقة بدون تسعير
-        const usdIn = !src || src.type === 'direct_percent' || (src.type === 'mul' && Number(src.factor) === 1);
-        return { id: 'm_' + m.id, method: m, src, label: m.name, icon: methodIcon(m), unit: usdIn ? '$' : '', curLabel: 'بتستلم', noCur: !src,
-            amountLabel: src ? (usdIn ? 'كم دولار بدك تبعت؟' : 'المبلغ اللي بدك تبعته') : 'المبلغ (تقريباً)' };
-    }
-    // دول "تسعير الدول" (بتطلع لحالها): "حوالة من قطر" بسعرها، والمبلغ بعملة الدولة
-    const countryOffers = (iso) => (DATA?.countryIds || []).map(id => (DATA.sources || []).find(x => String(x.id) === String(id)))
-        .filter(x => x && pricingCountryIso(x.name) && (!iso || pricingCountryIso(x.name) === iso));
-    function offerService(src) {
-        const iso = pricingCountryIso(src.name);
-        const usdIn = src.type === 'direct_percent' || (src.type === 'mul' && Number(src.factor) === 1);
-        const cur = countryCurrency(iso);
-        const label = `حوالة من ${countryName(iso)}`;
-        return { id: 'c_' + src.id, offer: true, iso, method: { name: label }, src, label, icon: { c: '#0ea5e9', html: worldFlag(iso) },
-            unit: usdIn ? '$' : ` ${cur}`, curLabel: 'بتستلم', noCur: false, amountLabel: usdIn ? 'كم دولار بدك تبعت؟' : (cur === 'بعملتها' ? 'المبلغ اللي بدك تبعته' : `كم ${cur} بدك تبعت؟`) };
-    }
     function currentService() {
-        if (state.svc.startsWith('c_')) {
-            const src = countryOffers('').find(x => 'c_' + x.id === state.svc);
-            return src ? offerService(src) : null;
-        }
-        if (state.svc.startsWith('m_')) {
-            const m = (DATA?.methods || []).find(x => 'm_' + x.id === state.svc);
-            return m ? methodService(m) : null;
-        }
-        return quickServices().find(s => s.id === state.svc) || null;
+        const id = state.svc;
+        if (!id || !DATA) return null;
+        if (id.startsWith('c_')) { const c = (DATA.countries || []).find(x => 'c_' + x.id === id); return c ? countryService(c) : null; }
+        if (id.startsWith('r_')) { const r = (DATA.ready || []).find(x => 'r_' + x.id === id); return r ? readyService(r) : null; }
+        if (id.startsWith('m_')) { const m = (DATA.methods || []).find(x => 'm_' + x.id === id); return m ? methodService(m) : null; }
+        return quickServices().find(s => s.id === id) || null;
     }
-    const firstNet = () => (usdtNetworks()[0] || { name: '', fee: 0 });
-    const netOf = (name) => usdtNetworks().find(n => n.name === name) || firstNet();
+    // شبكات USDT: مع الأسعار من الإعدادات (مع الرسوم)، وبدونها الأسماء بس
+    const netList = () => (pricesOn() ? usdtNetworks() : ((DATA?.networks || []).length ? DATA.networks : PRICE_DEFAULTS.usdtNetworks.map(n => n.name)).map(name => ({ name, fee: null })));
+    const netOf = (name) => netList().find(n => n.name === name) || netList()[0] || { name: '', fee: 0 };
 
-    // ---------- الحساب (نفس البرنامج) ----------
-    // pay: الزبون بيدفع (true) أو بيستلم (false). ask: ما في سعر، بيطلب على واتساب
-    function quote(s, amount, cur, netName) {
-        if (!s || !(amount > 0)) return null;
+    // ---------- الحساب (نفس البرنامج، بس مع الأسعار) ----------
+    function priceable(s) {
+        if (!s || !pricesOn()) return false;
+        if (s.type === 'country' || s.type === 'method') return !!s.src;
+        if (s.kind === 'send' || s.kind === 'receive') return DATA.egpScreen > 0;
+        if (s.type === 'quick') return DATA.screen > 0;
+        return false;
+    }
+    // pay: الزبون بيدفع (true) أو بيستلم (false)
+    function quote(s, amount, cur) {
+        if (!priceable(s) || !(amount > 0)) return null;
         const { sell, buy } = sellBuyRates();
         if (s.kind === 'deposit' || s.kind === 'withdraw') {
             const dep = s.kind === 'deposit';
-            const net = dep ? netOf(netName) : { name: '', fee: 0 };
+            const net = dep ? netOf(state.net) : { name: '', fee: 0 };
             const r = computeUsdt({ kind: s.kind, amount, networkFee: toNum(net.fee, 0), pct: usdtPctFor(s.kind, amount), rate: dep ? buy : sell, currency: cur, discount: 0, settle: 0 });
-            return { pay: dep, total: r.total, cur, lines: [dep && net.name ? [`الشبكة ${net.name}`, `رسوم ${fmtTrim(toNum(net.fee, 0))} USDT`] : null, ['سعر الـ USDT تقريباً', money(r.total / amount, cur)]].filter(Boolean),
-                head: `${dep ? 'شراء' : 'بيع'} ${fmtTrim(amount)} USDT`, net: net.name };
+            return { pay: dep, total: r.total, cur, lines: [dep && net.name ? [`الشبكة ${net.name}`, `رسوم ${fmtTrim(toNum(net.fee, 0))} USDT`] : null, ['سعر الـ USDT تقريباً', money(r.total / amount, cur)]].filter(Boolean) };
         }
         if (s.kind === 'send' || s.kind === 'receive') {
             const r0 = egpRates(egpScreen());
@@ -416,20 +443,16 @@
             if (!(base.rate > 0)) return null;
             const f = withEgpTier(base);
             const r = computeEgp(f);
-            return { pay: send, total: r.total, cur, lines: [['الألف جنيه', money(egpPerThousand(f.rate, f.usdRate, cur), cur)]], head: `${send ? 'إرسال' : 'استلام'} ${fmtTrim(amount)} جنيه ${send ? 'لمصر' : 'من مصر'}` };
+            return { pay: send, total: r.total, cur, lines: [['الألف جنيه', money(egpPerThousand(f.rate, f.usdRate, cur), cur)]] };
         }
-        if (s.method) {
-            const where = state.country ? ` من ${worldFlag(state.country)} ${countryName(state.country)}` : '';
-            const head = s.offer ? `بدي أبعت حوالة من ${countryName(s.iso)}` : `بدي أبعت${where} عن طريق ${s.method.name}`;
-            if (!s.src) return { ask: true, head, amountText: `${fmtTrim(amount)} ${s.unit}`.trim() };
+        if (s.kind === 'usd_sell') return { pay: false, total: round2(amount * sell), cur: 'ILS', lines: [['السعر', fmt(sell, 3)]] };
+        if (s.kind === 'usd_buy') return { pay: true, total: round2(amount * buy), cur: 'ILS', lines: [['السعر', fmt(buy, 3)]] };
+        if (s.src) {
             const c = { ...s.src, tiers: normalizeCountryTiers(s.src.tiers) };
             const t = countryTierAt(c, sourceUsdAmount(c.type, amount, c.factor)).tier;
             const r = computeTransfer({ orig: amount, type: c.type, factor: c.factor, costMode: c.costMode, costPct: c.costMode === 'fixed' ? 0 : t.cost, costFixed: c.costMode === 'fixed' ? t.cost : 0, profitPct: t.profit, screenRate: sell, minusIls: toNum(globalConfig.minusIls, 0), currency: cur });
-            const total = cur === 'USD' ? round2(r.clientUsd) : round2(r.clientIls);
-            return { pay: false, total, cur, lines: [], head, amountText: `${fmtTrim(amount)}${s.unit}` };
+            return { pay: false, total: cur === 'USD' ? round2(r.clientUsd) : round2(r.clientIls), cur, lines: [] };
         }
-        if (s.id === 'usd_sell') return { pay: false, total: round2(amount * sell), cur: 'ILS', lines: [['السعر', fmt(sell, 3)]], head: `بيع ${fmtTrim(amount)}$` };
-        if (s.id === 'usd_buy') return { pay: true, total: round2(amount * buy), cur: 'ILS', lines: [['السعر', fmt(buy, 3)]], head: `شراء ${fmtTrim(amount)}$` };
         return null;
     }
 
@@ -445,8 +468,8 @@
         }
         state.hl = Math.min(state.hl, list.length - 1);
         box.innerHTML = list.map((c, i) => {
-            const n = methodsFor(c[0]).length + countryOffers(c[0]).length;
-            return `<button type="button" role="option" data-iso="${c[0]}" class="${i === state.hl ? 'hl' : ''}"><span class="fl">${worldFlag(c[0])}</span><b>${esc(c[1])}</b><small class="${n ? 'ok' : ''}">${n ? (n === 1 ? 'طريقة وحدة' : n === 2 ? 'طريقتين' : `${n} طرق`) : 'احكي معنا'}</small></button>`;
+            const n = optionsCount(c[0]);
+            return `<button type="button" role="option" data-iso="${c[0]}" class="${i === state.hl ? 'hl' : ''}"><span class="fl">${worldFlag(c[0])}</span><b>${esc(c[1])}</b><small class="${n ? 'ok' : ''}">${n ? `${plural(n, 'خيار واحد', 'خيارين', 'خيارات')} متاحة` : 'احكي معنا'}</small></button>`;
         }).join('');
         box.classList.remove('hidden');
     }
@@ -458,70 +481,52 @@
         $('search-flag').textContent = iso ? worldFlag(iso) : '🌍';
         $('country-clear').classList.toggle('hidden', !iso);
         try { history.replaceState(null, '', iso ? `?c=${iso}` : location.pathname); } catch (e) { /* عادي */ }
-        // الطريقة المختارة ما بتشتغل من الدولة الجديدة ← بتنشال
+        // الخيار المفتوح ما بيشتغل من الدولة الجديدة ← بيتسكّر
         const cur = currentService();
-        if (cur?.method && iso && !methodWorksIn(cur.method, iso)) { state.svc = ''; }
-        renderMethods();
+        if (cur && iso && ((cur.method && !methodWorksIn(cur.method, iso)) || ((cur.type === 'country' || cur.type === 'ready') && cur.iso && cur.iso !== iso))) state.svc = '';
+        renderOptions();
         renderOrder();
         if (iso) $('methods-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     // ---------- الرسم ----------
-    function methodCardHtml(m, i) {
-        const s = methodService(m);
-        const q = s.src ? quote(s, 100, 'ILS') : null;
-        const price = q ? `<div class="mprice"><span>لما تبعت 100${esc(s.unit)}</span><b class="num">${esc(fmtTrim(q.total))} <small>₪ بتستلم</small></b></div>`
-            : '<div class="mprice"><span>السعر</span><b style="font-size:13px">بنحكيلك على واتساب</b></div>';
-        const n = methodCountryCount(m);
-        const where = n > 120 ? 'من أغلب دول العالم' : n === 1 ? `من ${countryName(WORLD_COUNTRIES.find(c => methodWorksIn(m, c[0]))[0])}` : methodCoverageText(m);
+    function optionCardHtml(s, i) {
+        const q = priceable(s) ? quote(s, 100, 'ILS') : null;
+        const priceBlock = q
+            ? `<div class="mprice"><span>لما تبعت 100${esc(s.unit)}</span><b class="num">${esc(fmtTrim(q.total))} <small>₪ بتستلم</small></b></div>`
+            : `<div class="mprice"><span>${esc(s.sub)}</span><b style="font-size:13px">متاح ✓</b></div>`;
         return `<button type="button" class="mcard ${state.svc === s.id ? 'on' : ''}" data-svc="${esc(s.id)}" style="--c:${s.icon.c};animation-delay:${i * 0.04}s">
-            <span class="mlogo">${s.icon.html}</span>
-            <b class="name">${esc(m.name)}</b>
-            ${price}
-            <div class="mcta"><span>${esc(state.country ? 'بتشتغل من دولتك' : where)}</span><em>اختار ←</em></div>
-        </button>`;
-    }
-
-    // كرت "حوالة من قطر": العلم والسعر لما يبعت 100 من عملتها
-    function offerCardHtml(src, i) {
-        const s = offerService(src);
-        const q = quote(s, 100, 'ILS');
-        const price = q ? `<div class="mprice"><span>لما تبعت 100${esc(s.unit)}</span><b class="num">${esc(fmtTrim(q.total))} <small>₪ بتستلم</small></b></div>` : '';
-        return `<button type="button" class="mcard ${state.svc === s.id ? 'on' : ''}" data-svc="${esc(s.id)}" style="--c:${s.icon.c};animation-delay:${i * 0.04}s">
-            <span class="mlogo" style="font-size:26px">${s.icon.html}</span>
+            <span class="mlogo" ${s.type === 'country' || (s.type === 'ready' && s.iso) ? 'style="font-size:26px"' : ''}>${s.icon.html}</span>
             <b class="name">${esc(s.label)}</b>
-            ${price}
-            <div class="mcta"><span>حوالة مباشرة</span><em>اختار ←</em></div>
+            ${priceBlock}
+            <div class="mcta"><span>${esc(q ? s.sub : 'السعر على واتساب')}</span><em>اطلب ←</em></div>
         </button>`;
     }
 
-    // "عنا حوالات من": أعلام دول التسعير تحت البحث (الكبسة بتختار الدولة)
-    function renderOfferFlags() {
-        const list = countryOffers('');
-        const isos = [...new Set(list.map(x => pricingCountryIso(x.name)))];
-        $('offer-flags-wrap').classList.toggle('hidden', !isos.length);
-        $('offer-flags').innerHTML = isos.map(iso => `<button type="button" data-iso="${iso}" class="${state.country === iso ? 'on' : ''}" style="--c:#0ea5e9"><span class="ic" style="font-size:16px">${worldFlag(iso)}</span>${esc(countryName(iso))}</button>`).join('');
-    }
-
-    function renderMethods() {
+    function renderOptions() {
         const iso = state.country;
-        const offers = iso ? countryOffers(iso) : [];
-        const list = methodsFor(iso);
-        const all = (DATA?.methods || []).length;
-        const n = offers.length + list.length;
-        $('methods-title').textContent = iso ? `من ${worldFlag(iso)} ${countryName(iso)} بتقدر تبعت` : 'الطرق اللي عنا';
-        $('methods-count').textContent = n ? (n === 1 ? 'خيار واحد' : n === 2 ? 'خيارين' : `${n} خيارات`) : '';
-        $('methods').innerHTML = offers.map(offerCardHtml).join('') + list.map((m, i) => methodCardHtml(m, i + offers.length)).join('');
-        renderOfferFlags();
+        const opts = iso
+            ? [...countryEntries(iso).map(countryService), ...readyFor(iso).map(readyService), ...methodsFor(iso).map(methodService)]
+            : methodsFor('').map(methodService);
+        $('methods-title').textContent = iso ? `المتاح من ${worldFlag(iso)} ${countryName(iso)}` : 'الطرق اللي عنا';
+        $('methods-count').textContent = opts.length ? plural(opts.length, 'خيار واحد', 'خيارين', 'خيارات') : '';
+        $('methods').innerHTML = opts.map(optionCardHtml).join('');
+        $('methods-title').parentElement.classList.toggle('hidden', !iso && !opts.length);
         const empty = $('methods-empty');
-        const noneAtAll = !all;
-        empty.classList.toggle('hidden', n > 0 || (noneAtAll && !iso));
-        $('methods-title').parentElement.classList.toggle('hidden', noneAtAll && !iso);
-        if (!n && (iso || !noneAtAll)) {
-            const text = `مرحبا ${DATA.company?.name || ''}، بدي أبعت من ${countryName(iso)}، شو الطرق المتاحة؟\n\n(من صفحة الأسعار)`;
-            empty.innerHTML = `<div class="ico">${worldFlag(iso)}</div><h3>ما في طريقة جاهزة من ${esc(countryName(iso))}</h3><p>احكي معنا وبنشوفلك حل.</p>
+        empty.classList.toggle('hidden', !iso || opts.length > 0);
+        if (iso && !opts.length) {
+            const text = `مرحبا ${DATA.company?.name || ''}، بدي أبعت من ${countryName(iso)}، شو المتاح؟\n\n(من صفحة الزبائن)`;
+            empty.innerHTML = `<div class="ico">${worldFlag(iso)}</div><h3>ما في إشي جاهز من ${esc(countryName(iso))} هلّق</h3><p>احكي معنا وبنشوفلك حل.</p>
                 ${DATA.wa ? `<a class="wa-btn wa-inline" target="_blank" rel="noopener" href="https://wa.me/${DATA.wa}?text=${encodeURIComponent(text)}">${$('wa-btn').querySelector('svg').outerHTML}<span>احكي معنا على واتساب</span></a>` : ''}`;
         }
+        renderFlags();
+    }
+
+    // "متاح من:" أعلام الدول اللي إلها حوالة مباشرة أو حساب جاهز (الكبسة بتختار الدولة)
+    function renderFlags() {
+        const isos = directIsos();
+        $('offer-flags-wrap').classList.toggle('hidden', !isos.length);
+        $('offer-flags').innerHTML = isos.map(iso => `<button type="button" data-iso="${iso}" class="${state.country === iso ? 'on' : ''}" style="--c:#0ea5e9"><span class="ic" style="font-size:16px">${worldFlag(iso)}</span>${esc(countryName(iso))}</button>`).join('');
     }
 
     function renderQuick() {
@@ -535,20 +540,22 @@
         $('order').classList.toggle('hidden', !s);
         document.querySelectorAll('[data-svc]').forEach(b => b.classList.toggle('on', b.dataset.svc === state.svc));
         if (!s) return;
+        const priced = priceable(s);
         $('sel-logo').innerHTML = s.icon.html;
         $('sel-logo').style.setProperty('--c', s.icon.c);
         $('sel-name').textContent = s.label;
-        $('sel-sub').textContent = s.offer ? 'حوالة مباشرة' : s.method ? (state.country ? `من ${worldFlag(state.country)} ${countryName(state.country)}` : 'اختار دولتك فوق') : (s.sub || '');
-        $('amount-label').textContent = s.amountLabel;
+        $('sel-sub').textContent = s.type === 'method' ? (state.country ? `من ${worldFlag(state.country)} ${countryName(state.country)}` : 'اكتب دولتك فوق') : s.sub;
+        $('amount-label').textContent = priced ? s.amountLabel : `${s.amountLabel} (اختياري)`;
         $('amount-unit').textContent = s.unit;
-        $('cur-row').classList.toggle('hidden', !!s.noCur);
+        $('cur-row').classList.toggle('hidden', !priced || !!s.noCur);
         $('cur-label').textContent = s.curLabel;
         document.querySelectorAll('[data-cur]').forEach(b => { const on = b.dataset.cur === state.cur; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
         const dep = s.kind === 'deposit';
-        $('net-wrap').classList.toggle('hidden', !dep);
-        if (dep) {
-            if (!usdtNetworks().find(n => n.name === state.net)) state.net = firstNet().name;
-            $('nets').innerHTML = usdtNetworks().map(n => `<button type="button" class="chip ${n.name === state.net ? 'on' : ''}" data-net="${esc(n.name)}">${esc(n.name)} <small>· رسوم ${fmtTrim(toNum(n.fee, 0))}</small></button>`).join('');
+        const nets = netList();
+        $('net-wrap').classList.toggle('hidden', !dep || !nets.length);
+        if (dep && nets.length) {
+            if (!nets.find(n => n.name === state.net)) state.net = nets[0].name;
+            $('nets').innerHTML = nets.map(n => `<button type="button" class="chip ${n.name === state.net ? 'on' : ''}" data-net="${esc(n.name)}">${esc(n.name)}${n.fee !== null && priced ? ` <small>· رسوم ${fmtTrim(toNum(n.fee, 0))}</small>` : ''}</button>`).join('');
         }
         const addr = dep ? 'عنوان محفظتك USDT' : s.kind === 'send' ? 'رقم المحفظة اللي بيوصلها الجنيه' : '';
         $('addr-wrap').classList.toggle('hidden', !addr);
@@ -559,18 +566,18 @@
     function renderResult() {
         const s = currentService();
         if (!s) return;
+        const priced = priceable(s);
         const amount = toNum(latin(state.amount), 0);
-        const q = quote(s, amount, s.noCur ? 'ILS' : state.cur, state.net);
+        const q = priced ? quote(s, amount, s.noCur ? 'ILS' : state.cur) : null;
         const res = $('result');
-        res.classList.toggle('empty', !q && !s.method);
-        res.classList.toggle('ask', !!(s.method && !s.src));
         res.style.removeProperty('--c');
-        if (s.method && !s.src) {
-            $('res-label').textContent = s.method.name;
-            $('res-big').textContent = 'السعر بنحكيلك ياه على واتساب';
+        res.classList.toggle('ask', !priced);
+        res.classList.toggle('empty', priced && !q);
+        if (!priced) {
+            $('res-label').textContent = s.label;
+            $('res-big').textContent = 'بنحكيلك السعر على واتساب';
             $('res-sub').innerHTML = '';
         } else if (!q) {
-            res.classList.add('empty');
             $('res-label').textContent = 'اكتب المبلغ لتشوف السعر';
             $('res-big').textContent = '—';
             $('res-sub').innerHTML = '';
@@ -583,35 +590,40 @@
         }
         const wa = DATA?.wa;
         const btn = $('wa-btn');
-        // طريقة بدون سعر: بتنطلب حتى بدون مبلغ
-        const ok = wa && (q || (s.method && !s.src));
+        const ok = wa && (!priced || q);
         btn.setAttribute('aria-disabled', String(!ok));
         btn.href = ok ? `https://wa.me/${wa}?text=${encodeURIComponent(orderText(s, q, amount))}` : '#';
     }
 
+    // رسالة واتساب: شو بدّه ومن وين، المبلغ إذا كتبه، والسعر بس إذا الأسعار شغّالة
     function orderText(s, q, amount) {
+        const amt = amount > 0 ? fmtTrim(amount) : '';
+        const from = state.country ? ` من ${countryName(state.country)}` : '';
         const lines = [`مرحبا ${DATA.company?.name || ''}،`];
-        if (s.method) {
-            const where = state.country ? ` من ${countryName(state.country)}` : '';
-            lines.push(s.offer ? `بدي أبعت حوالة من ${countryName(s.iso)}` : `بدي أبعت${where} عن طريق ${s.method.name}`);
-            if (amount > 0) lines.push(`المبلغ: ${fmtTrim(amount)}${s.unit}`);
-            if (q && !q.ask) lines.push(`بستلم: ${money(q.total, q.cur)}`);
-        } else {
-            lines.push('بدي أطلب:', q.head);
-            if (q.net) lines.push(`الشبكة: ${q.net}`);
-            lines.push(`${q.pay ? 'بدفع' : 'بستلم'}: ${money(q.total, q.cur)}`);
-            const addr = state.addr.trim();
-            if (addr && (s.kind === 'deposit' || s.kind === 'send')) lines.push(`${s.kind === 'deposit' ? 'عنوان المحفظة' : 'رقم المحفظة'}: ${addr}`);
-        }
+        if (s.type === 'country') lines.push(`بدي أبعت حوالة من ${countryName(s.iso)}`);
+        else if (s.type === 'ready') lines.push(`محتاج ${s.label}${s.iso ? '' : from}`);
+        else if (s.type === 'method') lines.push(`بدي أبعت${from} عن طريق ${s.method.name}`);
+        else if (s.kind === 'deposit') lines.push(`بدي أشتري ${amt ? amt + ' ' : ''}USDT`);
+        else if (s.kind === 'withdraw') lines.push(`بدي أبيع ${amt ? amt + ' ' : ''}USDT`);
+        else if (s.kind === 'send') lines.push(`بدي أبعت ${amt ? amt + ' ' : ''}جنيه لمصر`);
+        else if (s.kind === 'receive') lines.push(`بدي أستلم ${amt ? amt + ' ' : ''}جنيه من مصر`);
+        else if (s.kind === 'usd_sell') lines.push(`بدي أبيع ${amt ? amt + '$' : 'دولار'}`);
+        else if (s.kind === 'usd_buy') lines.push(`بدي أشتري ${amt ? amt + '$' : 'دولار'}`);
+        if (amt && (s.type === 'country' || s.type === 'ready' || s.type === 'method')) lines.push(`المبلغ: ${amt}${s.unit}`);
+        if (s.kind === 'deposit' && state.net) lines.push(`الشبكة: ${state.net}`);
+        const addr = state.addr.trim();
+        if (addr && (s.kind === 'deposit' || s.kind === 'send')) lines.push(`${s.kind === 'deposit' ? 'عنوان المحفظة' : 'رقم المحفظة'}: ${addr}`);
+        if (q) lines.push(`${q.pay ? 'بدفع' : 'بستلم'}: ${money(q.total, q.cur)}`);
         if (state.name.trim()) lines.push(`الاسم: ${state.name.trim()}`);
-        lines.push('', '(من صفحة الأسعار)');
+        lines.push('', '(من صفحة الزبائن)');
         return lines.join('\n');
     }
 
+    // "محتاج حساب؟": الحسابات الجاهزة اللي مش مربوطة بدولة (المربوطة بتطلع مع دولتها)
     function renderReady() {
-        const list = DATA.ready || [];
+        const list = generalReady();
         $('ready-wrap').classList.toggle('hidden', !list.length || !DATA.wa);
-        $('ready').innerHTML = list.map(r => `<button type="button" data-ready="${esc(r.name)}"><span>${esc(r.name)}</span>${r.category && r.category !== r.name ? `<small>${esc(r.category)}</small>` : ''}<span class="go">←</span></button>`).join('');
+        $('ready').innerHTML = list.map(r => `<button type="button" data-svc="r_${esc(r.id)}"><span>${esc(r.name)}</span>${r.category && r.category !== r.name ? `<small>${esc(r.category)}</small>` : ''}<span class="go">←</span></button>`).join('');
     }
 
     function renderLive() {
@@ -619,7 +631,7 @@
         const mins = Math.floor((Date.now() - loadedAt) / 60000);
         $('live').classList.remove('hidden');
         $('live').classList.toggle('stale', mins >= 5);
-        $('live-text').textContent = mins < 1 ? 'الأسعار محدّثة' : mins === 1 ? 'قبل دقيقة' : mins === 2 ? 'قبل دقيقتين' : `قبل ${mins} دقايق`;
+        $('live-text').textContent = mins < 1 ? 'محدّث' : mins === 1 ? 'قبل دقيقة' : mins === 2 ? 'قبل دقيقتين' : `قبل ${mins} دقايق`;
     }
 
     function showMessage(icon, title, text, retry) {
@@ -633,6 +645,8 @@
 
     function applyData(d) {
         DATA = d;
+        DATA.countries = Array.isArray(d.countries) ? d.countries : [];
+        DATA.ready = Array.isArray(d.ready) ? d.ready : [];
         DATA.methods = (d.methods || []).map(m => ({ ...m, countries: Array.isArray(m.countries) ? m.countries : [], extra: Array.isArray(m.extra) ? m.extra : [], blocked: Array.isArray(m.blocked) ? m.blocked : [] }));
         globalConfig = { ...PRICE_DEFAULTS, screenRate: toNum(d.screen, 0), egpScreenRate: toNum(d.egpScreen, 0) };
         Object.entries(d.settings || {}).forEach(([k, v]) => {
@@ -661,7 +675,8 @@
         if (!d?.ok) return showMessage('🕘', 'الصفحة مش متاحة هلّق', d?.error === 'off' ? 'تواصل معنا على واتساب ومنساعدك.' : 'جرّب بعد شوي.', d?.error !== 'off');
         applyData(d);
         $('co-sub').textContent = d.company.subtitle || '';
-        if (d.welcome) $('hero-sub').textContent = d.welcome;
+        $('hero-sub').textContent = d.welcome || 'اكتب الدولة اللي بدك تبعت منها، وبنوريك شو المتاح منها.';
+        $('live').classList.toggle('hidden', !pricesOn());
         $('loading').classList.add('hidden');
         $('message').classList.add('hidden');
         $('content').classList.remove('hidden');
@@ -670,14 +685,16 @@
             const iso = (new URLSearchParams(location.search).get('c') || '').toUpperCase();
             if (worldCountry(iso)) { state.country = iso; $('country').value = countryName(iso); $('search-flag').textContent = worldFlag(iso); $('country-clear').classList.remove('hidden'); }
         }
+        // خيار انشال أو انوقف من الإعدادات ← بيتسكّر
+        if (state.svc && !currentService()) state.svc = '';
         renderQuick();
-        renderMethods();
+        renderOptions();
         renderOrder();
         renderReady();
-        renderLive();
+        if (pricesOn()) renderLive();
+        $('foot').textContent = d.company.name;
         // بعد أول رسم: التحديث كل دقيقة ما بيعيد حركة دخول الكروت
         setTimeout(() => $('methods').classList.add('settled'), 900);
-        $('foot').textContent = `${d.company.name} · الأسعار بتتحدث لحالها مع السوق`;
     }
 
     // ---------- الأحداث ----------
@@ -703,6 +720,8 @@
         if (sug) return pickCountry(sug.dataset.iso);
         const svc = e.target.closest('[data-svc]');
         if (svc) {
+            // خدمة ثانية: المبلغ والعنوان بيبدوا من جديد (وحدة الأول ممكن غير)
+            if (svc.dataset.svc !== state.svc) { state.amount = ''; state.addr = ''; $('amount').value = ''; $('addr').value = ''; }
             state.svc = svc.dataset.svc;
             renderOrder();
             $('order').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -710,20 +729,15 @@
             return;
         }
         if (e.target.closest('#sel-change')) {
-            const isMethod = state.svc.startsWith('m_');
-            (isMethod ? $('methods-title') : $('quick')).scrollIntoView({ behavior: 'smooth', block: 'center' });
-            if (isMethod && !state.country) setTimeout(() => country.focus({ preventScroll: true }), 400);
+            const s = currentService();
+            (s?.type === 'quick' ? $('quick') : $('methods-title')).scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (s?.type !== 'quick' && !state.country) setTimeout(() => country.focus({ preventScroll: true }), 400);
             return;
         }
         const cur = e.target.closest('[data-cur]');
         if (cur) { state.cur = cur.dataset.cur; renderOrder(); return; }
         const net = e.target.closest('[data-net]');
-        if (net) { state.net = net.dataset.net; renderOrder(); return; }
-        const ready = e.target.closest('[data-ready]');
-        if (ready && DATA?.wa) {
-            const text = `مرحبا ${DATA.company?.name || ''}، محتاج ${ready.dataset.ready}${state.name.trim() ? `\nالاسم: ${state.name.trim()}` : ''}\n\n(من صفحة الأسعار)`;
-            window.open(`https://wa.me/${DATA.wa}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
-        }
+        if (net) { state.net = net.dataset.net; renderOrder(); }
     });
     $('amount').addEventListener('input', (e) => {
         // فاصلة الآلاف وإنت بتكتب، والأرقام العربية بتتحول
@@ -737,9 +751,9 @@
     $('cname').addEventListener('input', (e) => { state.name = e.target.value; renderResult(); });
 
     load(true);
-    // كل دقيقة (والصفحة ظاهرة)، ولما ترجع للصفحة
+    // كل دقيقة (والصفحة ظاهرة)، ولما ترجع للصفحة: دولة انوقفت بتختفي
     setInterval(() => { if (!document.hidden) load(false); }, 60000);
-    setInterval(renderLive, 15000);
+    setInterval(() => { if (pricesOn()) renderLive(); }, 15000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - loadedAt > 60000) load(false); });
     </script>
 </body>

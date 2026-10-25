@@ -154,3 +154,29 @@ const COUNTRY_CURRENCY = {
 EEA_COUNTRIES.forEach(c => { if (!COUNTRY_CURRENCY[c] && !['BG', 'CZ', 'DK', 'HU', 'IS', 'LI', 'NO', 'PL', 'RO', 'SE'].includes(c)) COUNTRY_CURRENCY[c] = 'يورو'; });
 const countryCurrency = (iso) => COUNTRY_CURRENCY[iso] || 'بعملتها';
 
+
+// الحساب الجاهز لأي دولة (حتى يطلع للزبون لما يختار دولته): العلم بالاسم أو التصنيف، أو الصفة ("حساب سعودي")، أو اسم الدولة
+const COUNTRY_ADJ = {
+    سعودي: 'SA', اماراتي: 'AE', قطري: 'QA', كويتي: 'KW', بحريني: 'BH', عماني: 'OM', اردني: 'JO', مصري: 'EG', عراقي: 'IQ',
+    تركي: 'TR', امريكي: 'US', بريطاني: 'GB', الماني: 'DE', فرنسي: 'FR', كندي: 'CA', ليبي: 'LY', تونسي: 'TN', جزائري: 'DZ',
+    مغربي: 'MA', يمني: 'YE', لبناني: 'LB', سوري: 'SY', فلسطيني: 'PS', صيني: 'CN', هندي: 'IN', ماليزي: 'MY', اندونيسي: 'ID',
+    سويدي: 'SE', هولندي: 'NL', بلجيكي: 'BE', نمساوي: 'AT', ايطالي: 'IT', اسباني: 'ES', روسي: 'RU', اوكراني: 'UA', ياباني: 'JP'
+};
+function readyIso(r) {
+    const text = `${r?.name || ''} ${r?.category || ''}`;
+    const flag = text.match(/[\u{1F1E6}-\u{1F1FF}]{2}/u);
+    if (flag) {
+        const iso = [...flag[0]].map(ch => String.fromCharCode(ch.codePointAt(0) - 0x1F1E6 + 65)).join('');
+        if (worldCountry(iso)) return iso;
+    }
+    const words = worldNorm(text.replace(/[^\p{L}\s]/gu, ' ')).split(' ').filter(w => w.length >= 3);
+    for (const w of words) {
+        const adj = COUNTRY_ADJ[w] || COUNTRY_ADJ[w.replace(/(يه|ية|ه)$/, '')];
+        if (adj) return adj;
+    }
+    for (const w of words) {
+        const hit = WORLD_COUNTRIES.find(c => [c[1], c[2], ...(c[3] || '').split(' ')].some(x => worldNorm(x) === w));
+        if (hit) return hit[0];
+    }
+    return '';
+}
