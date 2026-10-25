@@ -451,7 +451,11 @@ function usdtQuoteText() {
 }
 
 async function copyUsdtQuote(btn) {
-    const text = usdtQuoteText();
+    return copyQuoteButton(btn, usdtQuoteText());
+}
+
+// نسخ نص السعر للزبون بزر "⧉ نسخ" (USDT والجنيه): الزر بيخضر "✓ تم النسخ" شوي
+async function copyQuoteButton(btn, text) {
     if (!text) return showToast('تنبيه', 'اكتب المبلغ أول', 'warning');
     if (!(await copyText(text))) return showToast('ما زبط النسخ', 'المتصفح منع النسخ، انسخه بإيدك', 'warning');
     btn.classList.add('copied');

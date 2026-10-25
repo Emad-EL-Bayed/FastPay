@@ -581,6 +581,23 @@ function egpQuote() {
     return { base, amount, egp, f, money: computeEgp({ ...f, egp }), cur: egpQuick.unit };
 }
 
+// زر "نسخ" بالحاسبة السريعة: "إرسال 5,000 جنيه" ثم المبلغ (بالجنيه: الشيكل والدولار سطرين)، بدون قروش إلا إذا فيه
+function egpQuickQuoteText() {
+    const q = egpQuote();
+    if (!q.amount || !(q.egp > 0)) return '';
+    const head = `${egpQuick.dir === 'send' ? 'إرسال' : 'استقبال'} ${fmtEgp(q.egp)} جنيه`;
+    if (egpQuick.unit === 'EGP') return [head, `${fmtTrim(q.ils.total)} ₪`, `أو ${fmtTrim(q.usd.total)} $`].join('\n');
+    return [head, `${fmtTrim(q.amount)} ${CUR_SYM[q.cur] || '₪'}`].join('\n');
+}
+
+// زر "نسخ" جنب حفظ بنافذة الحركة (إرسال واستقبال بس): نفس اللي بالمعاينة بالضبط
+function egpFormQuoteText() {
+    const f = resolvedEgpForm();
+    if ((f.kind !== 'send' && f.kind !== 'receive') || !(f.egp > 0) || !(f.rate > 0)) return '';
+    const r = computeEgp(f);
+    return [`${f.kind === 'send' ? 'إرسال' : 'استقبال'} ${fmtEgp(f.egp)} جنيه`, `${fmtTrim(r.total)} ${CUR_SYM[f.currency] || '₪'}`].join('\n');
+}
+
 function renderEgpQuick() {
     if (pageHidden('egp')) return;
     document.querySelectorAll('#egpq-dirs [data-dir]').forEach(b => b.classList.toggle('active', b.dataset.dir === egpQuick.dir));
@@ -899,6 +916,7 @@ function updateEgpPreview() {
     const f = resolvedEgpForm();
     if (f.fixedTotal > 0) $('eg_egp').value = f.egp || '';
     if (f.autoPct) $('eg_pct').value = f.pct;
+    $('eg_copy').classList.toggle('hidden', f.kind !== 'send' && f.kind !== 'receive');
     if (f.kind === 'send' || f.kind === 'receive') {
         $('eg_pct_label').textContent = (f.kind === 'send' ? 'نسبة الإرسال %' : 'نسبة الاستقبال %') + (f.autoPct && egpTiers(f.kind).length > 1 ? ' · حسب الشريحة' : '');
     }

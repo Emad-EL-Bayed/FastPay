@@ -1961,6 +1961,36 @@ img.uw-logo { object-fit: cover; }
 .dev-out-all { width: 100%; margin-top: 0.25rem; padding: 0.55rem; border-radius: 0.7rem; font-size: 0.75rem; font-weight: 800; color: rgb(var(--t-rose-700, 190 18 60)); background: rgb(var(--b-rose-50, 255 241 242)); border: 1px dashed rgb(var(--c-rose-200, 254 205 211)); }
 .dev-out-all:hover { background: rgb(var(--b-rose-100, 255 228 230)); }
 
+.cash-count-btn { flex-shrink: 0; padding: 0.35rem 0.55rem; border-radius: 0.5rem; font-size: 0.7rem; font-weight: 800; color: rgb(var(--t-amber-800, 146 64 14)); background: rgb(var(--b-amber-50, 255 251 235)); border: 1px solid rgb(var(--c-amber-200, 253 230 138)); white-space: nowrap; }
+.cash-count-btn.active { background: rgb(var(--b-amber-100, 254 243 199)); }
+.cash-count { border: 1px dashed rgb(var(--c-amber-300, 252 211 77)); background: rgb(var(--b-amber-50, 255 251 235) / 0.6); border-radius: 0.75rem; padding: 0.6rem; }
+.cash-count-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(5.4rem, 1fr)); gap: 0.4rem; }
+.cash-den { display: flex; flex-direction: column; align-items: stretch; gap: 0.15rem; background: rgb(var(--b-white, 255 255 255)); border: 1px solid rgb(var(--c-slate-200, 226 232 240)); border-radius: 0.6rem; padding: 0.35rem 0.4rem; text-align: center; }
+.cash-den-v { font-size: 0.68rem; font-weight: 900; color: rgb(var(--t-slate-700, 51 65 85)); }
+.cash-den input { width: 100%; text-align: center; font-weight: 800; font-size: 0.9rem; border: 1px solid rgb(var(--c-slate-200, 226 232 240)); border-radius: 0.45rem; padding: 0.25rem; background: rgb(var(--b-slate-50, 248 250 252)); color: rgb(var(--t-slate-900, 15 23 42)); }
+.cash-den input:focus { outline: none; border-color: rgb(var(--c-amber-400, 251 191 36)); }
+.cash-den-sum { font-size: 0.62rem; color: rgb(var(--t-slate-500, 100 116 139)); min-height: 0.8rem; }
+.cash-count-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; font-size: 0.75rem; color: rgb(var(--t-slate-600, 71 85 105)); }
+
+/* قفل البرنامج (applock.js) */
+.applock-card { width: 100%; max-width: 20rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; text-align: center; padding: 1.75rem 1.25rem 1.25rem; border-radius: 1.5rem; background: rgb(var(--b-white, 255 255 255) / 0.86); border: 1px solid rgb(var(--c-slate-200, 226 232 240) / 0.8); box-shadow: 0 24px 60px -30px rgb(15 23 42 / 0.45); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+.applock-avatar .avatar-lg { width: 4rem; height: 4rem; font-size: 1.5rem; }
+.applock-dots { display: flex; gap: 0.85rem; margin: 0.5rem 0 0.1rem; }
+.applock-dots i { width: 0.85rem; height: 0.85rem; border-radius: 999px; border: 2px solid rgb(var(--c-slate-300, 203 213 225)); transition: background 0.15s, border-color 0.15s, transform 0.15s; }
+.applock-dots i.on { background: rgb(var(--b-slate-900, 15 23 42)); border-color: rgb(var(--c-slate-900, 15 23 42)); transform: scale(1.1); }
+.applock-dots.shake { animation: applock-shake 0.4s; }
+@keyframes applock-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+.applock-keys { display: grid; grid-template-columns: repeat(3, 4.25rem); gap: 0.7rem; margin: 0.25rem 0 0.5rem; }
+.applock-keys button { height: 4.25rem; border-radius: 999px; font-size: 1.5rem; font-weight: 800; color: rgb(var(--t-slate-900, 15 23 42)); background: rgb(var(--b-slate-100, 241 245 249)); transition: background 0.12s, transform 0.08s; -webkit-tap-highlight-color: transparent; }
+.applock-keys button:hover { background: rgb(var(--b-slate-200, 226 232 240)); }
+.applock-keys button:active { transform: scale(0.94); background: rgb(var(--b-slate-200, 226 232 240)); }
+.applock-keys .applock-k-icon { background: transparent; font-size: 1.35rem; }
+.applock-status { font-weight: 800; color: rgb(var(--t-emerald-700, 4 120 87)); }
+.applock-btn { padding: 0.45rem 0.7rem; border-radius: 0.55rem; font-weight: 800; background: rgb(var(--b-slate-100, 241 245 249)); color: rgb(var(--t-slate-700, 51 65 85)); }
+.applock-btn:hover { background: rgb(var(--b-slate-200, 226 232 240)); }
+body.app-locked > *:not(#applock-screen):not(script) { filter: blur(6px); }
+html.motion-off .applock-dots.shake { animation: none; }
+
 /* ================= الوضع الداكن ================= */
 /* الألوان نفسها متغيرات (build/tailwind.config.js) وبتتحول لحالها، وهون بس اللي إله شكل خاص بالداكن.
    <html data-theme="dark"> بيتحط من js/theme.js (ومن سكربت صغير بأول index.html قبل أول رسم) */

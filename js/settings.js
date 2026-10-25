@@ -152,6 +152,8 @@ const SHARED_SETTINGS = {
     receiptQrOn: { label: 'QR بالفاتورة لصفحة التتبّع (yes/no)', type: 'str' },
     goalOn: { label: 'هدف الشهر بالتقارير (yes/no)', type: 'str' },
     goalAmount: { label: 'هدف الشهر: صافي الربح ₪', type: 'num' },
+    appLockForce: { label: 'قفل البرنامج بالرمز إجباري على كل الأجهزة (yes/no)', type: 'str' },
+    appLockMins: { label: 'قفل البرنامج: بعد كم دقيقة بدون استعمال (0 = فوراً)', type: 'num' },
     loyaltyOn: { label: 'الزبون الدايم: مكافأة (yes/no)', type: 'str' },
     loyaltyEvery: { label: 'الزبون الدايم: كل كم حوالة مكتملة', type: 'num' },
     loyaltyType: { label: 'الزبون الدايم: pct خصم من نسبة الربح / ils مبلغ للزبون', type: 'str' },
@@ -222,6 +224,8 @@ function applySharedSettings(rows, full) {
         // بنود المصاريف المقترحة من جهاز ثاني
         renderExpenses();
     }
+    // المدير خلّى القفل إجباري: اللي ما عنده رمز بيحطه (applock.js)
+    checkAppLockRequired();
     // أول جهاز يتصل بشيت فارغ يرفع إعداداته
     if (full) syncSharedSettings();
 }

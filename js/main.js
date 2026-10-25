@@ -152,6 +152,16 @@ const CLICK_ACTIONS = {
     'wa-share-native': waShareNative,
     'wa-copy-msg': waCopyMessage,
     'open-closing': openClosingModal,
+    'applock-setup': () => showAppLock('setup'),
+    'applock-cancel': hideAppLock,
+    'applock-forgot': askAppLockForgot,
+    'applock-now': lockAppNow,
+    'applock-bio-on': enableBiometric,
+    'applock-bio-off': disableBiometric,
+    'applock-off': removeAppLock,
+    'applock-force-toggle': toggleAppLockForce,
+    'closing-count': toggleClosingCount,
+    'closing-count-clear': clearClosingCount,
     'load-deleted': loadDeletedList,
     'restore-deleted': (el) => restoreDeletedPrompt(el.dataset.id),
     'mnav-more': toggleMobileMore,
@@ -211,6 +221,8 @@ const CLICK_ACTIONS = {
     'usdt-kind': (el) => { if (!editingUsdtId) setUsdtKind(el.dataset.kind); updateUsdtPreview(); },
     'usdt-currency': (el) => setUsdtCurrency(el.dataset.cur),
     'usdt-copy': (el) => copyUsdtQuote(el),
+    'egp-copy': (el) => copyQuoteButton(el, egpFormQuoteText()),
+    'egpq-copy': (el) => copyQuoteButton(el, egpQuickQuoteText()),
     'usdt-select-customer': (el) => selectUsdtCustomer(el.dataset.id),
     'usdt-pay': (el) => openUsdtPay(toNum(el.dataset.id, NaN)),
     'final-adjust': (el) => bumpFinalAdjust(el.dataset.target, toNum(el.dataset.step, 0)),
@@ -332,6 +344,7 @@ function bindEvents() {
     bindExpenseEvents();
     bindReportEvents();
     bindReadyEvents();
+    bindAppLockEvents();
 }
 
 // على مستوى الصفحة: الأزرار (data-action)، إغلاق القوائم والنوافذ، Escape، عجلة الماوس
@@ -517,7 +530,7 @@ function bindTraderEvents() {
 function bindAccountEvents() {
     $('accountForm').addEventListener('submit', saveAccount);
     $('closingForm').addEventListener('submit', saveClosing);
-    $('closing-rows').addEventListener('input', updateClosingDiffs);
+    $('closing-rows').addEventListener('input', onClosingInput);
     $('amoveForm').addEventListener('submit', saveAmove);
     $('acc_type').addEventListener('change', () => { $('acc_usd').checked = ACCOUNT_TYPES[$('acc_type').value].usd; syncAccountUsdField(); syncAccountLimitFields(); });
     $('acc_usd').addEventListener('change', syncAccountUsdField);
@@ -674,7 +687,8 @@ document.addEventListener('DOMContentLoaded', () => {
     applyPermsUI();
     refreshAllViews();
     moveNavIndicator();
-    if (authEnabled && !session?.token) showLogin();
+    if (authEnabled && !session?.token) showLogin(takeLockReason());
+    initAppLock();
 
     // آخر نسخة محفوظة على الجهاز فوراً (إذا في)، وبنفس اللحظة من Google Sheets (cache.js)
     startDataLoad();

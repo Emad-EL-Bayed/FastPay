@@ -28,45 +28,67 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=142">
+    <link rel="stylesheet" href="styles.css?v=143">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=142">
+    <link rel="stylesheet" href="tailwind.css?v=143">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=142" defer></script>
-    <script src="js/core.js?v=142" defer></script>
-    <script src="js/theme.js?v=142" defer></script>
-    <script src="js/logo-data.js?v=142" defer></script>
-    <script src="js/shell.js?v=142" defer></script>
-    <script src="js/calculator.js?v=142" defer></script>
-    <script src="js/reports.js?v=142" defer></script>
-    <script src="js/sync.js?v=142" defer></script>
-    <script src="js/conflicts.js?v=142" defer></script>
-    <script src="js/cache.js?v=142" defer></script>
-    <script src="js/bgsync.js?v=142" defer></script>
-    <script src="js/transactions.js?v=142" defer></script>
-    <script src="js/receipts.js?v=142" defer></script>
-    <script src="js/customers.js?v=142" defer></script>
-    <script src="js/countries.js?v=142" defer></script>
-    <script src="js/service-logos.js?v=142" defer></script>
-    <script src="js/traders.js?v=142" defer></script>
-    <script src="js/expenses.js?v=142" defer></script>
-    <script src="js/ready.js?v=142" defer></script>
-    <script src="js/settings.js?v=142" defer></script>
-    <script src="js/accounts.js?v=142" defer></script>
-    <script src="js/usdt.js?v=142" defer></script>
-    <script src="js/egp.js?v=142" defer></script>
-    <script src="js/closing.js?v=142" defer></script>
-    <script src="js/admin.js?v=142" defer></script>
-    <script src="js/position.js?v=142" defer></script>
-    <script src="js/search.js?v=142" defer></script>
-    <script src="js/notify.js?v=142" defer></script>
-    <script src="js/push.js?v=142" defer></script>
-    <script src="js/auth.js?v=142" defer></script>
-    <script src="js/main.js?v=142" defer></script>
+    <script src="js/endpoint.js?v=143" defer></script>
+    <script src="js/core.js?v=143" defer></script>
+    <script src="js/theme.js?v=143" defer></script>
+    <script src="js/logo-data.js?v=143" defer></script>
+    <script src="js/shell.js?v=143" defer></script>
+    <script src="js/calculator.js?v=143" defer></script>
+    <script src="js/reports.js?v=143" defer></script>
+    <script src="js/sync.js?v=143" defer></script>
+    <script src="js/conflicts.js?v=143" defer></script>
+    <script src="js/cache.js?v=143" defer></script>
+    <script src="js/bgsync.js?v=143" defer></script>
+    <script src="js/transactions.js?v=143" defer></script>
+    <script src="js/receipts.js?v=143" defer></script>
+    <script src="js/customers.js?v=143" defer></script>
+    <script src="js/countries.js?v=143" defer></script>
+    <script src="js/service-logos.js?v=143" defer></script>
+    <script src="js/traders.js?v=143" defer></script>
+    <script src="js/expenses.js?v=143" defer></script>
+    <script src="js/ready.js?v=143" defer></script>
+    <script src="js/settings.js?v=143" defer></script>
+    <script src="js/accounts.js?v=143" defer></script>
+    <script src="js/usdt.js?v=143" defer></script>
+    <script src="js/egp.js?v=143" defer></script>
+    <script src="js/closing.js?v=143" defer></script>
+    <script src="js/admin.js?v=143" defer></script>
+    <script src="js/position.js?v=143" defer></script>
+    <script src="js/search.js?v=143" defer></script>
+    <script src="js/notify.js?v=143" defer></script>
+    <script src="js/push.js?v=143" defer></script>
+    <script src="js/auth.js?v=143" defer></script>
+    <script src="js/applock.js?v=143" defer></script>
+    <script src="js/main.js?v=143" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
     <!-- ================= شاشة الدخول (تظهر عندما يكون في الشيت ورقة مستخدمين) ================= -->
+    <!-- قفل البرنامج بالرمز أو البصمة (applock.js): فوق كل إشي، حتى شاشة الدخول ما بتنشاف وراه -->
+    <div id="applock-screen" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 login-bg" role="dialog" aria-modal="true" aria-label="البرنامج مقفول">
+        <div class="applock-card">
+            <div id="applock-avatar" class="applock-avatar"></div>
+            <h2 id="applock-title" class="text-lg font-black text-slate-900"></h2>
+            <p id="applock-sub" class="text-xs text-slate-500 min-h-[1rem]"></p>
+            <div id="applock-dots" class="applock-dots" aria-hidden="true"></div>
+            <p id="applock-error" class="text-xs font-bold text-rose-600 min-h-[1rem]" role="alert"></p>
+            <div id="applock-keys" class="applock-keys" dir="ltr">
+                <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button>
+                <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button>
+                <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button>
+                <button type="button" id="applock-bio" data-k="bio" class="applock-k-icon" aria-label="افتح بالبصمة">☝️</button>
+                <button type="button" data-k="0">0</button>
+                <button type="button" data-k="back" class="applock-k-icon" aria-label="امسح">⌫</button>
+            </div>
+            <button type="button" id="applock-forgot" data-action="applock-forgot" class="text-[11px] font-bold text-slate-400 hover:text-rose-600">نسيت الرمز؟</button>
+            <button type="button" id="applock-cancel" data-action="applock-cancel" class="text-[11px] font-bold text-slate-400 hover:text-slate-700">إلغاء</button>
+        </div>
+    </div>
+
     <div id="login-screen" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 login-bg">
         <form id="loginForm" class="section-card w-full max-w-sm p-7 space-y-4" autocomplete="on">
             <div class="text-center space-y-2">
@@ -218,6 +240,7 @@
                         </div>
                         <button data-action="open-profile">👤 ملفي (الاسم والصورة)</button>
                         <button data-action="change-password">🔑 تغيير كلمة السر</button>
+                        <button id="applock-menu-btn" data-action="applock-now" class="hidden">🔒 اقفل البرنامج هلّق</button>
                         <button id="theme-menu-btn" data-action="toggle-theme">🌙 الوضع الداكن</button>
                         <button data-action="logout" class="text-rose-600">⎋ تسجيل خروج</button>
                     </div>
@@ -850,7 +873,11 @@
                                     <button type="button" data-action="egpq-unit" data-unit="USD" class="seg-btn" role="radio">$</button>
                                 </div>
                             </div>
-                            <button data-action="egpq-record" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2.5 rounded-lg transition">سجّلها كحركة</button>
+                            <div class="flex gap-2">
+                                <button data-action="egpq-record" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2.5 rounded-lg transition">سجّلها كحركة</button>
+                                <!-- نسخ السعر للزبون: العملية والجنيه والمبلغ -->
+                                <button type="button" data-action="egpq-copy" title="نسخ السعر للزبون" class="quote-copy px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs">⧉ نسخ</button>
+                            </div>
                         </div>
                         <div id="egpq-result" class="space-y-2"></div>
                     </div>
@@ -1436,6 +1463,28 @@
                             <span>حوالات لنفس الزبون باليوم</span>
                         </div>
                         <p class="text-[10px] text-slate-400">0 = مسكّر. <span id="fraud-script-note" class="hidden font-bold text-amber-700">انشر سكربت Google Sheets الجديد حتى تشتغل التنبيهات</span></p>
+                    </div>
+                    <!-- قفل البرنامج بالرمز (applock.js، إعدادات مشتركة appLockForce/appLockMins) -->
+                    <div id="applock-section" class="space-y-2 pt-4 border-t border-slate-100">
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-900">قفل البرنامج بالرمز أو البصمة</h4>
+                            <p class="text-[11px] text-slate-400 leading-5">كل واحد بيقدر يحط رمز لجهازه من "ملفي". إذا شغّلته هون بيصير إجباري: أي موظف ما عنده رمز بيطلب منه يحطه أول ما يفتح البرنامج. الرمز والبصمة بيضلوا على الجهاز نفسه، وإذا نسيه بيطلع من الحساب وبيدخل بكلمة السر.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-xs font-bold text-slate-700">إجباري على كل الأجهزة</span>
+                            <button type="button" id="applock-force-toggle" data-action="applock-force-toggle" class="status-toggle" style="--c:#10b981" aria-pressed="false"><span class="sw"></span>مسكّر</button>
+                        </div>
+                        <div id="applock_mins_row" class="hidden flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
+                            <span>يتقفل</span>
+                            <select id="applock_mins" class="field text-xs font-bold py-1.5">
+                                <option value="0">فوراً لما يطلع منه</option>
+                                <option value="1">بعد دقيقة</option>
+                                <option value="5">بعد 5 دقايق</option>
+                                <option value="15">بعد 15 دقيقة</option>
+                                <option value="30">بعد 30 دقيقة</option>
+                            </select>
+                            <span>بدون استعمال</span>
+                        </div>
                     </div>
                     <!-- الحوالة المتأخرة (transactions.js txLateMs، والسكربت lateTxJob للإشعار) -->
                     <div id="late-section" class="space-y-2 pt-4 border-t border-slate-100">
@@ -2716,6 +2765,7 @@
                 <div id="eg_preview" class="tm-preview space-y-1"></div>
                 <div class="pt-1 flex gap-2">
                     <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg text-sm transition">حفظ</button>
+                    <button type="button" id="eg_copy" data-action="egp-copy" title="نسخ العملية والمبلغ للزبون" class="quote-copy px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-sm">⧉ نسخ</button>
                     <button type="button" data-action="close-modal" data-modal="egpModal" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">إلغاء</button>
                 </div>
             </form>
@@ -3268,6 +3318,11 @@
                 </div>
                 <button type="submit" id="pf_save" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg transition disabled:opacity-60">حفظ</button>
             </form>
+            <!-- قفل البرنامج على هالجهاز (applock.js) -->
+            <div id="pf_lock_wrap" class="hidden mt-5 pt-4 border-t border-slate-100 space-y-2 text-xs">
+                <b class="text-sm text-slate-900 block">🔒 قفل البرنامج على هالجهاز</b>
+                <div id="pf_lock" class="space-y-2"></div>
+            </div>
             <!-- أجهزتي (admin.js): كل جهاز داخل بحسابي، وتطليع جهاز ضاع -->
             <div id="pf_devices_wrap" class="hidden mt-5 pt-4 border-t border-slate-100 space-y-2 text-xs">
                 <div class="flex items-center justify-between gap-2">

@@ -29,21 +29,110 @@ function closingLines() {
     return sortedAccounts().flatMap(a => ['ILS', ...(a.usd ? ['USD'] : [])].map(cur => ({ a, cur, system: bal[a.id]?.[cur] || 0 })));
 }
 
+// عدّ الكاش بالفئات (بطلب عماد 2026-10-25): لحسابات الكاش، كم ورقة من كل فئة ← المجموع بينكتب بالرصيد الفعلي.
+// العدّ بيضل محفوظ بالجهاز لنفس اليوم (لو سكّرت النافذة ورجعت)، ومش بالشيت.
+const CASH_DENOMS = { ILS: [200, 100, 50, 20, 10, 5, 2, 1, 0.5], USD: [100, 50, 20, 10, 5, 2, 1] };
+let closingCounts = {};
+
+function closingCountsLoad(date) {
+    try {
+        const saved = JSON.parse(localStorage.getItem('fastpay_cash_counts') || '{}');
+        closingCounts = saved.date === date ? saved.counts || {} : {};
+    } catch (e) { closingCounts = {}; }
+}
+
+function closingCountsSave(date) {
+    try { localStorage.setItem('fastpay_cash_counts', JSON.stringify({ date, counts: closingCounts })); } catch (e) { /* عادي */ }
+}
+
+function cashCountRowHtml(key, cur) {
+    const counts = closingCounts[key] || {};
+    return `
+        <tr class="closing-count-row hidden" data-key="${escapeHtml(key)}" data-cur="${cur}">
+            <td colspan="4" class="p-2 pt-0">
+                <div class="cash-count">
+                    <div class="cash-count-grid">
+                        ${CASH_DENOMS[cur].map(d => `
+                            <label class="cash-den">
+                                <span class="cash-den-v">${fmtTrim(d)} ${CUR_SYM[cur]}</span>
+                                <input type="text" inputmode="numeric" autocomplete="off" class="cnt-input" data-den="${d}" value="${counts[d] || ''}" placeholder="0">
+                                <span class="cash-den-sum num" data-sum></span>
+                            </label>`).join('')}
+                    </div>
+                    <div class="cash-count-foot"><span data-total></span><button type="button" data-action="closing-count-clear" class="text-slate-400 hover:text-rose-600 font-bold">مسح العدّ</button></div>
+                </div>
+            </td>
+        </tr>`;
+}
+
+// مجموع العدّ لسطر حساب: بيكتب الأرقام تحت كل فئة والمجموع، وبيعبّي خانة الرصيد الفعلي
+function updateCashCount(row) {
+    const key = row.dataset.key, cur = row.dataset.cur;
+    let total = 0, notes = 0;
+    const counts = {};
+    row.querySelectorAll('.cnt-input').forEach(inp => {
+        const n = Math.max(0, Math.floor(toNum(latinDigits(inp.value), 0)));
+        const d = Number(inp.dataset.den);
+        if (n) { counts[d] = n; total += n * d; notes += n; }
+        inp.closest('.cash-den').querySelector('[data-sum]').textContent = n ? fmtTrim(n * d) : '';
+    });
+    total = round2(total);
+    closingCounts[key] = counts;
+    closingCountsSave(localDateStr());
+    row.querySelector('[data-total]').innerHTML = notes ? `المجموع <b class="num">${fmtTrim(total)} ${CUR_SYM[cur]}</b> · ${notes} ورقة وقطعة` : 'اكتب كم ورقة من كل فئة';
+    const main = row.previousElementSibling?.querySelector('.closing-input');
+    if (main && notes) main.value = total;
+    if (main && !notes && main.dataset.counted) main.value = '';
+    if (main) main.dataset.counted = notes ? '1' : '';
+}
+
+function toggleClosingCount(btn) {
+    const line = btn.closest('tr');
+    const row = line.nextElementSibling;
+    if (!row?.classList.contains('closing-count-row')) return;
+    const open = row.classList.toggle('hidden') === false;
+    btn.classList.toggle('active', open);
+    if (open) row.querySelector('.cnt-input')?.focus();
+}
+
+function clearClosingCount(btn) {
+    const row = btn.closest('.closing-count-row');
+    row.querySelectorAll('.cnt-input').forEach(i => { i.value = ''; });
+    updateCashCount(row);
+    updateClosingDiffs();
+}
+
+function onClosingInput(e) {
+    const row = e.target.closest('.closing-count-row');
+    if (row) updateCashCount(row);
+    else if (e.target.classList.contains('closing-input')) e.target.dataset.counted = '';
+    updateClosingDiffs();
+}
+
 function openClosingModal() {
     if (!walletsReady()) return;
     if (!accounts.length) return showToast('لا توجد حسابات', 'أضف حساباتك أولاً', 'warning');
     const today = localDateStr();
     $('closingModalTitle').textContent = `جرد آخر اليوم — ${today}`;
+    closingCountsLoad(today);
     $('closing-rows').innerHTML = closingLines().map(({ a, cur, system }) => {
         const prev = closings.find(c => c.id === `${today}_${a.id}_${cur}`);
+        const key = `${a.id}_${cur}`;
+        const cash = a.accType === 'cash';
+        const counted = cash && Object.keys(closingCounts[key] || {}).length;
         return `
-            <tr style="--acc:${ACCOUNT_TYPES[a.accType].color}">
+            <tr class="closing-line" style="--acc:${ACCOUNT_TYPES[a.accType].color}">
                 <td class="p-2 whitespace-nowrap"><span class="acc-dot"></span> <b>${escapeHtml(accountName(a))}</b> <span class="text-[10px] text-slate-400">${CUR_SYM[cur]}</span></td>
                 <td class="p-2 font-mono num whitespace-nowrap">${fmt(system)}</td>
-                <td class="p-2"><input type="number" step="any" class="closing-input w-28 border border-slate-200 rounded-lg p-1.5 font-bold" data-acc="${escapeHtml(a.id)}" data-cur="${cur}" data-system="${system}" value="${prev ? prev.actual : ''}" placeholder="${fmt(system)}"></td>
+                <td class="p-2"><div class="flex items-center gap-1.5"><input type="number" step="any" class="closing-input w-28 border border-slate-200 rounded-lg p-1.5 font-bold" data-acc="${escapeHtml(a.id)}" data-cur="${cur}" data-system="${system}" value="${prev ? prev.actual : ''}" placeholder="${fmt(system)}">${cash ? `<button type="button" data-action="closing-count" class="cash-count-btn" title="عدّ الكاش بالفئات">🧮 عدّ</button>` : ''}</div></td>
                 <td class="p-2 font-mono num font-black whitespace-nowrap closing-diff">—</td>
-            </tr>`;
+            </tr>${cash ? cashCountRowHtml(key, cur) : ''}`;
     }).join('');
+    // العدّ المحفوظ من قبل اليوم: بيرجع ومجموعه بالخانة
+    document.querySelectorAll('#closing-rows .closing-count-row').forEach(row => {
+        if (Object.keys(closingCounts[row.dataset.key] || {}).length) updateCashCount(row);
+        else row.querySelector('[data-total]').textContent = 'اكتب كم ورقة من كل فئة';
+    });
     $('closing_settle').checked = false;
     $('closing_note').value = '';
     $('closing-summary').innerHTML = employeeDaySummaryHtml(today);
@@ -53,7 +142,7 @@ function openClosingModal() {
 
 function updateClosingDiffs() {
     let total = 0;
-    document.querySelectorAll('#closing-rows tr').forEach(tr => {
+    document.querySelectorAll('#closing-rows tr.closing-line').forEach(tr => {
         const input = tr.querySelector('.closing-input');
         const cell = tr.querySelector('.closing-diff');
         if (input.value === '') { cell.textContent = '—'; cell.className = 'p-2 font-mono num font-black whitespace-nowrap closing-diff text-slate-300'; return; }
