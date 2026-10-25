@@ -73,3 +73,42 @@ function worldSearch(q, limit = 8) {
     });
     return scored.sort((a, b) => a[0] - b[0]).slice(0, limit).map(x => x[1]);
 }
+
+// ================= الطرق: بأي دول بتشتغل (بطلب عماد 2026-10-25: "انت تعرف لحالك أي دولة فيها طرق") =================
+// معلومات جاهزة لكل شركة (only = بس هالدول، except = كل الدول إلا هدول). بتتغير مع الوقت، فبالإعدادات في تعديل بإيد
+// (زيادة extra / إلا blocked) فوقها. المصادر (تشرين الأول 2026): Revolut من صفحة المساعدة الرسمية (الدول المدعومة)،
+// Wise من صفحة "الدول اللي ما بنشتغل فيها" الرسمية، PayPal من عدة مصادر لأنه صفحتهم ما فتحت (الأقل دقة)،
+// Payoneer و Western Union و MoneyGram: كل الدول إلا دول العقوبات تقريباً.
+const EEA_COUNTRIES = ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IS', 'IE', 'IT', 'LV', 'LI', 'LT', 'LU', 'MT', 'NL', 'NO', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE'];
+const PROVIDER_COVERAGE = {
+    revolut: { mode: 'only', countries: [...EEA_COUNTRIES, 'CH', 'GB', 'US', 'AU', 'NZ', 'SG', 'JP', 'BR', 'MX', 'AE', 'CO', 'CL'] },
+    wise: { mode: 'except', countries: ['AF', 'BY', 'BI', 'CF', 'TD', 'CG', 'CD', 'CU', 'ER', 'IR', 'IQ', 'KP', 'LY', 'MM', 'SO', 'SS', 'RU', 'SD', 'SY', 'YE', 'VE'] },
+    paypal: { mode: 'except', countries: ['PS', 'IR', 'SY', 'IQ', 'AF', 'LY', 'SD', 'SS', 'PK', 'LB', 'BD', 'CU', 'KP', 'MM', 'RU'] },
+    payoneer: { mode: 'except', countries: ['IR', 'SY', 'CU', 'KP', 'RU', 'BY', 'SD', 'SS', 'MM'] },
+    westernunion: { mode: 'except', countries: ['IR', 'SY', 'CU', 'KP', 'RU', 'BY'] },
+    moneygram: { mode: 'except', countries: ['IR', 'SY', 'CU', 'KP', 'RU', 'BY'] }
+};
+const PROVIDER_COVERAGE_AS_OF = 'تشرين الأول 2026';
+
+// الطريقة بتشتغل من هالدولة؟ تلقائي (المعلومات الجاهزة + تعديلات extra/blocked)، أو بإيد (mode/countries)
+function methodWorksIn(m, iso) {
+    const cov = m.auto !== 'no' ? PROVIDER_COVERAGE[m.brand] : null;
+    if (cov) {
+        if ((m.blocked || []).includes(iso)) return false;
+        if ((m.extra || []).includes(iso)) return true;
+        return cov.mode === 'except' ? !cov.countries.includes(iso) : cov.countries.includes(iso);
+    }
+    const list = m.countries || [];
+    return m.mode === 'except' ? !list.includes(iso) : list.includes(iso);
+}
+
+const methodIsAuto = (m) => m.auto !== 'no' && !!PROVIDER_COVERAGE[m.brand];
+const methodCountryCount = (m) => WORLD_COUNTRIES.filter(c => methodWorksIn(m, c[0])).length;
+
+// "بتشتغل من 42 دولة" أو "من كل الدول إلا 15" (الطرق اللي بتشتغل بأغلب العالم)
+function methodCoverageText(m) {
+    const broad = methodIsAuto(m) ? PROVIDER_COVERAGE[m.brand].mode === 'except' : m.mode === 'except';
+    if (!broad) return `من ${methodCountryCount(m)} دولة`;
+    const out = WORLD_COUNTRIES.filter(c => !methodWorksIn(m, c[0])).length;
+    return out ? `من كل الدول إلا ${out}` : 'من كل الدول';
+}

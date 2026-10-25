@@ -307,10 +307,10 @@
         <p class="foot" id="foot"></p>
     </main>
 
-    <script src="js/endpoint.js"></script>
-    <script src="js/pricing.js"></script>
-    <script src="js/service-logos.js"></script>
-    <script src="js/world-countries.js"></script>
+    <script src="js/endpoint.js?v=149"></script>
+    <script src="js/pricing.js?v=149"></script>
+    <script src="js/service-logos.js?v=149"></script>
+    <script src="js/world-countries.js?v=149"></script>
     <script>
     'use strict';
     // الإعدادات اللي بتقرأها دوال pricing.js (من رد السكربت فوق الافتراضي PRICE_DEFAULTS)
@@ -337,8 +337,8 @@
         return { c: '#6366f1', html: esc(String(m.name || '؟').trim().charAt(0)) };
     }
     const countryName = (iso) => worldCountry(iso)?.[1] || iso;
-    const methodWorks = (m, iso) => (m.mode === 'except' ? !m.countries.includes(iso) : m.countries.includes(iso));
-    const methodsFor = (iso) => (DATA?.methods || []).filter(m => !iso || methodWorks(m, iso));
+    // بأي دول بتشتغل: تلقائي من معلومات الشركة (js/world-countries.js) وتعديلات عماد، أو القائمة اللي اختارها
+    const methodsFor = (iso) => (DATA?.methods || []).filter(m => !iso || methodWorksIn(m, iso));
     const methodSource = (m) => (m.source ? (DATA?.sources || []).find(s => String(s.id) === String(m.source)) : null);
 
     // ---------- الخدمات ----------
@@ -440,7 +440,7 @@
         try { history.replaceState(null, '', iso ? `?c=${iso}` : location.pathname); } catch (e) { /* عادي */ }
         // الطريقة المختارة ما بتشتغل من الدولة الجديدة ← بتنشال
         const cur = currentService();
-        if (cur?.method && iso && !methodWorks(cur.method, iso)) { state.svc = ''; }
+        if (cur?.method && iso && !methodWorksIn(cur.method, iso)) { state.svc = ''; }
         renderMethods();
         renderOrder();
         if (iso) $('methods-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -452,7 +452,8 @@
         const q = s.src ? quote(s, 100, 'ILS') : null;
         const price = q ? `<div class="mprice"><span>لما تبعت 100${esc(s.unit)}</span><b class="num">${esc(fmtTrim(q.total))} <small>₪ بتستلم</small></b></div>`
             : '<div class="mprice"><span>السعر</span><b style="font-size:13px">بنحكيلك على واتساب</b></div>';
-        const where = m.mode === 'except' ? 'من كل الدول تقريباً' : (m.countries.length === 1 ? `من ${countryName(m.countries[0])}` : `من ${m.countries.length} دول`);
+        const n = methodCountryCount(m);
+        const where = n > 120 ? 'من أغلب دول العالم' : n === 1 ? `من ${countryName(WORLD_COUNTRIES.find(c => methodWorksIn(m, c[0]))[0])}` : methodCoverageText(m);
         return `<button type="button" class="mcard ${state.svc === s.id ? 'on' : ''}" data-svc="${esc(s.id)}" style="--c:${s.icon.c};animation-delay:${i * 0.04}s">
             <span class="mlogo">${s.icon.html}</span>
             <b class="name">${esc(m.name)}</b>
@@ -588,7 +589,7 @@
 
     function applyData(d) {
         DATA = d;
-        DATA.methods = (d.methods || []).map(m => ({ ...m, countries: Array.isArray(m.countries) ? m.countries : [] }));
+        DATA.methods = (d.methods || []).map(m => ({ ...m, countries: Array.isArray(m.countries) ? m.countries : [], extra: Array.isArray(m.extra) ? m.extra : [], blocked: Array.isArray(m.blocked) ? m.blocked : [] }));
         globalConfig = { ...PRICE_DEFAULTS, screenRate: toNum(d.screen, 0), egpScreenRate: toNum(d.egpScreen, 0) };
         Object.entries(d.settings || {}).forEach(([k, v]) => {
             if (JSON_KEYS.includes(k)) { try { globalConfig[k] = JSON.parse(v); } catch (e) { /* الافتراضي */ } }

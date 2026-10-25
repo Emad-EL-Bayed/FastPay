@@ -513,6 +513,10 @@ function normPriceMethod(m) {
         id: String(m?.id || ''), name: String(m?.name || '').trim().slice(0, 40), brand: SERVICE_BRANDS[m?.brand] ? m.brand : '',
         mode: m?.mode === 'except' ? 'except' : 'only',
         countries: [...new Set((Array.isArray(m?.countries) ? m.countries : []).map(String).filter(c => /^[A-Z]{2}$/.test(c)))],
+        // تلقائي = الدول من معلومات الشركة الجاهزة (PROVIDER_COVERAGE)، وفوقها زيادة extra وإلا blocked
+        auto: m?.auto === 'no' ? 'no' : 'yes',
+        extra: [...new Set((Array.isArray(m?.extra) ? m.extra : []).map(String).filter(c => /^[A-Z]{2}$/.test(c)))],
+        blocked: [...new Set((Array.isArray(m?.blocked) ? m.blocked : []).map(String).filter(c => /^[A-Z]{2}$/.test(c)))],
         source: String(m?.source || ''), on: m?.on === 'no' ? 'no' : 'yes'
     };
 }
@@ -582,6 +586,10 @@ const methodLogoHtml = (m, size = 'md') => (m.brand ? `<span class="sv-logo ${si
 const methodSourceName = (id) => countries.find(c => String(c.id) === String(id))?.name || '';
 
 function methodCountriesText(m) {
+    if (methodIsAuto(m)) {
+        const ch = m.extra.length + m.blocked.length;
+        return `تلقائي · بتشتغل ${methodCoverageText(m)}${ch ? ` · ${ch} تعديل بإيدك` : ''}`;
+    }
     const n = m.countries.length;
     const names = m.countries.slice(0, 3).map(c => worldFlag(c) + ' ' + (worldCountry(c)?.[1] || c)).join('، ');
     if (m.mode === 'except') return n ? `كل الدول ما عدا ${names}${n > 3 ? ` و${n - 3} غيرهم` : ''}` : 'كل الدول';
@@ -606,7 +614,7 @@ function renderPriceMethods(cfg = pricesCfg()) {
 
 function openMethodModal(id = '') {
     const m = pricesCfg().methods.find(x => x.id === id);
-    methodDraft = m ? { ...m, countries: [...m.countries] } : { id: '', name: '', brand: '', mode: 'only', countries: [], source: '', on: 'yes' };
+    methodDraft = m ? { ...m, countries: [...m.countries], extra: [...m.extra], blocked: [...m.blocked] } : { id: '', name: '', brand: '', mode: 'only', countries: [], auto: 'yes', extra: [], blocked: [], source: '', on: 'yes' };
     $('pm_title').textContent = m ? `تعديل ${m.name}` : 'طريقة جديدة';
     $('pm_name').value = methodDraft.name;
     $('pm_search').value = '';
@@ -624,6 +632,20 @@ function renderMethodModal() {
     if (!d) return;
     $('pm_brands').innerHTML = `<button type="button" data-action="pm-brand" data-k="" class="pm-brand ${!d.brand ? 'on' : ''}"><span class="sv-logo md pm-initial">${escapeHtml((d.name || '؟').charAt(0))}</span><span>بدون</span></button>`
         + METHOD_BRANDS.filter(k => SERVICE_BRANDS[k]).map(k => `<button type="button" data-action="pm-brand" data-k="${k}" class="pm-brand ${d.brand === k ? 'on' : ''}"><span class="sv-logo md">${brandSvg(k)}</span><span>${escapeHtml(SERVICE_BRANDS[k].name)}</span></button>`).join('');
+    // شركة معروفة: الدول تلقائي من معلوماتها، أو بإيدك
+    const known = !!PROVIDER_COVERAGE[d.brand];
+    const auto = methodIsAuto(d);
+    $('pm_auto_wrap').classList.toggle('hidden', !known);
+    $('pm_manual_wrap').classList.toggle('hidden', auto);
+    document.querySelectorAll('#pm_autos [data-auto]').forEach(b => b.classList.toggle('active', b.dataset.auto === (auto ? 'yes' : 'no')));
+    if (auto) {
+        $('pm_auto_info').innerHTML = `${escapeHtml(d.name || SERVICE_BRANDS[d.brand].name)} بتشتغل <b>${methodCoverageText(d)}</b> حسب معلوماتها (${PROVIDER_COVERAGE_AS_OF}). إذا في دولة غلط، دوّر عليها تحت واكبسها: ✓ يعني شغّالة.`;
+        $('pm_overrides').innerHTML = [...d.extra.map(c => [c, '+']), ...d.blocked.map(c => [c, '−'])]
+            .map(([c, sign]) => `<button type="button" data-action="pm-country" data-c="${c}" class="pm-chip ${sign === '+' ? 'on' : 'off'}">${sign} ${worldFlag(c)} ${escapeHtml(worldCountry(c)?.[1] || c)} <b>×</b></button>`).join('')
+            || '<span class="text-[11px] text-slate-400">ما في تعديلات: كله حسب معلومات الشركة</span>';
+        renderMethodSearch();
+        return;
+    }
     document.querySelectorAll('#pm_modes [data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === d.mode));
     $('pm_countries_label').textContent = d.mode === 'except' ? 'الدول اللي ما بتشتغل منها' : 'الدول اللي بتشتغل منها';
     $('pm_selected').innerHTML = d.countries.length
@@ -635,14 +657,24 @@ function renderMethodModal() {
 function renderMethodSearch() {
     const q = $('pm_search').value;
     const list = q.trim() ? worldSearch(q, 12) : WORLD_COUNTRIES.slice(0, 24);
+    const auto = methodIsAuto(methodDraft);
     $('pm_results').innerHTML = list.map(c => {
-        const on = methodDraft.countries.includes(c[0]);
+        // تلقائي: ✓ = شغّالة منها (بعد التعديلات). بإيد: معلّمة بالقائمة
+        const on = auto ? methodWorksIn(methodDraft, c[0]) : methodDraft.countries.includes(c[0]);
         return `<button type="button" data-action="pm-country" data-c="${c[0]}" class="pm-chip ${on ? 'on' : ''}">${on ? '✓ ' : ''}${worldFlag(c[0])} ${escapeHtml(c[1])}</button>`;
     }).join('') || '<span class="text-[11px] text-slate-400">ما لقينا دولة بهالاسم</span>';
 }
 
 function toggleMethodCountry(iso) {
     const d = methodDraft;
+    if (methodIsAuto(d)) {
+        // التعديل فوق المعلومات الجاهزة: اللي كان تعديل بيرجع، وإلا بيصير زيادة أو "إلا"
+        if (d.extra.includes(iso)) d.extra = d.extra.filter(c => c !== iso);
+        else if (d.blocked.includes(iso)) d.blocked = d.blocked.filter(c => c !== iso);
+        else if (methodWorksIn(d, iso)) d.blocked.push(iso);
+        else d.extra.push(iso);
+        return renderMethodModal();
+    }
     d.countries = d.countries.includes(iso) ? d.countries.filter(c => c !== iso) : [...d.countries, iso];
     renderMethodModal();
 }
@@ -652,7 +684,7 @@ function saveMethod() {
     d.name = $('pm_name').value.trim().slice(0, 40) || (d.brand ? SERVICE_BRANDS[d.brand].name : '');
     d.source = $('pm_source').value;
     if (!d.name) return showToast('تنبيه', 'اكتب اسم الطريقة', 'warning');
-    if (d.mode === 'only' && !d.countries.length) return showToast('تنبيه', 'اختار الدول اللي بتشتغل منها', 'warning');
+    if (!methodIsAuto(d) && d.mode === 'only' && !d.countries.length) return showToast('تنبيه', 'اختار الدول اللي بتشتغل منها', 'warning');
     const list = pricesCfg().methods;
     if (!d.id) d.id = 'm' + Date.now().toString(36);
     const i = list.findIndex(x => x.id === d.id);

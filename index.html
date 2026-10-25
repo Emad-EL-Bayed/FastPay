@@ -28,43 +28,43 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="فاست باي">
-    <link rel="stylesheet" href="styles.css?v=147">
+    <link rel="stylesheet" href="styles.css?v=149">
     <!-- Tailwind مبني مسبقاً (build/build-css.sh)، بعد styles.css كما كان سكربت CDN يضيفه آخر الصفحة -->
-    <link rel="stylesheet" href="tailwind.css?v=147">
+    <link rel="stylesheet" href="tailwind.css?v=149">
     <!-- الترتيب مهم: core أولاً و main أخيراً -->
-    <script src="js/endpoint.js?v=147" defer></script>
-    <script src="js/pricing.js?v=147" defer></script>
-    <script src="js/core.js?v=147" defer></script>
-    <script src="js/theme.js?v=147" defer></script>
-    <script src="js/logo-data.js?v=147" defer></script>
-    <script src="js/shell.js?v=147" defer></script>
-    <script src="js/calculator.js?v=147" defer></script>
-    <script src="js/reports.js?v=147" defer></script>
-    <script src="js/sync.js?v=147" defer></script>
-    <script src="js/conflicts.js?v=147" defer></script>
-    <script src="js/cache.js?v=147" defer></script>
-    <script src="js/bgsync.js?v=147" defer></script>
-    <script src="js/transactions.js?v=147" defer></script>
-    <script src="js/receipts.js?v=147" defer></script>
-    <script src="js/customers.js?v=147" defer></script>
-    <script src="js/countries.js?v=147" defer></script>
-    <script src="js/service-logos.js?v=147" defer></script>
-    <script src="js/world-countries.js?v=147" defer></script>
-    <script src="js/traders.js?v=147" defer></script>
-    <script src="js/expenses.js?v=147" defer></script>
-    <script src="js/ready.js?v=147" defer></script>
-    <script src="js/settings.js?v=147" defer></script>
-    <script src="js/accounts.js?v=147" defer></script>
-    <script src="js/usdt.js?v=147" defer></script>
-    <script src="js/egp.js?v=147" defer></script>
-    <script src="js/closing.js?v=147" defer></script>
-    <script src="js/admin.js?v=147" defer></script>
-    <script src="js/position.js?v=147" defer></script>
-    <script src="js/search.js?v=147" defer></script>
-    <script src="js/notify.js?v=147" defer></script>
-    <script src="js/push.js?v=147" defer></script>
-    <script src="js/auth.js?v=147" defer></script>
-    <script src="js/main.js?v=147" defer></script>
+    <script src="js/endpoint.js?v=149" defer></script>
+    <script src="js/pricing.js?v=149" defer></script>
+    <script src="js/core.js?v=149" defer></script>
+    <script src="js/theme.js?v=149" defer></script>
+    <script src="js/logo-data.js?v=149" defer></script>
+    <script src="js/shell.js?v=149" defer></script>
+    <script src="js/calculator.js?v=149" defer></script>
+    <script src="js/reports.js?v=149" defer></script>
+    <script src="js/sync.js?v=149" defer></script>
+    <script src="js/conflicts.js?v=149" defer></script>
+    <script src="js/cache.js?v=149" defer></script>
+    <script src="js/bgsync.js?v=149" defer></script>
+    <script src="js/transactions.js?v=149" defer></script>
+    <script src="js/receipts.js?v=149" defer></script>
+    <script src="js/customers.js?v=149" defer></script>
+    <script src="js/countries.js?v=149" defer></script>
+    <script src="js/service-logos.js?v=149" defer></script>
+    <script src="js/world-countries.js?v=149" defer></script>
+    <script src="js/traders.js?v=149" defer></script>
+    <script src="js/expenses.js?v=149" defer></script>
+    <script src="js/ready.js?v=149" defer></script>
+    <script src="js/settings.js?v=149" defer></script>
+    <script src="js/accounts.js?v=149" defer></script>
+    <script src="js/usdt.js?v=149" defer></script>
+    <script src="js/egp.js?v=149" defer></script>
+    <script src="js/closing.js?v=149" defer></script>
+    <script src="js/admin.js?v=149" defer></script>
+    <script src="js/position.js?v=149" defer></script>
+    <script src="js/search.js?v=149" defer></script>
+    <script src="js/notify.js?v=149" defer></script>
+    <script src="js/push.js?v=149" defer></script>
+    <script src="js/auth.js?v=149" defer></script>
+    <script src="js/main.js?v=149" defer></script>
 </head>
 <body class="antialiased min-h-screen flex flex-row">
     <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -2667,12 +2667,24 @@
                 <input type="text" id="pm_name" maxlength="40" placeholder="مثلاً: Revolut" class="w-full field font-bold">
             </div>
             <div class="space-y-2">
+                <!-- شركة معروفة (PROVIDER_COVERAGE): الدول تلقائي، وفوقها تعديلاتك -->
+                <div id="pm_auto_wrap" class="hidden space-y-2">
+                    <div id="pm_autos" class="seg seg-sm" role="radiogroup">
+                        <button type="button" data-action="pm-auto" data-auto="yes" class="seg-btn">الدول تلقائي</button>
+                        <button type="button" data-action="pm-auto" data-auto="no" class="seg-btn">أختارها بإيدي</button>
+                    </div>
+                    <p id="pm_auto_info" class="text-[11px] text-slate-600 leading-5 bg-emerald-50 border border-emerald-200 rounded-lg p-2.5"></p>
+                    <b class="block text-slate-700">تعديلاتك</b>
+                    <div id="pm_overrides" class="flex flex-wrap gap-1.5"></div>
+                </div>
+                <div id="pm_manual_wrap" class="space-y-2">
                 <div id="pm_modes" class="seg seg-sm" role="radiogroup">
                     <button type="button" data-action="pm-mode" data-mode="only" class="seg-btn">دول محددة</button>
                     <button type="button" data-action="pm-mode" data-mode="except" class="seg-btn">كل الدول ما عدا</button>
                 </div>
                 <b id="pm_countries_label" class="block text-slate-700">الدول اللي بتشتغل منها</b>
                 <div id="pm_selected" class="flex flex-wrap gap-1.5"></div>
+                </div>
                 <input type="search" id="pm_search" placeholder="دوّر على دولة: سنغافورة، Germany…" autocomplete="off" class="w-full field">
                 <div id="pm_results" class="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto"></div>
             </div>
