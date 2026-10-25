@@ -127,3 +127,30 @@ function methodCoverageText(m) {
     const out = WORLD_COUNTRIES.filter(c => !methodWorksIn(m, c[0])).length;
     return out ? `من كل الدول إلا ${out}` : 'من كل الدول';
 }
+
+// ================= دول التسعير بالصفحة (بطلب عماد 2026-10-25: "خلي كل الدول اللي عنا تلقائي") =================
+// كل سطر بـ "تسعير الدول" اسمه دولة (بعلمها أو باسمها) بيطلع بالصفحة لحاله "حوالة من قطر" بسعره؛
+// المصادر اللي مش دول (باي بال، ويسترن، تيك توك…) بتضل "طرق". USDT والجنيه إلهم صفحاتهم فبينتجاهلوا.
+function pricingCountryIso(name) {
+    const text = String(name || '');
+    if (/usdt|جنيه/i.test(text)) return '';
+    const flag = text.match(/[\u{1F1E6}-\u{1F1FF}]{2}/u);
+    if (flag) {
+        const iso = [...flag[0]].map(ch => String.fromCharCode(ch.codePointAt(0) - 0x1F1E6 + 65)).join('');
+        return worldCountry(iso) ? iso : '';
+    }
+    const n = worldNorm(text.replace(/[^\p{L}\s]/gu, ' '));
+    const hit = n && WORLD_COUNTRIES.find(c => [c[1], c[2], ...(c[3] || '').split(' ')].some(x => worldNorm(x) === n));
+    return hit ? hit[0] : '';
+}
+
+// اسم عملة الدولة (للمبلغ اللي الزبون بيبعته)؛ غيرها "بعملتها"
+const COUNTRY_CURRENCY = {
+    QA: 'ريال قطري', SA: 'ريال سعودي', AE: 'درهم', OM: 'ريال عماني', KW: 'دينار كويتي', BH: 'دينار بحريني', JO: 'دينار أردني',
+    IQ: 'دينار عراقي', MA: 'درهم مغربي', TN: 'دينار تونسي', DZ: 'دينار جزائري', LY: 'دينار ليبي', TR: 'ليرة تركية', GB: 'جنيه إسترليني',
+    US: 'دولار', CA: 'دولار كندي', AU: 'دولار أسترالي', CH: 'فرنك', SE: 'كرونة', NO: 'كرونة', DK: 'كرونة', JP: 'ين', CN: 'يوان',
+    MY: 'رينغيت', SG: 'دولار سنغافوري', IN: 'روبية', PK: 'روبية', RU: 'روبل', IL: 'شيكل', PS: 'شيكل', EG: 'جنيه'
+};
+EEA_COUNTRIES.forEach(c => { if (!COUNTRY_CURRENCY[c] && !['BG', 'CZ', 'DK', 'HU', 'IS', 'LI', 'NO', 'PL', 'RO', 'SE'].includes(c)) COUNTRY_CURRENCY[c] = 'يورو'; });
+const countryCurrency = (iso) => COUNTRY_CURRENCY[iso] || 'بعملتها';
+

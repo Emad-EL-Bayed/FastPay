@@ -503,6 +503,9 @@ function pricesCfg() {
         on: c.on === 'yes' ? 'yes' : 'no', wa: String(c.wa || ''), welcome: String(c.welcome || ''),
         usd: c.usd === 'no' ? 'no' : 'yes', usdt: c.usdt === 'no' ? 'no' : 'yes', egp: c.egp === 'no' ? 'no' : 'yes',
         ready: Array.isArray(c.ready) ? c.ready.map(String) : [], readyOn: c.readyOn === 'no' ? 'no' : 'yes',
+        // دول "تسعير الدول" بتطلع لحالها (countriesAuto)، إلا اللي شلتها (hiddenCountries = أرقام بالتسعير)
+        countriesAuto: c.countriesAuto === 'no' ? 'no' : 'yes',
+        hiddenCountries: Array.isArray(c.hiddenCountries) ? c.hiddenCountries.map(String) : [],
         methods: Array.isArray(c.methods) ? c.methods.map(normPriceMethod).filter(m => m.name) : []
     };
 }
@@ -546,6 +549,7 @@ function renderPricesSettings() {
     const chip = (action, id, label, active) => `<button type="button" data-action="${action}" data-id="${escapeHtml(id)}" class="tf-chip ${active ? 'active' : ''}" aria-pressed="${active}">${active ? '✓ ' : ''}${escapeHtml(label)}</button>`;
     $('prices-sections').innerHTML = PRICES_SECTIONS.map(([k, label]) => chip('prices-sec', k, label, cfg[k] === 'yes')).join('');
     renderPriceMethods(cfg);
+    renderPriceCountries(cfg);
     setToggle($('prices-ready-toggle'), cfg.readyOn === 'yes', 'ظاهر', 'مخفي');
     $('prices-ready').classList.toggle('opacity-50', cfg.readyOn !== 'yes');
     const ready = (typeof readyAccounts !== 'undefined' ? readyAccounts : []).filter(r => r.id);
@@ -610,6 +614,29 @@ function renderPriceMethods(cfg = pricesCfg()) {
             <button type="button" data-action="pm-toggle" data-id="${escapeHtml(m.id)}" class="status-toggle ${m.on !== 'no' ? 'on' : ''}" style="--c:#10b981" aria-pressed="${m.on !== 'no'}"><span class="sw"></span>${m.on !== 'no' ? 'ظاهرة' : 'مخفية'}</button>
             <button type="button" data-action="pm-edit" data-id="${escapeHtml(m.id)}" class="text-xs font-bold text-blue-700 hover:underline">تعديل</button>
         </div>`).join('') : '<p class="text-[11px] text-slate-400">ما في طرق لسا. ضيف باي بال، وايز، ريفولت… والدول اللي بتشتغل منها.</p>';
+}
+
+// دول التسعير بالصفحة: كل سطر اسمه دولة بيطلع لحاله؛ الكبسة بتخفيه أو بترجّعه
+function pricingCountries() {
+    return [...countries].filter(c => c.id && pricingCountryIso(c.name)).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+}
+
+function renderPriceCountries(cfg = pricesCfg()) {
+    const box = $('prices-countries');
+    if (!box) return;
+    const on = cfg.countriesAuto === 'yes';
+    setToggle($('prices-countries-toggle'), on, 'تلقائي', 'مسكّر');
+    box.classList.toggle('opacity-50', !on);
+    const list = pricingCountries();
+    box.innerHTML = list.length ? list.map(c => {
+        const shown = on && !cfg.hiddenCountries.includes(String(c.id));
+        return `<button type="button" data-action="prices-country" data-id="${escapeHtml(c.id)}" class="tf-chip ${shown ? 'active' : ''}" aria-pressed="${shown}" ${on ? '' : 'disabled'}>${shown ? '✓ ' : ''}${escapeHtml(c.name)}</button>`;
+    }).join('') : '<span class="text-[11px] text-slate-400">ما في دول بتسعير الدول</span>';
+}
+
+function togglePriceCountry(id) {
+    const cfg = pricesCfg();
+    savePricesCfg({ hiddenCountries: cfg.hiddenCountries.includes(id) ? cfg.hiddenCountries.filter(x => x !== id) : [...cfg.hiddenCountries, id] });
 }
 
 function openMethodModal(id = '') {

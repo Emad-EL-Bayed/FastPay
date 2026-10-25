@@ -94,6 +94,7 @@
         .quick .ic { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: #fff; font-size: 14px; overflow: hidden; }
         .quick .ic svg { width: 16px; height: 16px; }
         .quick button.on { box-shadow: 0 0 0 2px var(--c); }
+        .offer-label { margin: 14px 2px 0; font-size: 12px; font-weight: 800; color: var(--muted); }
 
         /* كروت الطرق: زجاج بلون الشعار */
         .methods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -238,6 +239,10 @@
                     <div id="suggest" class="suggest hidden" role="listbox"></div>
                 </div>
                 <div id="quick" class="quick" aria-label="خدمات ثانية"></div>
+                <div id="offer-flags-wrap" class="hidden">
+                    <p class="offer-label">عنا حوالات من:</p>
+                    <div id="offer-flags" class="quick" style="margin-top:6px"></div>
+                </div>
             </section>
 
             <!-- الطرق -->
@@ -307,10 +312,10 @@
         <p class="foot" id="foot"></p>
     </main>
 
-    <script src="js/endpoint.js?v=150"></script>
-    <script src="js/pricing.js?v=150"></script>
-    <script src="js/service-logos.js?v=150"></script>
-    <script src="js/world-countries.js?v=150"></script>
+    <script src="js/endpoint.js?v=151"></script>
+    <script src="js/pricing.js?v=151"></script>
+    <script src="js/service-logos.js?v=151"></script>
+    <script src="js/world-countries.js?v=151"></script>
     <script>
     'use strict';
     // الإعدادات اللي بتقرأها دوال pricing.js (من رد السكربت فوق الافتراضي PRICE_DEFAULTS)
@@ -367,7 +372,22 @@
         return { id: 'm_' + m.id, method: m, src, label: m.name, icon: methodIcon(m), unit: usdIn ? '$' : '', curLabel: 'بتستلم', noCur: !src,
             amountLabel: src ? (usdIn ? 'كم دولار بدك تبعت؟' : 'المبلغ اللي بدك تبعته') : 'المبلغ (تقريباً)' };
     }
+    // دول "تسعير الدول" (بتطلع لحالها): "حوالة من قطر" بسعرها، والمبلغ بعملة الدولة
+    const countryOffers = (iso) => (DATA?.countryIds || []).map(id => (DATA.sources || []).find(x => String(x.id) === String(id)))
+        .filter(x => x && pricingCountryIso(x.name) && (!iso || pricingCountryIso(x.name) === iso));
+    function offerService(src) {
+        const iso = pricingCountryIso(src.name);
+        const usdIn = src.type === 'direct_percent' || (src.type === 'mul' && Number(src.factor) === 1);
+        const cur = countryCurrency(iso);
+        const label = `حوالة من ${countryName(iso)}`;
+        return { id: 'c_' + src.id, offer: true, iso, method: { name: label }, src, label, icon: { c: '#0ea5e9', html: worldFlag(iso) },
+            unit: usdIn ? '$' : ` ${cur}`, curLabel: 'بتستلم', noCur: false, amountLabel: usdIn ? 'كم دولار بدك تبعت؟' : (cur === 'بعملتها' ? 'المبلغ اللي بدك تبعته' : `كم ${cur} بدك تبعت؟`) };
+    }
     function currentService() {
+        if (state.svc.startsWith('c_')) {
+            const src = countryOffers('').find(x => 'c_' + x.id === state.svc);
+            return src ? offerService(src) : null;
+        }
         if (state.svc.startsWith('m_')) {
             const m = (DATA?.methods || []).find(x => 'm_' + x.id === state.svc);
             return m ? methodService(m) : null;
@@ -400,7 +420,7 @@
         }
         if (s.method) {
             const where = state.country ? ` من ${worldFlag(state.country)} ${countryName(state.country)}` : '';
-            const head = `بدي أبعت${where} عن طريق ${s.method.name}`;
+            const head = s.offer ? `بدي أبعت حوالة من ${countryName(s.iso)}` : `بدي أبعت${where} عن طريق ${s.method.name}`;
             if (!s.src) return { ask: true, head, amountText: `${fmtTrim(amount)} ${s.unit}`.trim() };
             const c = { ...s.src, tiers: normalizeCountryTiers(s.src.tiers) };
             const t = countryTierAt(c, sourceUsdAmount(c.type, amount, c.factor)).tier;
@@ -425,7 +445,7 @@
         }
         state.hl = Math.min(state.hl, list.length - 1);
         box.innerHTML = list.map((c, i) => {
-            const n = methodsFor(c[0]).length;
+            const n = methodsFor(c[0]).length + countryOffers(c[0]).length;
             return `<button type="button" role="option" data-iso="${c[0]}" class="${i === state.hl ? 'hl' : ''}"><span class="fl">${worldFlag(c[0])}</span><b>${esc(c[1])}</b><small class="${n ? 'ok' : ''}">${n ? (n === 1 ? 'طريقة وحدة' : n === 2 ? 'طريقتين' : `${n} طرق`) : 'احكي معنا'}</small></button>`;
         }).join('');
         box.classList.remove('hidden');
@@ -462,18 +482,42 @@
         </button>`;
     }
 
+    // كرت "حوالة من قطر": العلم والسعر لما يبعت 100 من عملتها
+    function offerCardHtml(src, i) {
+        const s = offerService(src);
+        const q = quote(s, 100, 'ILS');
+        const price = q ? `<div class="mprice"><span>لما تبعت 100${esc(s.unit)}</span><b class="num">${esc(fmtTrim(q.total))} <small>₪ بتستلم</small></b></div>` : '';
+        return `<button type="button" class="mcard ${state.svc === s.id ? 'on' : ''}" data-svc="${esc(s.id)}" style="--c:${s.icon.c};animation-delay:${i * 0.04}s">
+            <span class="mlogo" style="font-size:26px">${s.icon.html}</span>
+            <b class="name">${esc(s.label)}</b>
+            ${price}
+            <div class="mcta"><span>حوالة مباشرة</span><em>اختار ←</em></div>
+        </button>`;
+    }
+
+    // "عنا حوالات من": أعلام دول التسعير تحت البحث (الكبسة بتختار الدولة)
+    function renderOfferFlags() {
+        const list = countryOffers('');
+        const isos = [...new Set(list.map(x => pricingCountryIso(x.name)))];
+        $('offer-flags-wrap').classList.toggle('hidden', !isos.length);
+        $('offer-flags').innerHTML = isos.map(iso => `<button type="button" data-iso="${iso}" class="${state.country === iso ? 'on' : ''}" style="--c:#0ea5e9"><span class="ic" style="font-size:16px">${worldFlag(iso)}</span>${esc(countryName(iso))}</button>`).join('');
+    }
+
     function renderMethods() {
         const iso = state.country;
+        const offers = iso ? countryOffers(iso) : [];
         const list = methodsFor(iso);
         const all = (DATA?.methods || []).length;
-        $('methods-title').textContent = iso ? `من ${worldFlag(iso)} ${countryName(iso)} بتقدر تبعت عن طريق` : 'الطرق اللي عنا';
-        $('methods-count').textContent = list.length ? (list.length === 1 ? 'طريقة وحدة' : list.length === 2 ? 'طريقتين' : `${list.length} طرق`) : '';
-        $('methods').innerHTML = list.map(methodCardHtml).join('');
+        const n = offers.length + list.length;
+        $('methods-title').textContent = iso ? `من ${worldFlag(iso)} ${countryName(iso)} بتقدر تبعت` : 'الطرق اللي عنا';
+        $('methods-count').textContent = n ? (n === 1 ? 'خيار واحد' : n === 2 ? 'خيارين' : `${n} خيارات`) : '';
+        $('methods').innerHTML = offers.map(offerCardHtml).join('') + list.map((m, i) => methodCardHtml(m, i + offers.length)).join('');
+        renderOfferFlags();
         const empty = $('methods-empty');
         const noneAtAll = !all;
-        empty.classList.toggle('hidden', list.length > 0 || (noneAtAll && !iso));
+        empty.classList.toggle('hidden', n > 0 || (noneAtAll && !iso));
         $('methods-title').parentElement.classList.toggle('hidden', noneAtAll && !iso);
-        if (!list.length && (iso || !noneAtAll)) {
+        if (!n && (iso || !noneAtAll)) {
             const text = `مرحبا ${DATA.company?.name || ''}، بدي أبعت من ${countryName(iso)}، شو الطرق المتاحة؟\n\n(من صفحة الأسعار)`;
             empty.innerHTML = `<div class="ico">${worldFlag(iso)}</div><h3>ما في طريقة جاهزة من ${esc(countryName(iso))}</h3><p>احكي معنا وبنشوفلك حل.</p>
                 ${DATA.wa ? `<a class="wa-btn wa-inline" target="_blank" rel="noopener" href="https://wa.me/${DATA.wa}?text=${encodeURIComponent(text)}">${$('wa-btn').querySelector('svg').outerHTML}<span>احكي معنا على واتساب</span></a>` : ''}`;
@@ -494,7 +538,7 @@
         $('sel-logo').innerHTML = s.icon.html;
         $('sel-logo').style.setProperty('--c', s.icon.c);
         $('sel-name').textContent = s.label;
-        $('sel-sub').textContent = s.method ? (state.country ? `من ${worldFlag(state.country)} ${countryName(state.country)}` : 'اختار دولتك فوق') : (s.sub || '');
+        $('sel-sub').textContent = s.offer ? 'حوالة مباشرة' : s.method ? (state.country ? `من ${worldFlag(state.country)} ${countryName(state.country)}` : 'اختار دولتك فوق') : (s.sub || '');
         $('amount-label').textContent = s.amountLabel;
         $('amount-unit').textContent = s.unit;
         $('cur-row').classList.toggle('hidden', !!s.noCur);
@@ -549,7 +593,7 @@
         const lines = [`مرحبا ${DATA.company?.name || ''}،`];
         if (s.method) {
             const where = state.country ? ` من ${countryName(state.country)}` : '';
-            lines.push(`بدي أبعت${where} عن طريق ${s.method.name}`);
+            lines.push(s.offer ? `بدي أبعت حوالة من ${countryName(s.iso)}` : `بدي أبعت${where} عن طريق ${s.method.name}`);
             if (amount > 0) lines.push(`المبلغ: ${fmtTrim(amount)}${s.unit}`);
             if (q && !q.ask) lines.push(`بستلم: ${money(q.total, q.cur)}`);
         } else {

@@ -154,6 +154,8 @@ const CLICK_ACTIONS = {
     'open-closing': openClosingModal,
     'prices-toggle': () => savePricesCfg({ on: pricesCfg().on === 'yes' ? 'no' : 'yes' }, pricesCfg().on === 'yes' ? 'صفحة الأسعار مسكّرة للزبائن' : 'صفحة الأسعار صارت شغّالة'),
     'prices-sec': (el) => savePricesCfg({ [el.dataset.id]: pricesCfg()[el.dataset.id] === 'yes' ? 'no' : 'yes' }),
+    'prices-countries-toggle': () => savePricesCfg({ countriesAuto: pricesCfg().countriesAuto === 'yes' ? 'no' : 'yes' }),
+    'prices-country': (el) => togglePriceCountry(el.dataset.id),
     'prices-ready-toggle': () => savePricesCfg({ readyOn: pricesCfg().readyOn === 'yes' ? 'no' : 'yes' }),
     'pm-new': () => openMethodModal(),
     'pm-edit': (el) => openMethodModal(el.dataset.id),
